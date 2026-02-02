@@ -1,65 +1,147 @@
-import Image from "next/image";
+'use client'
+import { createClient } from './utils/supabase/client';
+import { useEffect, useState } from 'react';
 
 export default function Home() {
+  const [recentActivity, setRecentActivity] = useState(null);
+  const [upcomingActivity, setUpcomingActivity] = useState(null);
+  const [msg, setMsg] = useState('');
+  const [user, setUser] = useState(null);
+  
+  const supabase = createClient();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      // Get User
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      // 1. Get Most Recent Past Activity
+      const { data: past } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('is_upcoming', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (past) setRecentActivity(past);
+
+      // 2. Get Next Upcoming Activity
+      const { data: coming } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('is_upcoming', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (coming) setUpcomingActivity(coming);
+    };
+    fetchData();
+  }, []);
+
+  const handleLike = async (activityId) => {
+    if (!user) return alert("Please login to like!");
+    
+    const { error } = await supabase
+      .from('likes')
+      .insert([{ user_id: user.id, activity_id: activityId }]);
+
+    if (error) {
+      if (error.code === '23505') alert("You already liked this!");
+      else alert("Error liking post");
+    } else {
+      alert("Liked!");
+    }
+  };
+
+    const sendTelegramMessage = async (e) => {
+    e.preventDefault();
+    if (!msg) return;
+
+    // 1. Optimistic UI: Clear the box immediately so it feels fast
+    const originalMsg = msg;
+    setMsg('');
+    
+    try {
+      const response = await fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: originalMsg,
+          userEmail: user?.email // Send the user's email if they are logged in
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to send');
+
+      alert("Message sent to Admin!");
+
+    } catch (error) {
+      alert("Failed to send message. Please try again.");
+      setMsg(originalMsg); // Put the text back if it failed
+    }
+  };
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-base-200 pb-20">
+      
+      {/* SECTION 1: MOST RECENT ACTIVITY */}
+      <div className="hero min-h-[60vh] bg-base-100">
+        <div className="hero-content flex-col lg:flex-row gap-10">
+          {recentActivity ? (
+            <>
+              {recentActivity.image_url && (
+                <img src={recentActivity.image_url} className="max-w-sm rounded-lg shadow-2xl" />
+              )}
+              <div>
+                <div className="badge badge-secondary mb-4">Latest Achievement</div>
+                <h1 className="text-5xl font-bold">{recentActivity.title}</h1>
+                <p className="py-6 whitespace-pre-wrap">{recentActivity.full_report || recentActivity.short_description}</p>
+                <button 
+                  onClick={() => handleLike(recentActivity.id)}
+                  className="btn btn-primary"
+                >
+                  ❤️ Like Activity
+                </button>
+              </div>
+            </>
+          ) : (
+            <div>
+              <h1 className="text-5xl font-bold">Welcome to Qudwa</h1>
+              <p className="py-6">No past activities reported yet. Admin, please post one!</p>
+            </div>
+          )}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* SECTION 2: UPCOMING ACTIVITY */}
+      {upcomingActivity && (
+        <div className="container mx-auto mt-20 px-4">
+          <div className="card w-full bg-primary text-primary-content shadow-xl">
+            <div className="card-body">
+              <h2 className="card-title text-3xl">📅 Upcoming: {upcomingActivity.title}</h2>
+              <p className="whitespace-pre-wrap text-lg opacity-90">{upcomingActivity.full_report || upcomingActivity.short_description}</p>
+              <div className="card-actions justify-end mt-5">
+                <button className="btn btn-white text-primary">Join Us</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+      )}
+
+      {/* SECTION 3: SEND MESSAGE TO ADMIN */}
+      <div className="container mx-auto mt-20 max-w-2xl px-4">
+        <h3 className="text-2xl font-bold mb-4 text-center">Contact the Admin</h3>
+        <form onSubmit={sendTelegramMessage} className="join w-full">
+          <input 
+            className="input input-bordered join-item w-full" 
+            placeholder="Type a message for the admin..." 
+            value={msg}
+            onChange={(e) => setMsg(e.target.value)}
+          />
+          <button type="submit" className="btn btn-secondary join-item">Send</button>
+        </form>
+      </div>
+
+    </main>
   );
 }
