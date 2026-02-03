@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import { Tajawal, Noto_Nastaliq_Urdu, Changa } from "next/font/google"; // Added Changa
 import "./globals.css";
 import Navbar from "./components/Navbar";
@@ -23,12 +24,13 @@ const sloganFont = Changa({
   weight: ["400", "600", "800"], // 800 is very close to HS Future Bold
   variable: '--font-slogan'
 });
-
 export const metadata = {
   title: "قدوة - Qudwa",
   description: "جيلٌ يبني، أثرٌ يبقى",
+  icons: {
+    icon: '/logo.png', // This points to the public folder
+  },
 };
-
 export default function RootLayout({ children }) {
   return (
     <html lang="ar" dir="rtl" data-theme="qudwaTheme"> 
