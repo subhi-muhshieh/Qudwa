@@ -1,64 +1,54 @@
 'use client'
 import { createClient } from './utils/supabase/client';
 import { useEffect, useState } from 'react';
+import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft } from 'react-icons/fa';
+import toast from 'react-hot-toast';
 
 export default function Home() {
   const [recentActivity, setRecentActivity] = useState(null);
   const [upcomingActivity, setUpcomingActivity] = useState(null);
   const [msg, setMsg] = useState('');
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   
   const supabase = createClient();
 
   useEffect(() => {
     const fetchData = async () => {
-      // Get User
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
 
-      // 1. Get Most Recent Past Activity
-      const { data: past } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('is_upcoming', false)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      // Fetch Past Activity
+      const { data: past } = await supabase.from('activities').select('*').eq('is_upcoming', false).order('created_at', { ascending: false }).limit(1).single();
       if (past) setRecentActivity(past);
 
-      // 2. Get Next Upcoming Activity
-      const { data: coming } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('is_upcoming', true)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      // Fetch Upcoming Activity
+      const { data: coming } = await supabase.from('activities').select('*').eq('is_upcoming', true).order('created_at', { ascending: false }).limit(1).single();
       if (coming) setUpcomingActivity(coming);
+      
+      setLoading(false);
     };
     fetchData();
   }, []);
 
   const handleLike = async (activityId) => {
-    if (!user) return alert("Please login to like!");
+    if (!user) return toast.error("يرجى تسجيل الدخول أولاً");
     
-    const { error } = await supabase
-      .from('likes')
-      .insert([{ user_id: user.id, activity_id: activityId }]);
-
+    const { error } = await supabase.from('likes').insert([{ user_id: user.id, activity_id: activityId }]);
+    
     if (error) {
-      if (error.code === '23505') alert("You already liked this!");
-      else alert("Error liking post");
+      if (error.code === '23505') toast('لقد أعجبك هذا المنشور مسبقاً!', { icon: '✨' });
+      else toast.error("حدث خطأ ما");
     } else {
-      alert("Liked!");
+      toast.success("شكراً لتفاعلك معنا!");
     }
   };
 
-    const sendTelegramMessage = async (e) => {
+  const sendTelegramMessage = async (e) => {
     e.preventDefault();
     if (!msg) return;
 
-    // 1. Optimistic UI: Clear the box immediately so it feels fast
+    const toastId = toast.loading("جاري الإرسال...");
     const originalMsg = msg;
     setMsg('');
     
@@ -66,80 +56,129 @@ export default function Home() {
       const response = await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: originalMsg,
-          userEmail: user?.email // Send the user's email if they are logged in
-        }),
+        body: JSON.stringify({ message: originalMsg, userEmail: user?.email }),
       });
 
-      if (!response.ok) throw new Error('Failed to send');
-
-      alert("Message sent to Admin!");
-
+      if (!response.ok) throw new Error('Failed');
+      toast.success("تم إرسال رسالتك للإدارة!", { id: toastId });
     } catch (error) {
-      alert("Failed to send message. Please try again.");
-      setMsg(originalMsg); // Put the text back if it failed
+      toast.error("فشل الإرسال، حاول مرة أخرى.", { id: toastId });
+      setMsg(originalMsg);
     }
   };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-dots loading-lg text-primary"></span></div>;
+
   return (
-    <main className="min-h-screen bg-base-200 pb-20">
+    <main className="min-h-screen pt-32 pb-20 px-4 md:px-10">
       
-      {/* SECTION 1: MOST RECENT ACTIVITY */}
-      <div className="hero min-h-[60vh] bg-base-100">
-        <div className="hero-content flex-col lg:flex-row gap-10">
-          {recentActivity ? (
-            <>
-              {recentActivity.image_url && (
-                <img src={recentActivity.image_url} className="max-w-sm rounded-lg shadow-2xl" />
-              )}
-              <div>
-                <div className="badge badge-secondary mb-4">Latest Achievement</div>
-                <h1 className="text-5xl font-bold">{recentActivity.title}</h1>
-                <p className="py-6 whitespace-pre-wrap">{recentActivity.full_report || recentActivity.short_description}</p>
-                <button 
-                  onClick={() => handleLike(recentActivity.id)}
-                  className="btn btn-primary"
-                >
-                  ❤️ Like Activity
-                </button>
+      {/* BRAND HEADER (Slogan - HS Future Style) */}
+      <div className="text-center mb-20 mt-6">
+        <h2 
+          className="text-4xl md:text-6xl text-accent font-black tracking-wide leading-tight drop-shadow-sm" 
+          style={{ fontFamily: 'var(--font-slogan)' }} // This applies the Geometric font
+        >
+          جيلٌ يبني، أثرٌ يبقى
+        </h2>
+        {/* Decorative underline */}
+        <div className="w-24 h-2 bg-primary/20 mx-auto mt-6 rounded-full"></div>
+      </div>
+
+      {/* SECTION 1: HERO (Most Recent Activity - Glass Style) */}
+      <div className="max-w-6xl mx-auto mb-24">
+        <div className="glass-panel p-2 rounded-[2.5rem] shadow-sm">
+          <div className="bg-white/60 rounded-[2rem] overflow-hidden p-6 md:p-10 flex flex-col lg:flex-row-reverse gap-10 items-start transition-all">
+            
+            {recentActivity ? (
+              <>
+                {recentActivity.image_url && (
+                  <div className="w-full lg:w-1/2 relative">
+                      <div className="absolute inset-0 bg-primary/10 rounded-3xl transform translate-x-2 translate-y-2 -z-10"></div>
+                      <img src={recentActivity.image_url} className="rounded-3xl shadow-lg w-full object-cover h-[350px] md:h-[400px]" />
+                  </div>
+                )}
+                
+                <div className="w-full lg:w-1/2 text-right">
+                  <div className="badge badge-secondary badge-outline mb-6 p-4 text-sm gap-2 font-bold bg-white/50 border-secondary/30">
+                    <FaStar /> آخر الإنجازات
+                  </div>
+                  <h1 className="text-3xl lg:text-5xl font-bold mb-6 text-neutral leading-tight">
+                    {recentActivity.title}
+                  </h1>
+                  <p className="text-lg text-neutral/70 leading-relaxed mb-8 pl-4 border-l-4 border-primary/20">
+                    {recentActivity.full_report || recentActivity.short_description}
+                  </p>
+                  <div className="flex gap-4">
+                      <button 
+                        onClick={() => handleLike(recentActivity.id)} 
+                        className="btn btn-primary rounded-2xl px-8 text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1 transition-all"
+                      >
+                          <FaHeart /> أعجبني
+                      </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="w-full text-center py-20">
+                <h1 className="text-3xl font-bold opacity-20 text-neutral">بانتظار إضافة نشاطات...</h1>
               </div>
-            </>
-          ) : (
-            <div>
-              <h1 className="text-5xl font-bold">Welcome to Qudwa</h1>
-              <p className="py-6">No past activities reported yet. Admin, please post one!</p>
-            </div>
-          )}
+            )}
+
+          </div>
         </div>
       </div>
 
-      {/* SECTION 2: UPCOMING ACTIVITY */}
+      {/* SECTION 2: UPCOMING (Blue Gradient Card) */}
       {upcomingActivity && (
-        <div className="container mx-auto mt-20 px-4">
-          <div className="card w-full bg-primary text-primary-content shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title text-3xl">📅 Upcoming: {upcomingActivity.title}</h2>
-              <p className="whitespace-pre-wrap text-lg opacity-90">{upcomingActivity.full_report || upcomingActivity.short_description}</p>
-              <div className="card-actions justify-end mt-5">
-                <button className="btn btn-white text-primary">Join Us</button>
-              </div>
+        <div className="max-w-4xl mx-auto mb-24 relative group">
+          {/* Glow Effect behind card */}
+          <div className="absolute inset-0 bg-secondary/30 rounded-[2.5rem] blur-2xl transform group-hover:scale-105 transition duration-500"></div>
+          
+          <div className="card w-full bg-gradient-to-br from-primary to-accent text-white shadow-2xl overflow-hidden rounded-[2.5rem] relative z-10">
+            <div className="card-body p-8 md:p-12 text-right relative">
+                
+                <div className="flex items-center gap-3 text-blue-100 mb-4 opacity-90">
+                    <FaCalendarAlt className="text-xl" />
+                    <span className="font-bold tracking-widest text-sm uppercase">النشاط القادم</span>
+                </div>
+                
+                <h2 className="card-title text-3xl md:text-5xl font-bold mb-6">{upcomingActivity.title}</h2>
+                <p className="text-lg md:text-xl opacity-90 mb-10 font-light leading-relaxed">
+                  {upcomingActivity.full_report || upcomingActivity.short_description}
+                </p>
+                
+                <div className="card-actions justify-end border-t border-white/20 pt-6">
+                    <button className="btn btn-ghost bg-white/20 text-white hover:bg-white hover:text-primary border-none rounded-2xl px-8 gap-3 h-12">
+                        للمزيد من التفاصيل <FaArrowLeft />
+                    </button>
+                </div>
             </div>
+            
+            {/* Background Decoration Circles */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mt-20 -mr-20"></div>
+            <div className="absolute bottom-0 left-0 w-40 h-40 bg-black opacity-10 rounded-full blur-2xl -mb-10 -ml-10"></div>
           </div>
         </div>
       )}
 
-      {/* SECTION 3: SEND MESSAGE TO ADMIN */}
-      <div className="container mx-auto mt-20 max-w-2xl px-4">
-        <h3 className="text-2xl font-bold mb-4 text-center">Contact the Admin</h3>
-        <form onSubmit={sendTelegramMessage} className="join w-full">
-          <input 
-            className="input input-bordered join-item w-full" 
-            placeholder="Type a message for the admin..." 
-            value={msg}
-            onChange={(e) => setMsg(e.target.value)}
-          />
-          <button type="submit" className="btn btn-secondary join-item">Send</button>
+      {/* SECTION 3: CONTACT (Clean Input) */}
+      <div className="max-w-2xl mx-auto text-center mt-20">
+        <h3 className="text-2xl font-bold mb-8 text-neutral opacity-80">تواصل مباشر مع الإدارة</h3>
+        
+        <form onSubmit={sendTelegramMessage} className="relative group">
+            <div className="relative flex items-center bg-white rounded-2xl border border-blue-100 p-2 shadow-lg hover:shadow-xl focus-within:ring-2 ring-primary/20 transition-all">
+                <input 
+                    className="input bg-transparent border-none focus:outline-none w-full pr-6 text-lg placeholder:text-gray-300 text-right text-neutral" 
+                    placeholder="اكتب رسالتك أو اقتراحك هنا..." 
+                    value={msg}
+                    onChange={(e) => setMsg(e.target.value)}
+                />
+                <button type="submit" className="btn btn-primary rounded-xl px-6 h-12 min-h-0 text-white shadow-md hover:scale-105 transition-transform">
+                    <FaPaperPlane className="transform scale-x-[-1]" />
+                </button>
+            </div>
         </form>
+        <p className="mt-4 text-sm text-neutral/40">يتم إرسال الرسائل بشكل آمن وفوري</p>
       </div>
 
     </main>
