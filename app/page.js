@@ -1,6 +1,7 @@
 'use client'
 import { createClient } from './utils/supabase/client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation'; // Added this
 import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -9,13 +10,24 @@ export default function Home() {
   const [upcomingActivity, setUpcomingActivity] = useState(null);
   const [msg, setMsg] = useState('');
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // We start loading as TRUE. The page is hidden until we confirm the user.
+  const [loading, setLoading] = useState(true); 
   
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const checkUserAndFetchData = async () => {
+      // 1. Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        // If NO user, kick them to login immediately
+        router.replace('/login');
+        return; // Stop here, don't fetch data
+      }
+
+      // If YES user, save them and fetch data
       setUser(user);
 
       // Fetch Past Activity
@@ -26,14 +38,15 @@ export default function Home() {
       const { data: coming } = await supabase.from('activities').select('*').eq('is_upcoming', true).order('created_at', { ascending: false }).limit(1).single();
       if (coming) setUpcomingActivity(coming);
       
+      // Stop loading only after we are sure user is logged in
       setLoading(false);
     };
-    fetchData();
-  }, []);
+
+    checkUserAndFetchData();
+  }, [router]);
 
   const handleLike = async (activityId) => {
-    if (!user) return toast.error("يرجى تسجيل الدخول أولاً");
-    
+    // No need to check !user here anymore, because they can't be here if they aren't logged in
     const { error } = await supabase.from('likes').insert([{ user_id: user.id, activity_id: activityId }]);
     
     if (error) {
@@ -44,47 +57,45 @@ export default function Home() {
     }
   };
 
-  const sendTelegramMessage = async (e) => {
+  const sendTelegramMessage = (e) => {
     e.preventDefault();
     if (!msg) return;
 
-    const toastId = toast.loading("جاري الإرسال...");
-    const originalMsg = msg;
+    // REPLACE WITH YOUR USERNAME
+    const telegramUsername = 'SubhiQudwa'; 
+    const url = `https://t.me/${telegramUsername}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+    toast.success("جاري فتح تيليجرام...");
     setMsg('');
-    
-    try {
-      const response = await fetch('/api/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: originalMsg, userEmail: user?.email }),
-      });
-
-      if (!response.ok) throw new Error('Failed');
-      toast.success("تم إرسال رسالتك للإدارة!", { id: toastId });
-    } catch (error) {
-      toast.error("فشل الإرسال، حاول مرة أخرى.", { id: toastId });
-      setMsg(originalMsg);
-    }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-dots loading-lg text-primary"></span></div>;
+  // While checking user, show a full screen loader so they don't see the home page
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
+        <div className="flex flex-col items-center gap-4">
+            <span className="loading loading-ring loading-lg text-primary scale-150"></span>
+            <span className="text-primary font-bold animate-pulse">جاري التحقق...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen pt-32 pb-20 px-4 md:px-10">
       
-      {/* BRAND HEADER (Slogan - HS Future Style) */}
+      {/* BRAND HEADER */}
       <div className="text-center mb-20 mt-6">
         <h2 
           className="text-4xl md:text-6xl text-accent font-black tracking-wide leading-tight drop-shadow-sm" 
-          style={{ fontFamily: 'var(--font-slogan)' }} // This applies the Geometric font
+          style={{ fontFamily: 'var(--font-slogan)' }} 
         >
           جيلٌ يبني، أثرٌ يبقى
         </h2>
-        {/* Decorative underline */}
         <div className="w-24 h-2 bg-primary/20 mx-auto mt-6 rounded-full"></div>
       </div>
 
-      {/* SECTION 1: HERO (Most Recent Activity - Glass Style) */}
+      {/* SECTION 1: HERO */}
       <div className="max-w-6xl mx-auto mb-24">
         <div className="glass-panel p-2 rounded-[2.5rem] shadow-sm">
           <div className="bg-white/60 rounded-[2rem] overflow-hidden p-6 md:p-10 flex flex-col lg:flex-row-reverse gap-10 items-start transition-all">
@@ -128,10 +139,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* SECTION 2: UPCOMING (Blue Gradient Card) */}
+      {/* SECTION 2: UPCOMING */}
       {upcomingActivity && (
         <div className="max-w-4xl mx-auto mb-24 relative group">
-          {/* Glow Effect behind card */}
           <div className="absolute inset-0 bg-secondary/30 rounded-[2.5rem] blur-2xl transform group-hover:scale-105 transition duration-500"></div>
           
           <div className="card w-full bg-gradient-to-br from-primary to-accent text-white shadow-2xl overflow-hidden rounded-[2.5rem] relative z-10">
@@ -153,15 +163,11 @@ export default function Home() {
                     </button>
                 </div>
             </div>
-            
-            {/* Background Decoration Circles */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mt-20 -mr-20"></div>
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-black opacity-10 rounded-full blur-2xl -mb-10 -ml-10"></div>
           </div>
         </div>
       )}
 
-      {/* SECTION 3: CONTACT (Clean Input) */}
+      {/* SECTION 3: CONTACT */}
       <div className="max-w-2xl mx-auto text-center mt-20">
         <h3 className="text-2xl font-bold mb-8 text-neutral opacity-80">تواصل مباشر مع الإدارة</h3>
         
