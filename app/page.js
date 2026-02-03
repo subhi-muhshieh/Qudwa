@@ -1,33 +1,31 @@
 'use client'
 import { createClient } from './utils/supabase/client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation'; // Added this
+import { useRouter } from 'next/navigation';
 import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+// 1. Import Framer Motion
+import { motion } from 'framer-motion';
 
 export default function Home() {
   const [recentActivity, setRecentActivity] = useState(null);
   const [upcomingActivity, setUpcomingActivity] = useState(null);
   const [msg, setMsg] = useState('');
   const [user, setUser] = useState(null);
-  // We start loading as TRUE. The page is hidden until we confirm the user.
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   
   const supabase = createClient();
   const router = useRouter();
 
   useEffect(() => {
     const checkUserAndFetchData = async () => {
-      // 1. Check if user is logged in
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        // If NO user, kick them to login immediately
         router.replace('/login');
-        return; // Stop here, don't fetch data
+        return;
       }
 
-      // If YES user, save them and fetch data
       setUser(user);
 
       // Fetch Past Activity
@@ -38,7 +36,6 @@ export default function Home() {
       const { data: coming } = await supabase.from('activities').select('*').eq('is_upcoming', true).order('created_at', { ascending: false }).limit(1).single();
       if (coming) setUpcomingActivity(coming);
       
-      // Stop loading only after we are sure user is logged in
       setLoading(false);
     };
 
@@ -46,7 +43,6 @@ export default function Home() {
   }, [router]);
 
   const handleLike = async (activityId) => {
-    // No need to check !user here anymore, because they can't be here if they aren't logged in
     const { error } = await supabase.from('likes').insert([{ user_id: user.id, activity_id: activityId }]);
     
     if (error) {
@@ -61,7 +57,6 @@ export default function Home() {
     e.preventDefault();
     if (!msg) return;
 
-    // REPLACE WITH YOUR USERNAME
     const telegramUsername = 'SubhiQudwa'; 
     const url = `https://t.me/${telegramUsername}?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
@@ -69,7 +64,6 @@ export default function Home() {
     setMsg('');
   };
 
-  // While checking user, show a full screen loader so they don't see the home page
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -81,11 +75,26 @@ export default function Home() {
     );
   }
 
+  // 2. Define the Animation Settings
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 100 }, // Start: Invisible and 100px down
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.8, ease: "easeOut" } // Take 0.8 seconds to float up
+    }
+  };
+
   return (
-    <main className="min-h-screen pt-32 pb-20 px-4 md:px-10">
+    <main className="min-h-screen pt-32 pb-20 px-4 md:px-10 overflow-hidden">
       
-      {/* BRAND HEADER */}
-      <div className="text-center mb-20 mt-6">
+      {/* BRAND HEADER (No animation needed, usually visible on load) */}
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        transition={{ duration: 1 }}
+        className="text-center mb-20 mt-6"
+      >
         <h2 
           className="text-4xl md:text-6xl text-accent font-black tracking-wide leading-tight drop-shadow-sm" 
           style={{ fontFamily: 'var(--font-slogan)' }} 
@@ -93,10 +102,16 @@ export default function Home() {
           جيلٌ يبني، أثرٌ يبقى
         </h2>
         <div className="w-24 h-2 bg-primary/20 mx-auto mt-6 rounded-full"></div>
-      </div>
+      </motion.div>
 
-      {/* SECTION 1: HERO */}
-      <div className="max-w-6xl mx-auto mb-24">
+      {/* SECTION 1: HERO (Animated) */}
+      <motion.div 
+        className="max-w-6xl mx-auto mb-24"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.3 }} // 'once: true' is the key!
+        variants={fadeInUp}
+      >
         <div className="glass-panel p-2 rounded-[2.5rem] shadow-sm">
           <div className="bg-white/60 rounded-[2rem] overflow-hidden p-6 md:p-10 flex flex-col lg:flex-row-reverse gap-10 items-start transition-all">
             
@@ -137,11 +152,17 @@ export default function Home() {
 
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* SECTION 2: UPCOMING */}
+      {/* SECTION 2: UPCOMING (Animated) */}
       {upcomingActivity && (
-        <div className="max-w-4xl mx-auto mb-24 relative group">
+        <motion.div 
+          className="max-w-4xl mx-auto mb-24 relative group"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }} // Triggers when 50% is visible
+          variants={fadeInUp}
+        >
           <div className="absolute inset-0 bg-secondary/30 rounded-[2.5rem] blur-2xl transform group-hover:scale-105 transition duration-500"></div>
           
           <div className="card w-full bg-gradient-to-br from-primary to-accent text-white shadow-2xl overflow-hidden rounded-[2.5rem] relative z-10">
@@ -164,11 +185,17 @@ export default function Home() {
                 </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* SECTION 3: CONTACT */}
-      <div className="max-w-2xl mx-auto text-center mt-20">
+      {/* SECTION 3: CONTACT (Animated) */}
+      <motion.div 
+        className="max-w-2xl mx-auto text-center mt-20"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.5 }}
+        variants={fadeInUp}
+      >
         <h3 className="text-2xl font-bold mb-8 text-neutral opacity-80">تواصل مباشر مع الإدارة</h3>
         
         <form onSubmit={sendTelegramMessage} className="relative group">
@@ -185,7 +212,7 @@ export default function Home() {
             </div>
         </form>
         <p className="mt-4 text-sm text-neutral/40">يتم إرسال الرسائل بشكل آمن وفوري</p>
-      </div>
+      </motion.div>
 
     </main>
   );
