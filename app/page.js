@@ -52,18 +52,32 @@ export default function Home() {
       toast.success("شكراً لتفاعلك معنا!");
     }
   };
-
-  const sendTelegramMessage = (e) => {
+  const sendTelegramMessage = async (e) => {
     e.preventDefault();
     if (!msg) return;
 
-    const telegramUsername = 'SubhiQudwa'; 
-    const url = `https://t.me/${telegramUsername}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
-    toast.success("جاري فتح تيليجرام...");
-    setMsg('');
-  };
+    const toastId = toast.loading("جاري الإرسال...");
+    const originalMsg = msg;
+    setMsg(''); // Clear input immediately for better UX
+    
+    try {
+      const response = await fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: originalMsg, userEmail: user?.email }),
+      });
 
+      if (!response.ok) {
+        throw new Error('Failed to send');
+      }
+
+      toast.success("تم إرسال رسالتك للإدارة!", { id: toastId });
+    } catch (error) {
+      console.error(error);
+      toast.error("فشل الإرسال، حاول مرة أخرى.", { id: toastId });
+      setMsg(originalMsg); // Put the text back if it failed
+    }
+  };
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
