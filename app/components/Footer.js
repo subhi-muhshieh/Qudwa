@@ -65,7 +65,7 @@ export default function Footer() {
             <nav className="gap-4">
                 <header className="footer-title opacity-100 text-primary text-lg">روابط سريعة</header> 
                 <a href="/dashboard" className="link link-hover text-base">الرئيسية</a>
-                <a href="/activities" className="link link-hover text-base">سجل الإنجازات</a>
+                <a href="/activities" className="link link-hover text-base">سجل النشاطات</a>
                 <a href="/admin" className="link link-hover text-base">لوحة الإدارة</a>
             </nav> 
 
