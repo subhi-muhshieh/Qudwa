@@ -46,8 +46,11 @@ export default function Navbar() {
     <div className="navbar absolute top-6 left-4 right-4 w-auto rounded-3xl glass-panel shadow-sm z-50">
       <div className="flex-1 mr-4">
         
-        {/* LOGO + BRAND NAME */}
-        <Link href="/" className="btn btn-ghost hover:bg-transparent normal-case gap-3 group px-0">
+              {/* LOGO LINK: Dynamic redirection based on login status */}
+        <Link 
+          href={user ? "/dashboard" : "/"} 
+          className="btn btn-ghost hover:bg-transparent normal-case gap-3 group px-0"
+        >
           {/* 1. Logo Image */}
           <div className="relative w-12 h-12 transition-transform duration-300 group-hover:scale-110">
             <img 
@@ -64,7 +67,6 @@ export default function Navbar() {
              </span>
           </div>
         </Link>
-
         {/* ADMIN BUTTON (Only visible to Admin) */}
         {isAdmin && (
           <Link href="/admin" className="hidden md:flex btn btn-xs btn-outline btn-accent mr-4 rounded-lg gap-1">
