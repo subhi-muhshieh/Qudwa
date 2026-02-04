@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FaSignOutAlt, FaShieldAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaShieldAlt, FaHistory } from 'react-icons/fa';
 
 export default function Navbar() {
   const supabase = createClient();
@@ -33,27 +33,26 @@ export default function Navbar() {
     if (data?.role === 'admin') setIsAdmin(true);
   };
 
-  // --- THIS IS THE FIX ---
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login'); // Send them to Login page
-    router.refresh();      // Clear the data
+    router.push('/login'); 
+    router.refresh();      
   };
-  // -----------------------
 
   return (
     // NAVBAR CONTAINER (Absolute + Glass)
-    <div className="navbar absolute top-6 left-4 right-4 w-auto rounded-3xl glass-panel shadow-sm z-50">
-      <div className="flex-1 mr-4">
+    <div className="navbar absolute top-6 left-4 right-4 w-auto rounded-3xl glass-panel shadow-sm z-50 px-4 md:px-6">
+      
+      {/* --- RIGHT SIDE (Logo + Navigation) --- */}
+      <div className="flex-1 flex items-center gap-6">
         
-              {/* LOGO LINK: Dynamic redirection based on login status */}
-                {/* LOGO LINK */}
+        {/* 1. BRAND GROUP */}
         <Link 
           href={user ? "/dashboard" : "/"} 
           className="btn btn-ghost hover:bg-transparent normal-case gap-3 group px-0 flex items-center"
         >
-          {/* 1. Logo Image */}
-          <div className="relative w-12 h-12 transition-transform duration-300 group-hover:scale-110">
+          {/* Logo Image (Scales on Hover) */}
+          <div className="relative w-12 h-12 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
             <img 
               src="/logo.png" 
               alt="Qudwa Logo" 
@@ -61,38 +60,65 @@ export default function Navbar() {
             />
           </div>
 
-          {/* 2. Text (Calligraphy) */}
+          {/* Text (Scales & Changes Color on Hover) */}
           <div className="flex flex-col items-start justify-center h-12">
-             {/* FIX: Added '-mt-3' to pull the text up, and 'leading-none' to tighten it */}
              <span 
-                className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none" 
+                className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none transition-all duration-300 group-hover:text-secondary group-hover:scale-105 origin-right" 
                 style={{ fontFamily: 'var(--font-nastaliq)' }}
              >
                 قُدوَة
              </span>
           </div>
         </Link>
-        {/* ADMIN BUTTON (Only visible to Admin) */}
-        {isAdmin && (
-          <Link href="/admin" className="hidden md:flex btn btn-xs btn-outline btn-accent mr-4 rounded-lg gap-1">
-            <FaShieldAlt /> الإدارة
-          </Link>
+
+        {/* 2. VISUAL DIVIDER (Only on Desktop) */}
+        {user && (
+          <div className="hidden md:block h-8 w-px bg-primary/10 rounded-full mx-1"></div>
         )}
+
+        {/* 3. NAVIGATION LINKS GROUP */}
+        <div className="hidden md:flex items-center gap-3">
+            {user && (
+              <Link 
+                href="/activities" 
+                className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
+              >
+                <FaHistory className="text-secondary opacity-70" />
+                سجل الإنجازات
+              </Link>
+            )}
+
+            {isAdmin && (
+              <Link 
+                href="/admin" 
+                className="btn btn-sm btn-outline btn-primary rounded-xl gap-2 hover:shadow-md transition-all"
+              >
+                <FaShieldAlt /> 
+                الإدارة
+              </Link>
+            )}
+        </div>
+
       </div>
 
-      {/* RIGHT SIDE (User Menu) */}
+      {/* --- LEFT SIDE (User Menu) --- */}
       <div className="flex-none gap-2 ml-2">
         {user ? (
           <div className="dropdown dropdown-end">
-            <label tabIndex={0} className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20">
+            <label tabIndex={0} className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors">
               <div className="bg-primary/10 text-primary rounded-full w-10">
                 <span className="text-lg font-bold">{user.email[0].toUpperCase()}</span>
               </div>
             </label>
-            <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content glass-panel rounded-2xl w-52 border border-white/50 text-right">
-              <li className="menu-title px-4 py-2 text-xs text-primary">{user.email}</li>
-              {isAdmin && <li><Link href="/admin">لوحة التحكم</Link></li>}
-              <li><button onClick={handleLogout} className="text-error gap-2"><FaSignOutAlt /> خروج</button></li>
+            <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content glass-panel rounded-2xl w-56 border border-white/50 text-right">
+              <li className="menu-title px-4 py-2 text-xs text-primary/70">{user.email}</li>
+              
+              {/* Mobile Only Links (Since they are hidden on desktop) */}
+              <li className="md:hidden"><Link href="/activities"><FaHistory /> سجل الإنجازات</Link></li>
+              {isAdmin && <li className="md:hidden"><Link href="/admin"><FaShieldAlt /> لوحة الإدارة</Link></li>}
+              
+              <div className="divider my-1 opacity-50"></div>
+              <li><button onClick={handleLogout} className="text-error gap-2 hover:bg-error/10"><FaSignOutAlt /> خروج</button></li>
             </ul>
           </div>
         ) : (
