@@ -47,9 +47,10 @@ export default function Navbar() {
       <div className="flex-1 mr-4">
         
               {/* LOGO LINK: Dynamic redirection based on login status */}
+                {/* LOGO LINK */}
         <Link 
           href={user ? "/dashboard" : "/"} 
-          className="btn btn-ghost hover:bg-transparent normal-case gap-3 group px-0"
+          className="btn btn-ghost hover:bg-transparent normal-case gap-3 group px-0 flex items-center"
         >
           {/* 1. Logo Image */}
           <div className="relative w-12 h-12 transition-transform duration-300 group-hover:scale-110">
@@ -61,8 +62,12 @@ export default function Navbar() {
           </div>
 
           {/* 2. Text (Calligraphy) */}
-          <div className="flex flex-col items-start">
-             <span className="text-3xl text-primary pt-2 drop-shadow-sm" style={{ fontFamily: 'var(--font-nastaliq)' }}>
+          <div className="flex flex-col items-start justify-center h-12">
+             {/* FIX: Added '-mt-3' to pull the text up, and 'leading-none' to tighten it */}
+             <span 
+                className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none" 
+                style={{ fontFamily: 'var(--font-nastaliq)' }}
+             >
                 قُدوَة
              </span>
           </div>
