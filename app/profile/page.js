@@ -2,105 +2,79 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaCamera, FaPhone, FaEnvelope, FaInstagram, FaFacebook, FaTelegramPlane, FaUser, FaChild, FaSave, FaEdit } from 'react-icons/fa';
+import { FaCamera, FaPhone, FaEnvelope, FaInstagram, FaFacebook, FaTelegramPlane, FaUser, FaChild, FaSave, FaEdit, FaPlus, FaTrash, FaTimes, FaCheck } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { useProfile } from '../context/ProfileContext';
 
 export default function ProfilePage() {
-  const [user, setUser] = useState(null);
+  const { user, profile: contextProfile, updateProfile } = useProfile();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // Original values (to compare for changes)
+  // Original values
   const [originalPhone, setOriginalPhone] = useState('');
   const [originalAvatarUrl, setOriginalAvatarUrl] = useState('');
+  const [originalChildren, setOriginalChildren] = useState([]);
   
   // Current editable values
   const [currentPhone, setCurrentPhone] = useState('');
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState('');
+  const [currentChildren, setCurrentChildren] = useState([]);
   const [pendingAvatarFile, setPendingAvatarFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   
   const [editingPhone, setEditingPhone] = useState(false);
+  const [editingChildren, setEditingChildren] = useState(false);
   
   const fileInputRef = useRef(null);
   const supabase = createClient();
   const router = useRouter();
 
+  // Check if children have changed
+  const childrenChanged = JSON.stringify(currentChildren) !== JSON.stringify(originalChildren);
+  
   // Check if there are any unsaved changes
-  const hasChanges = currentPhone !== originalPhone || pendingAvatarFile !== null;
+  const hasChanges = currentPhone !== originalPhone || pendingAvatarFile !== null || childrenChanged;
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
- const fetchProfile = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    router.push('/login');
-    return;
-  }
-  
-  setUser(user);
-
-  // Try to get existing profile
-  let { data: profile, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  // If no profile exists, create one
-  if (!profile || error) {
-    const { data: newProfile } = await supabase
-      .from('profiles')
-      .upsert({ 
-        id: user.id,
-        parent_phone: '',
-        avatar_url: '',
-        parent_name: '',
-        children: []
-      })
-      .select()
-      .single();
-
-    profile = newProfile;
-  }
-
-  if (profile) {
-    setProfile(profile);
-    
-    setOriginalPhone(profile.parent_phone || '');
-    setOriginalAvatarUrl(profile.avatar_url || '');
-    
-    setCurrentPhone(profile.parent_phone || '');
-    setCurrentAvatarUrl(profile.avatar_url || '');
-  }
-  
-  setLoading(false);
-};
+    if (contextProfile) {
+      setProfile(contextProfile);
+      
+      const children = contextProfile.children || [];
+      
+      setOriginalPhone(contextProfile.parent_phone || '');
+      setOriginalAvatarUrl(contextProfile.avatar_url || '');
+      setOriginalChildren(children);
+      
+      setCurrentPhone(contextProfile.parent_phone || '');
+      setCurrentAvatarUrl(contextProfile.avatar_url || '');
+      setCurrentChildren(children);
+      
+      setLoading(false);
+    }
+  }, [user, contextProfile, router]);
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('الرجاء اختيار صورة صالحة');
       return;
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error('حجم الصورة يجب أن يكون أقل من 2 ميغابايت');
       return;
     }
 
-    // Store file for later upload
     setPendingAvatarFile(file);
-    
-    // Create preview URL
     const preview = URL.createObjectURL(file);
     setPreviewUrl(preview);
     
@@ -112,92 +86,139 @@ export default function ProfilePage() {
     setCurrentPhone(numbersOnly);
   };
 
- const handleSaveChanges = async () => {
-  if (!hasChanges) return;
-  
-  setSaving(true);
-  const toastId = toast.loading('جاري حفظ التغييرات...');
+  // Children management functions
+  const addChild = () => {
+    setCurrentChildren([...currentChildren, { name: '', age: '' }]);
+    setEditingChildren(true);
+  };
 
-  try {
-    let newAvatarUrl = currentAvatarUrl;
+  const removeChild = (index) => {
+    if (currentChildren.length > 1) {
+      const newChildren = currentChildren.filter((_, i) => i !== index);
+      setCurrentChildren(newChildren);
+    } else {
+      toast.error('يجب أن يكون لديك طفل واحد على الأقل');
+    }
+  };
 
-    // Upload new avatar if pending
-    if (pendingAvatarFile) {
-      const fileExt = pendingAvatarFile.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+  const updateChild = (index, field, value) => {
+    const newChildren = [...currentChildren];
+    if (field === 'age') {
+      // Only allow numbers for age
+      const numbersOnly = value.replace(/[^0-9]/g, '');
+      newChildren[index][field] = numbersOnly;
+    } else {
+      newChildren[index][field] = value;
+    }
+    setCurrentChildren(newChildren);
+  };
 
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, pendingAvatarFile, {
-          cacheControl: '3600',
-          upsert: true
+  const cancelChildrenEdit = () => {
+    setCurrentChildren([...originalChildren]);
+    setEditingChildren(false);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!hasChanges) return;
+
+    // Validate children data
+    const validChildren = currentChildren.filter(child => child.name.trim() && child.age);
+    if (validChildren.length === 0) {
+      toast.error('الرجاء إدخال بيانات طفل واحد على الأقل');
+      return;
+    }
+    
+    setSaving(true);
+    const toastId = toast.loading('جاري حفظ التغييرات...');
+
+    try {
+      let newAvatarUrl = currentAvatarUrl;
+
+      if (pendingAvatarFile) {
+        const fileExt = pendingAvatarFile.name.split('.').pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(fileName, pendingAvatarFile, {
+            cacheControl: '3600',
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error(`فشل رفع الصورة: ${uploadError.message}`, { id: toastId });
+          setSaving(false);
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        newAvatarUrl = urlData.publicUrl;
+      }
+
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          parent_phone: currentPhone,
+          avatar_url: newAvatarUrl,
+          parent_name: profile?.parent_name || '',
+          children: validChildren,
         });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast.error(`فشل رفع الصورة: ${uploadError.message}`, { id: toastId });
+      if (upsertError) {
+        console.error('Upsert error:', upsertError);
+        toast.error(`فشل الحفظ: ${upsertError.message}`, { id: toastId });
         setSaving(false);
         return;
       }
 
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      newAvatarUrl = urlData.publicUrl;
-    }
-
-    // Use UPSERT - creates row if doesn't exist, updates if it does
-    const { error: upsertError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
+      // Update local state
+      const updatedProfile = { 
+        ...profile, 
         parent_phone: currentPhone,
         avatar_url: newAvatarUrl,
-        parent_name: profile?.parent_name || '',
-        children: profile?.children || [],
-      });
+        children: validChildren
+      };
+      
+      setProfile(updatedProfile);
+      
+      // Update context
+      updateProfile(updatedProfile);
+      
+      setOriginalPhone(currentPhone);
+      setOriginalAvatarUrl(newAvatarUrl);
+      setCurrentAvatarUrl(newAvatarUrl);
+      setOriginalChildren(validChildren);
+      setCurrentChildren(validChildren);
+      
+      setPendingAvatarFile(null);
+      setPreviewUrl('');
+      setEditingPhone(false);
+      setEditingChildren(false);
 
-    if (upsertError) {
-      console.error('Upsert error:', upsertError);
-      toast.error(`فشل الحفظ: ${upsertError.message}`, { id: toastId });
+      toast.success('تم حفظ التغييرات بنجاح!', { id: toastId });
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error(`حدث خطأ: ${error.message}`, { id: toastId });
+    } finally {
       setSaving(false);
-      return;
     }
-
-    // Update local state
-    setProfile({ 
-      ...profile, 
-      parent_phone: currentPhone,
-      avatar_url: newAvatarUrl 
-    });
-    
-    setOriginalPhone(currentPhone);
-    setOriginalAvatarUrl(newAvatarUrl);
-    setCurrentAvatarUrl(newAvatarUrl);
-    
-    setPendingAvatarFile(null);
-    setPreviewUrl('');
-    setEditingPhone(false);
-
-    toast.success('تم حفظ التغييرات بنجاح!', { id: toastId });
-  } catch (error) {
-    console.error('Save error:', error);
-    toast.error(`حدث خطأ: ${error.message}`, { id: toastId });
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   const handleDiscardChanges = () => {
     setCurrentPhone(originalPhone);
+    setCurrentChildren([...originalChildren]);
     setPendingAvatarFile(null);
     setPreviewUrl('');
     setEditingPhone(false);
+    setEditingChildren(false);
     toast('تم إلغاء التغييرات', { icon: '↩️' });
   };
 
-  // Get display avatar URL (preview or current)
   const displayAvatarUrl = previewUrl || currentAvatarUrl;
 
   if (loading) {
@@ -212,13 +233,10 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-base-200 py-24 px-4">
       <div className="max-w-2xl mx-auto">
         
-        {/* Profile Card */}
         <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden">
           
-          {/* Header Background */}
           <div className="h-32 bg-gradient-to-r from-primary to-accent"></div>
           
-          {/* Profile Content */}
           <div className="px-8 pb-8">
             
             {/* Avatar Section */}
@@ -238,7 +256,6 @@ export default function ProfilePage() {
                   )}
                 </div>
                 
-                {/* Upload Button */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-0 right-0 btn btn-circle btn-sm btn-primary shadow-lg"
@@ -254,7 +271,6 @@ export default function ProfilePage() {
                   className="hidden"
                 />
 
-                {/* Pending change indicator */}
                 {pendingAvatarFile && (
                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-warning rounded-full border-2 border-white"></div>
                 )}
@@ -309,24 +325,122 @@ export default function ProfilePage() {
             </div>
 
             {/* Children Section */}
-            {profile?.children && profile.children.length > 0 && (
-              <div className="bg-base-100 rounded-2xl p-6 mb-6">
-                <h3 className="font-bold text-primary flex items-center gap-2 mb-4">
+            <div className="bg-base-100 rounded-2xl p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-primary flex items-center gap-2">
                   <FaChild />
                   الأبناء المسجلين
+                  {childrenChanged && (
+                    <div className="w-2 h-2 bg-warning rounded-full"></div>
+                  )}
                 </h3>
+                {!editingChildren ? (
+                  <button
+                    onClick={() => setEditingChildren(true)}
+                    className="btn btn-ghost btn-sm text-primary"
+                  >
+                    <FaEdit />
+                    تعديل
+                  </button>
+                ) : (
+                  <button
+                    onClick={cancelChildrenEdit}
+                    className="btn btn-ghost btn-sm text-gray-500"
+                  >
+                    <FaTimes />
+                    إلغاء
+                  </button>
+                )}
+              </div>
+              
+              {currentChildren && currentChildren.length > 0 ? (
                 <div className="space-y-3">
-                  {profile.children.map((child, index) => (
-                    <div key={index} className="flex items-center justify-between bg-base-200/50 p-3 rounded-xl">
-                      <span className="font-medium">{child.name}</span>
-                      <span className="badge badge-primary">{child.age} سنة</span>
+                  {currentChildren.map((child, index) => (
+                    <div key={index} className={`p-4 rounded-xl ${editingChildren ? 'bg-base-200' : 'bg-base-200/50'}`}>
+                      {editingChildren ? (
+                        // Edit Mode
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
+                              الطفل {index + 1}
+                            </span>
+                            {currentChildren.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeChild(index)}
+                                className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+                              >
+                                <FaTrash />
+                              </button>
+                            )}
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="label py-1">
+                                <span className="label-text text-xs">اسم الطفل</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={child.name}
+                                onChange={(e) => updateChild(index, 'name', e.target.value)}
+                                className="input input-bordered input-sm w-full"
+                                placeholder="اسم الطفل"
+                              />
+                            </div>
+                            <div>
+                              <label className="label py-1">
+                                <span className="label-text text-xs">العمر</span>
+                              </label>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={child.age}
+                                onChange={(e) => updateChild(index, 'age', e.target.value)}
+                                className="input input-bordered input-sm w-full"
+                                placeholder="العمر"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        // View Mode
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{child.name || 'بدون اسم'}</span>
+                          <span className="badge badge-primary">{child.age} سنة</span>
+                        </div>
+                      )}
                     </div>
                   ))}
+                  
+                  {/* Add Child Button */}
+                  {editingChildren && (
+                    <button
+                      type="button"
+                      onClick={addChild}
+                      className="btn btn-outline btn-primary btn-sm w-full rounded-xl gap-2"
+                    >
+                      <FaPlus />
+                      إضافة طفل آخر
+                    </button>
+                  )}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-gray-500 mb-4">لم يتم إضافة أبناء</p>
+                  <button
+                    type="button"
+                    onClick={addChild}
+                    className="btn btn-outline btn-primary btn-sm rounded-xl gap-2"
+                  >
+                    <FaPlus />
+                    إضافة طفل
+                  </button>
+                </div>
+              )}
+            </div>
 
-            {/* Save Button Section */}
+            {/* Save Button */}
             <div className="flex gap-3 mb-6">
               <button
                 onClick={handleSaveChanges}

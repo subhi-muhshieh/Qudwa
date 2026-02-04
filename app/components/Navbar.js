@@ -5,35 +5,27 @@ import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser } from 'react-icons/fa';
+import { useProfile } from '../context/ProfileContext';
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState(null);
+  const { user, profile } = useProfile();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    let isMounted = true;
-
-    const getUser = async () => {
+    const checkAdmin = async () => {
+      if (!user) return;
+      
+      const supabase = createClient();
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (isMounted) {
-          setUser(user);
-          if (user) checkAdmin(user.id, supabase);
-        }
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('Error fetching user:', error);
-        }
-      }
-    };
-
-    const checkAdmin = async (userId, supabase) => {
-      try {
-        const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
-        if (isMounted && data?.role === 'admin') {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (data?.role === 'admin') {
           setIsAdmin(true);
         }
       } catch (error) {
@@ -41,24 +33,8 @@ export default function Navbar() {
       }
     };
 
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (isMounted) {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          checkAdmin(session.user.id, supabase);
-        } else {
-          setIsAdmin(false);
-        }
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+    checkAdmin();
+  }, [user]);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -79,11 +55,11 @@ export default function Navbar() {
     }
   };
 
-  // --- HIDE NAVBAR LOGIC ---
-  const hiddenPages = ['/login', '/reset-password'];
-  if (hiddenPages.includes(pathname)) {
-    return null;
-  }
+ // --- HIDE NAVBAR LOGIC ---
+const hiddenPages = ['/login', '/reset-password', '/'];
+if (hiddenPages.includes(pathname)) {
+  return null;
+}
   // -------------------------
 
   return (
@@ -155,14 +131,25 @@ export default function Navbar() {
         {user ? (
           <div className="dropdown dropdown-end">
             <label tabIndex={0} className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors">
-              <div className="bg-primary/10 text-primary rounded-full w-10">
-                <span className="text-lg font-bold">{user.email[0].toUpperCase()}</span>
+              <div className="bg-primary/10 text-primary rounded-full w-10 overflow-hidden">
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-lg font-bold flex items-center justify-center h-full">
+                    {user.email[0].toUpperCase()}
+                  </span>
+                )}
               </div>
             </label>
             <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content glass-panel rounded-2xl w-56 border border-white/50 text-right">
-              <li className="menu-title px-4 py-2 text-xs text-primary/70">{user.email}</li>
+              <li className="menu-title px-4 py-2 text-xs text-primary/70">
+                {profile?.parent_name || user.email}
+              </li>
               
-              {/* PROFILE LINK - NEW! */}
               <li>
                 <Link href="/profile" className="gap-2">
                   <FaUser className="text-primary" /> الملف الشخصي
