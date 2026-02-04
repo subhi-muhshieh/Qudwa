@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash, FaPhone } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -16,8 +16,9 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   
-  // New fields for sign up
+  // Sign up fields
   const [parentName, setParentName] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
   const [children, setChildren] = useState([{ name: '', age: '' }]);
   
   const router = useRouter();
@@ -43,6 +44,20 @@ export default function LoginPage() {
     setChildren(newChildren);
   };
 
+  // Handle age input - only allow numbers
+  const handleAgeChange = (index, value) => {
+    const numbersOnly = value.replace(/[^0-9]/g, '');
+    if (numbersOnly === '' || (parseInt(numbersOnly) >= 1 && parseInt(numbersOnly) <= 99)) {
+      updateChild(index, 'age', numbersOnly);
+    }
+  };
+
+  // Handle phone input - only allow numbers
+  const handlePhoneChange = (value) => {
+    const numbersOnly = value.replace(/[^0-9+]/g, '');
+    setParentPhone(numbersOnly);
+  };
+
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -53,6 +68,12 @@ export default function LoginPage() {
         // Validate signup fields
         if (!parentName.trim()) {
           toast.error("الرجاء إدخال اسم ولي الأمر", { id: toastId });
+          setLoading(false);
+          return;
+        }
+
+        if (!parentPhone.trim()) {
+          toast.error("الرجاء إدخال رقم الهاتف", { id: toastId });
           setLoading(false);
           return;
         }
@@ -72,6 +93,7 @@ export default function LoginPage() {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
               parent_name: parentName,
+              parent_phone: parentPhone,
               children: validChildren,
             }
           }
@@ -84,6 +106,7 @@ export default function LoginPage() {
           await supabase.from('profiles').upsert({
             id: data.user.id,
             parent_name: parentName,
+            parent_phone: parentPhone,
             children: validChildren,
           });
         }
@@ -142,6 +165,7 @@ export default function LoginPage() {
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
     setParentName('');
+    setParentPhone('');
     setChildren([{ name: '', age: '' }]);
   };
 
@@ -233,7 +257,7 @@ export default function LoginPage() {
             {isSignUp && (
               <>
                 {/* Divider */}
-                <div className="divider opacity-50 my-2">معلومات الأسرة</div>
+                <div className="divider opacity-50 my-2">معلومات ولي الأمر</div>
 
                 {/* Parent Name */}
                 <div className="relative">
@@ -248,11 +272,23 @@ export default function LoginPage() {
                     />
                 </div>
 
+                {/* Parent Phone */}
+                <div className="relative">
+                    <FaPhone className="absolute top-4 left-4 text-gray-400 z-10" />
+                    <input 
+                      type="tel" 
+                      placeholder="رقم الهاتف" 
+                      dir="ltr"
+                      className="input input-bordered w-full rounded-full pl-12 bg-base-200/50 focus:bg-white transition-colors text-left"
+                      value={parentPhone}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      required
+                    />
+                </div>
+
                 {/* Children Section */}
                 <div className="space-y-4">
-                  <label className="text-sm font-bold text-neutral/70 text-right block">
-                    بيانات الأبناء المسجلين
-                  </label>
+                  <div className="divider opacity-50 my-2">بيانات الأبناء</div>
                   
                   {children.map((child, index) => (
                     <div key={index} className="bg-base-200/30 p-4 rounded-2xl space-y-3 relative">
@@ -288,17 +324,16 @@ export default function LoginPage() {
                         />
                       </div>
 
-                      {/* Child Age */}
+                      {/* Child Age - Text input that only accepts numbers */}
                       <div className="relative">
                         <span className="absolute top-4 right-4 text-gray-400 z-10 text-xs font-bold">عمر</span>
                         <input 
-                          type="number" 
+                          type="text"
+                          inputMode="numeric"
                           placeholder="عمر الطفل" 
-                          min="1"
-                          max="18"
                           className="input input-bordered w-full rounded-full pr-12 bg-white focus:bg-white transition-colors text-right"
                           value={child.age}
-                          onChange={(e) => updateChild(index, 'age', e.target.value)}
+                          onChange={(e) => handleAgeChange(index, e.target.value)}
                           required
                         />
                       </div>

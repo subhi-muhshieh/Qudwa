@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope } from 'react-icons/fa';
+import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser } from 'react-icons/fa';
 
 export default function Navbar() {
   const router = useRouter();
@@ -24,7 +24,6 @@ export default function Navbar() {
           if (user) checkAdmin(user.id, supabase);
         }
       } catch (error) {
-        // Ignore abort errors
         if (error.name !== 'AbortError') {
           console.error('Error fetching user:', error);
         }
@@ -162,6 +161,13 @@ export default function Navbar() {
             </label>
             <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content glass-panel rounded-2xl w-56 border border-white/50 text-right">
               <li className="menu-title px-4 py-2 text-xs text-primary/70">{user.email}</li>
+              
+              {/* PROFILE LINK - NEW! */}
+              <li>
+                <Link href="/profile" className="gap-2">
+                  <FaUser className="text-primary" /> الملف الشخصي
+                </Link>
+              </li>
               
               <li className="md:hidden"><Link href="/activities"><FaHistory /> سجل الإنجازات</Link></li>
               <li className="md:hidden"><button onClick={scrollToContact} className="text-left w-full"><FaEnvelope /> راسل الإدارة</button></li>
