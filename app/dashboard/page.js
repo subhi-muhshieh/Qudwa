@@ -50,7 +50,7 @@ export default function Dashboard() {
   };
 
   const scrollToContact = () => {
-    const element = document.getElementById('contact-input');
+    const element = document.getElementById('message-box');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       element.focus();

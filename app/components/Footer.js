@@ -76,7 +76,7 @@ export default function Footer() {
                     <label className="label">
                         <span className="label-text">أرسل ملاحظة أو اقتراح للمسؤولين مباشرة</span>
                     </label>
-                    <div className="relative">
+                    <div className="relative" id="message-box" >
                         <input 
                             id="contact-input" 
                             type="text" 
@@ -93,15 +93,39 @@ export default function Footer() {
             </form>
 
             {/* Column 3: Socials */}
-            <nav>
-                <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
-                <div className="grid grid-flow-col gap-4">
-                    <a className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"><FaTwitter /></a>
-                    <a className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"><FaInstagram /></a>
-                    <a className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"><FaFacebook /></a>
-                    <a className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"><FaTelegramPlane /></a>
-                </div>
-            </nav>
+           {/* Column 3: Socials */}
+<nav>
+    <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
+    <div className="grid grid-flow-col gap-4">
+        
+        <a 
+          href="https://www.instagram.com/QudwaAssoc" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+        >
+          <FaInstagram />
+        </a>
+        
+        <a 
+          href="https://www.facebook.com/QudwaAssoc" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+        >
+          <FaFacebook />
+        </a>
+        
+        <a 
+          href="https://t.me/QudwaAssoc" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+        >
+          <FaTelegramPlane />
+        </a>
+    </div>
+</nav>
         </div>
 
         {/* Copyright */}

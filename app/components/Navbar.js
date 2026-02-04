@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'; 
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -33,17 +34,20 @@ export default function Navbar() {
     if (data?.role === 'admin') setIsAdmin(true);
   };
 
+  // ✅ DELETE the broken ScrollButton function completely!
+  // (Remove lines 38-50 from your original file)
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login'); 
     router.refresh();      
   };
 
+  // ✅ This function already does what you need!
   const scrollToContact = () => {
-    const element = document.getElementById('contact-input');
+    const element = document.getElementById('message-box'); // Changed to message-box
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      element.focus(); 
     }
   };
 
@@ -89,6 +93,7 @@ export default function Navbar() {
                   سجل الإنجازات
                 </Link>
 
+                {/* ✅ Changed from handleClick to scrollToContact */}
                 <button 
                   onClick={scrollToContact}
                   className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all"
