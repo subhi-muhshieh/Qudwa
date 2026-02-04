@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -16,8 +16,32 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   
+  // New fields for sign up
+  const [parentName, setParentName] = useState('');
+  const [children, setChildren] = useState([{ name: '', age: '' }]);
+  
   const router = useRouter();
   const supabase = createClient();
+
+  // Add a new child input
+  const addChild = () => {
+    setChildren([...children, { name: '', age: '' }]);
+  };
+
+  // Remove a child input
+  const removeChild = (index) => {
+    if (children.length > 1) {
+      const newChildren = children.filter((_, i) => i !== index);
+      setChildren(newChildren);
+    }
+  };
+
+  // Update child data
+  const updateChild = (index, field, value) => {
+    const newChildren = [...children];
+    newChildren[index][field] = value;
+    setChildren(newChildren);
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -26,15 +50,43 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ 
+        // Validate signup fields
+        if (!parentName.trim()) {
+          toast.error("الرجاء إدخال اسم ولي الأمر", { id: toastId });
+          setLoading(false);
+          return;
+        }
+
+        // Check if at least one child has valid data
+        const validChildren = children.filter(child => child.name.trim() && child.age);
+        if (validChildren.length === 0) {
+          toast.error("الرجاء إدخال بيانات طفل واحد على الأقل", { id: toastId });
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({ 
           email, 
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              parent_name: parentName,
+              children: validChildren,
+            }
           }
         });
         
         if (error) throw error;
+
+        // Save to profiles table after signup
+        if (data.user) {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            parent_name: parentName,
+            children: validChildren,
+          });
+        }
 
         toast.dismiss(toastId);
         setVerificationSent(true);
@@ -86,9 +138,16 @@ export default function LoginPage() {
     }
   };
 
+  // Reset form when switching between login/signup
+  const toggleAuthMode = () => {
+    setIsSignUp(!isSignUp);
+    setParentName('');
+    setChildren([{ name: '', age: '' }]);
+  };
+
   if (verificationSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-base-200 relative overflow-hidden font-sans">
+      <div className="min-h-screen flex items-center justify-center bg-base-200 relative overflow-hidden font-sans px-4">
          <div className="card w-full max-w-md bg-white shadow-2xl rounded-[2.5rem] p-10 text-center animate-fade-in-up">
             <div className="flex justify-center mb-6">
                 <div className="bg-green-100 text-green-500 p-6 rounded-full text-5xl">
@@ -117,7 +176,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200 relative overflow-hidden font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-base-200 relative overflow-hidden font-sans py-10 px-4">
       
       {/* Background Blobs */}
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/20 rounded-full blur-3xl"></div>
@@ -135,7 +194,7 @@ export default function LoginPage() {
           
           <form onSubmit={handleAuth} className="flex flex-col gap-5">
             
-            {/* Email Input - LTR */}
+            {/* Email Input */}
             <div className="relative">
                 <FaEnvelope className="absolute top-4 left-4 text-gray-400 z-10" />
                 <input 
@@ -149,7 +208,7 @@ export default function LoginPage() {
                 />
             </div>
 
-            {/* Password Input - LTR with Eye Toggle */}
+            {/* Password Input */}
             <div className="relative">
                 <FaLock className="absolute top-4 left-4 text-gray-400 z-10" />
                 <input 
@@ -169,6 +228,95 @@ export default function LoginPage() {
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
             </div>
+
+            {/* SIGN UP ONLY FIELDS */}
+            {isSignUp && (
+              <>
+                {/* Divider */}
+                <div className="divider opacity-50 my-2">معلومات الأسرة</div>
+
+                {/* Parent Name */}
+                <div className="relative">
+                    <FaUser className="absolute top-4 right-4 text-gray-400 z-10" />
+                    <input 
+                      type="text" 
+                      placeholder="اسم ولي الأمر" 
+                      className="input input-bordered w-full rounded-full pr-12 bg-base-200/50 focus:bg-white transition-colors text-right"
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      required
+                    />
+                </div>
+
+                {/* Children Section */}
+                <div className="space-y-4">
+                  <label className="text-sm font-bold text-neutral/70 text-right block">
+                    بيانات الأبناء المسجلين
+                  </label>
+                  
+                  {children.map((child, index) => (
+                    <div key={index} className="bg-base-200/30 p-4 rounded-2xl space-y-3 relative">
+                      
+                      {/* Child Number Label */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
+                          الطفل {index + 1}
+                        </span>
+                        
+                        {/* Remove Button (only show if more than 1 child) */}
+                        {children.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeChild(index)}
+                            className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+                          >
+                            <FaTrash />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Child Name */}
+                      <div className="relative">
+                        <FaChild className="absolute top-4 right-4 text-gray-400 z-10" />
+                        <input 
+                          type="text" 
+                          placeholder="اسم الطفل" 
+                          className="input input-bordered w-full rounded-full pr-12 bg-white focus:bg-white transition-colors text-right"
+                          value={child.name}
+                          onChange={(e) => updateChild(index, 'name', e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {/* Child Age */}
+                      <div className="relative">
+                        <span className="absolute top-4 right-4 text-gray-400 z-10 text-xs font-bold">عمر</span>
+                        <input 
+                          type="number" 
+                          placeholder="عمر الطفل" 
+                          min="1"
+                          max="18"
+                          className="input input-bordered w-full rounded-full pr-12 bg-white focus:bg-white transition-colors text-right"
+                          value={child.age}
+                          onChange={(e) => updateChild(index, 'age', e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add Another Child Button */}
+                  <button
+                    type="button"
+                    onClick={addChild}
+                    className="btn btn-outline btn-primary btn-sm w-full rounded-full gap-2"
+                  >
+                    <FaPlus />
+                    إضافة طفل آخر
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Forgot Password Link - Only on Login */}
             {!isSignUp && (
@@ -200,7 +348,7 @@ export default function LoginPage() {
           
           <button 
             className="btn btn-ghost hover:bg-transparent normal-case gap-2"
-            onClick={() => setIsSignUp(!isSignUp)}
+            onClick={toggleAuthMode}
           >
             {isSignUp ? "لديك حساب بالفعل؟ سجل دخولك" : "ليس لديك حساب؟ انضم إلينا"}
             <FaArrowRight className="text-xs mt-1" />

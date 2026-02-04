@@ -1,20 +1,20 @@
 'use client'
 import { useState } from 'react';
-import { usePathname } from 'next/navigation'; // <--- NEW IMPORT
-import { FaPaperPlane, FaInstagram, FaTwitter, FaFacebook, FaTelegramPlane } from 'react-icons/fa';
+import { usePathname } from 'next/navigation';
+import { FaPaperPlane, FaInstagram, FaFacebook, FaTelegramPlane } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { createClient } from '../utils/supabase/client';
 
 export default function Footer() {
   const [msg, setMsg] = useState('');
   const supabase = createClient();
-  const pathname = usePathname(); // <--- GET CURRENT URL
+  const pathname = usePathname();
 
   // --- HIDE FOOTER LOGIC ---
-  // If we are on Home (Landing) or Login, return nothing.
-if (pathname === '/' || pathname === '/login' || pathname === '/admin' || pathname === '/reset-password') {
-  return null;
-}
+  const hiddenPages = ['/', '/login', '/admin', '/reset-password'];
+  if (hiddenPages.includes(pathname)) {
+    return null;
+  }
   // -------------------------
 
   const sendTelegramMessage = async (e) => {
@@ -66,7 +66,6 @@ if (pathname === '/' || pathname === '/login' || pathname === '/admin' || pathna
                 <header className="footer-title opacity-100 text-primary text-lg">روابط سريعة</header> 
                 <a href="/dashboard" className="link link-hover text-base">الرئيسية</a>
                 <a href="/activities" className="link link-hover text-base">سجل النشاطات</a>
-                <a href="/admin" className="link link-hover text-base">لوحة الإدارة</a>
             </nav> 
 
             {/* Column 2: Contact Form */}
@@ -93,39 +92,38 @@ if (pathname === '/' || pathname === '/login' || pathname === '/admin' || pathna
             </form>
 
             {/* Column 3: Socials */}
-           {/* Column 3: Socials */}
-<nav>
-    <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
-    <div className="grid grid-flow-col gap-4">
-        
-        <a 
-          href="https://www.instagram.com/QudwaAssoc" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-        >
-          <FaInstagram />
-        </a>
-        
-        <a 
-          href="https://www.facebook.com/QudwaAssoc" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-        >
-          <FaFacebook />
-        </a>
-        
-        <a 
-          href="https://t.me/QudwaAssoc" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-        >
-          <FaTelegramPlane />
-        </a>
-    </div>
-</nav>
+            <nav>
+                <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
+                <div className="grid grid-flow-col gap-4">
+                    
+                    <a 
+                      href="https://www.instagram.com/QudwaAssoc" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <FaInstagram />
+                    </a>
+                    
+                    <a 
+                      href="https://www.facebook.com/QudwaAssoc" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <FaFacebook />
+                    </a>
+                    
+                    <a 
+                      href="https://t.me/QudwaAssoc" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                    >
+                      <FaTelegramPlane />
+                    </a>
+                </div>
+            </nav>
         </div>
 
         {/* Copyright */}
