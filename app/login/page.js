@@ -1,8 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaCheckCircle, FaKey } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -60,7 +61,6 @@ export default function LoginPage() {
     }
   };
 
-  // PASSWORD RESET HANDLER - NEW!
   const handlePasswordReset = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
@@ -86,7 +86,6 @@ export default function LoginPage() {
     }
   };
 
-  // If "Verification Sent" screen is active
   if (verificationSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200 relative overflow-hidden font-sans">
@@ -101,7 +100,7 @@ export default function LoginPage() {
             </h2>
             <p className="text-lg opacity-70 mb-8">
                 أرسلنا رابط تفعيل إلى: <br/>
-                <span className="font-bold text-primary">{email}</span>
+                <span className="font-bold text-primary" dir="ltr">{email}</span>
             </p>
             <p className="text-sm opacity-50 mb-8">
                 اضغط على الرابط في الرسالة لتفعيل حسابك، ثم عد إلى هنا لتسجيل الدخول.
@@ -117,7 +116,6 @@ export default function LoginPage() {
     );
   }
 
-  // Normal Login/Signup Form
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200 relative overflow-hidden font-sans">
       
@@ -137,31 +135,42 @@ export default function LoginPage() {
           
           <form onSubmit={handleAuth} className="flex flex-col gap-5">
             
+            {/* Email Input - LTR */}
             <div className="relative">
-                <FaEnvelope className="absolute top-4 right-4 text-gray-400 z-10" />
+                <FaEnvelope className="absolute top-4 left-4 text-gray-400 z-10" />
                 <input 
                   type="email" 
                   placeholder="البريد الإلكتروني" 
-                  className="input input-bordered w-full rounded-full pr-12 bg-base-200/50 focus:bg-white transition-colors text-right"
+                  dir="ltr"
+                  className="input input-bordered w-full rounded-full pl-12 bg-base-200/50 focus:bg-white transition-colors text-left"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
             </div>
 
+            {/* Password Input - LTR with Eye Toggle */}
             <div className="relative">
-                <FaLock className="absolute top-4 right-4 text-gray-400 z-10" />
+                <FaLock className="absolute top-4 left-4 text-gray-400 z-10" />
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"}
                   placeholder="كلمة المرور" 
-                  className="input input-bordered w-full rounded-full pr-12 bg-base-200/50 focus:bg-white transition-colors text-right"
+                  dir="ltr"
+                  className="input input-bordered w-full rounded-full pl-12 pr-12 bg-base-200/50 focus:bg-white transition-colors text-left"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute top-4 right-4 text-gray-400 hover:text-primary transition-colors z-10"
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
             </div>
 
-            {/* FORGOT PASSWORD LINK - NEW! (Only shows on login, not signup) */}
+            {/* Forgot Password Link - Only on Login */}
             {!isSignUp && (
               <div className="text-right -mt-2">
                 <button
@@ -199,7 +208,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* PASSWORD RESET MODAL - NEW! */}
+      {/* PASSWORD RESET MODAL */}
       {showResetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div 
@@ -226,12 +235,13 @@ export default function LoginPage() {
             {/* Modal Form */}
             <form onSubmit={handlePasswordReset} className="space-y-4">
               <div className="relative">
-                <FaEnvelope className="absolute top-4 right-4 text-gray-400 z-10" />
+                <FaEnvelope className="absolute top-4 left-4 text-gray-400 z-10" />
                 <input
                   type="email"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  className="input input-bordered w-full rounded-full pr-12 text-right"
+                  dir="ltr"
+                  className="input input-bordered w-full rounded-full pl-12 text-left"
                   placeholder="البريد الإلكتروني"
                   required
                 />

@@ -1,32 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { FaLock, FaCheckCircle } from 'react-icons/fa';
+import { FaLock, FaCheckCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 export default function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isValidToken, setIsValidToken] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const supabase = createClient();
   const router = useRouter();
-
-  useEffect(() => {
-    // Check if user came from email link
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsValidToken(true);
-      } else {
-        toast.error('رابط غير صالح أو منتهي الصلاحية');
-        router.push('/login');
-      }
-    };
-    checkUser();
-  }, []);
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
@@ -41,7 +28,7 @@ export default function ResetPassword() {
       return;
     }
 
-    setIsLoading(true);
+    setLoading(true);
     const toastId = toast.loading('جاري تحديث كلمة المرور...');
 
     const { error } = await supabase.auth.updateUser({
@@ -50,75 +37,78 @@ export default function ResetPassword() {
 
     if (error) {
       toast.error('حدث خطأ في تحديث كلمة المرور', { id: toastId });
-      setIsLoading(false);
+      setLoading(false);
     } else {
       toast.success('تم تحديث كلمة المرور بنجاح!', { id: toastId });
-      
-      // Sign out and redirect to login
       await supabase.auth.signOut();
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      setTimeout(() => router.push('/login'), 2000);
     }
   };
 
-  if (!isValidToken) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="glass-panel p-8 rounded-3xl shadow-xl">
-          <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaLock className="text-3xl text-primary" />
-            </div>
-            <h2 className="text-3xl font-bold text-primary">تعيين كلمة مرور جديدة</h2>
-            <p className="text-gray-600 mt-2">أدخل كلمة المرور الجديدة لحسابك</p>
+    <div className="min-h-screen flex items-center justify-center bg-base-200 relative overflow-hidden font-sans px-4">
+      
+      {/* Background Blobs */}
+      <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/20 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-secondary/20 rounded-full blur-3xl"></div>
+
+      <div className="card w-full max-w-md bg-base-100/80 backdrop-blur-xl shadow-2xl rounded-[2.5rem] border border-white/50">
+        <div className="card-body p-10 text-center">
+          
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FaLock className="text-3xl text-primary" />
           </div>
           
-          <form onSubmit={handleResetPassword} className="space-y-6">
-            <div>
-              <label className="label">
-                <span className="label-text">كلمة المرور الجديدة</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="input input-bordered w-full pl-10"
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                />
-                <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              </div>
+          <h2 className="text-3xl font-bold text-primary mb-2">تعيين كلمة مرور جديدة</h2>
+          <p className="text-gray-500 mb-8 text-sm">أدخل كلمة المرور الجديدة لحسابك</p>
+          
+          <form onSubmit={handleResetPassword} className="flex flex-col gap-5">
+            
+            {/* New Password */}
+            <div className="relative">
+              <FaLock className="absolute top-4 left-4 text-gray-400 z-10" />
+              <input
+                type={showNewPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                dir="ltr"
+                className="input input-bordered w-full rounded-full pl-12 pr-12 bg-base-200/50 focus:bg-white transition-colors text-left"
+                placeholder="كلمة المرور الجديدة"
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-primary transition-colors z-10"
+              >
+                {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
 
-            <div>
-              <label className="label">
-                <span className="label-text">تأكيد كلمة المرور</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input input-bordered w-full pl-10"
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                />
-                <FaCheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              </div>
+            {/* Confirm Password */}
+            <div className="relative">
+              <FaCheckCircle className="absolute top-4 left-4 text-gray-400 z-10" />
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                dir="ltr"
+                className="input input-bordered w-full rounded-full pl-12 pr-12 bg-base-200/50 focus:bg-white transition-colors text-left"
+                placeholder="تأكيد كلمة المرور"
+                required
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-primary transition-colors z-10"
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
 
+            {/* Password Match Indicator */}
             {newPassword && confirmPassword && (
               <div className={`text-sm ${newPassword === confirmPassword ? 'text-success' : 'text-error'}`}>
                 {newPassword === confirmPassword ? '✓ كلمات المرور متطابقة' : '✗ كلمات المرور غير متطابقة'}
@@ -127,14 +117,10 @@ export default function ResetPassword() {
 
             <button
               type="submit"
-              disabled={isLoading}
-              className="btn btn-primary w-full text-white"
+              disabled={loading}
+              className="btn btn-primary w-full rounded-full shadow-lg hover:scale-105 transition-transform mt-2 text-lg text-white"
             >
-              {isLoading ? (
-                <span className="loading loading-spinner"></span>
-              ) : (
-                'تحديث كلمة المرور'
-              )}
+              {loading ? <span className="loading loading-spinner"></span> : 'تحديث كلمة المرور'}
             </button>
           </form>
         </div>
