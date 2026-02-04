@@ -3,6 +3,7 @@ import localFont from 'next/font/local'; // <--- NEW IMPORT
 import "./globals.css";
 import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
+import Footer from "./components/Footer"; 
 
 // 1. Body Font (Tajawal - Google)
 const tajawal = Tajawal({ 
@@ -42,6 +43,7 @@ export default function RootLayout({ children }) {
       <body className={`${tajawal.className} ${nastaliq.variable} ${sloganFont.variable}`}>
         <Navbar />
         {children}
+        <Footer /> 
         <Toaster 
           position="bottom-center" 
           toastOptions={{ 

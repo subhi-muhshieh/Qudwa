@@ -9,17 +9,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState(null);
   const [upcomingActivity, setUpcomingActivity] = useState(null);
-  const [msg, setMsg] = useState('');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // State for the Popup Modal
   const [selectedActivity, setSelectedActivity] = useState(null);
   
   const supabase = createClient();
   const router = useRouter();
 
-  // 1. Check User & Fetch Data
   useEffect(() => {
     const checkUserAndFetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -38,14 +34,12 @@ export default function Dashboard() {
     checkUserAndFetchData();
   }, [router]);
 
-  // 2. NEW: Freeze Background Scroll when Modal is Open
   useEffect(() => {
     if (selectedActivity) {
-      document.body.style.overflow = 'hidden'; // Disable scroll
+      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';  // Enable scroll
+      document.body.style.overflow = 'unset';
     }
-    // Cleanup function in case user leaves page while modal is open
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedActivity]);
 
@@ -55,16 +49,11 @@ export default function Dashboard() {
     else toast.success("شكراً لتفاعلك!");
   };
 
-  const sendTelegramMessage = async (e) => {
-    e.preventDefault();
-    if (!msg) return;
-    const toastId = toast.loading("جاري الإرسال...");
-    try {
-      await fetch('/api/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, userEmail: user?.email }), });
-      toast.success("وصلت رسالتك!", { id: toastId });
-      setMsg('');
-    } catch (error) {
-      toast.error("فشل الإرسال", { id: toastId });
+  const scrollToContact = () => {
+    const element = document.getElementById('contact-input');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
     }
   };
 
@@ -75,7 +64,6 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen pt-32 pb-20 px-4 md:px-10 overflow-hidden relative">
       
-      {/* --- HEADER --- */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} className="text-center mb-20 mt-6">
         <h2 className="text-4xl md:text-6xl text-accent font-black tracking-wide leading-tight drop-shadow-sm" style={{ fontFamily: 'var(--font-slogan)' }}>
           جيلٌ يبني، أثرٌ يبقى
@@ -83,7 +71,6 @@ export default function Dashboard() {
         <div className="w-24 h-2 bg-primary/20 mx-auto mt-6 rounded-full"></div>
       </motion.div>
 
-      {/* --- RECENT ACTIVITY --- */}
       <motion.div className="max-w-6xl mx-auto mb-24" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={fadeInUp}>
         <div className="glass-panel p-2 rounded-[2.5rem] shadow-sm">
           <div className="bg-white/60 rounded-[2rem] overflow-hidden p-6 md:p-10 flex flex-col lg:flex-row-reverse gap-10 items-start transition-all">
@@ -95,13 +82,18 @@ export default function Dashboard() {
                   </div>
                 )}
                 <div className="w-full lg:w-1/2 text-right">
-                  <div className="badge badge-secondary badge-outline mb-6 p-4 text-sm gap-2 font-bold bg-white/50 border-secondary/30"><FaStar /> آخر الإنجازات</div>
+                  <div className="badge badge-secondary badge-outline mb-6 px-4 py-4 text-sm gap-2 font-bold bg-white/50 border-secondary/30 flex items-center h-auto">
+                    <FaStar className="text-base" /> 
+                    <span className="leading-none pt-1">آخر النشاطات</span>
+                  </div>
                   <h1 className="text-3xl lg:text-5xl font-bold mb-6 text-neutral leading-tight">{recentActivity.title}</h1>
                   <p className="text-lg text-neutral/70 leading-relaxed mb-8 pl-4 border-l-4 border-primary/20">{recentActivity.short_description}</p>
-                  <div className="flex gap-4">
-                      <button onClick={() => handleLike(recentActivity.id)} className="btn btn-primary rounded-2xl px-8 text-white shadow-lg shadow-primary/30"><FaHeart /> أعجبني</button>
-                      {/* Button to open Modal for Past Activity */}
+                  <div className="flex flex-wrap gap-3">
+                      <button onClick={() => handleLike(recentActivity.id)} className="btn btn-primary rounded-2xl px-6 text-white shadow-lg shadow-primary/30"><FaHeart /> أعجبني</button>
                       <button onClick={() => setSelectedActivity(recentActivity)} className="btn btn-ghost rounded-2xl">التفاصيل</button>
+                      <button onClick={scrollToContact} className="btn btn-outline btn-secondary rounded-2xl gap-2">
+                        <FaPaperPlane /> تواصل بشأن هذا
+                      </button>
                   </div>
                 </div>
               </>
@@ -110,7 +102,6 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* --- UPCOMING ACTIVITY --- */}
       {upcomingActivity && (
         <motion.div className="max-w-4xl mx-auto mb-24 relative group" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.5 }} variants={fadeInUp}>
           <div className="absolute inset-0 bg-secondary/30 rounded-[2.5rem] blur-2xl transform group-hover:scale-105 transition duration-500"></div>
@@ -120,7 +111,6 @@ export default function Dashboard() {
                 <h2 className="card-title text-3xl md:text-5xl font-bold mb-6">{upcomingActivity.title}</h2>
                 <p className="text-lg md:text-xl opacity-90 mb-10 font-light leading-relaxed">{upcomingActivity.short_description}</p>
                 <div className="card-actions justify-end border-t border-white/20 pt-6">
-                    {/* BUTTON ACTIVATED */}
                     <button onClick={() => setSelectedActivity(upcomingActivity)} className="btn btn-ghost bg-white/20 text-white hover:bg-white hover:text-primary border-none rounded-2xl px-8 gap-3 h-12">
                         للمزيد من التفاصيل <FaArrowLeft />
                     </button>
@@ -130,28 +120,13 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* --- CONTACT --- */}
-      <motion.div className="max-w-2xl mx-auto text-center mt-20" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.5 }} variants={fadeInUp}>
-        <h3 className="text-2xl font-bold mb-8 text-neutral opacity-80">تواصل مباشر مع الإدارة</h3>
-        <form onSubmit={sendTelegramMessage} className="relative group">
-            <div className="relative flex items-center bg-white rounded-2xl border border-blue-100 p-2 shadow-lg hover:shadow-xl focus-within:ring-2 ring-primary/20 transition-all">
-                <input className="input bg-transparent border-none focus:outline-none w-full pr-6 text-lg placeholder:text-gray-300 text-right text-neutral" placeholder="اكتب رسالتك..." value={msg} onChange={(e) => setMsg(e.target.value)} />
-                <button type="submit" className="btn btn-primary rounded-xl px-6 h-12 min-h-0 text-white shadow-md hover:scale-105 transition-transform"><FaPaperPlane className="transform scale-x-[-1]" /></button>
-            </div>
-        </form>
-      </motion.div>
-
-      {/* ================= MODAL POPUP ================= */}
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
             className="fixed inset-0 z-[100] flex items-center justify-center px-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            {/* Backdrop Blur */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedActivity(null)}></div>
-            
-            {/* The Modal Card */}
             <motion.div 
               className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
