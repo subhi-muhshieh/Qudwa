@@ -12,9 +12,9 @@ export default function Footer() {
 
   // --- HIDE FOOTER LOGIC ---
   // If we are on Home (Landing) or Login, return nothing.
-  if (pathname === '/' || pathname === '/login') {
-    return null;
-  }
+if (pathname === '/' || pathname === '/login' || pathname === '/admin' || pathname === '/reset-password') {
+  return null;
+}
   // -------------------------
 
   const sendTelegramMessage = async (e) => {

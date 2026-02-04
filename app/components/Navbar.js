@@ -2,54 +2,90 @@
 import React from 'react'; 
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope } from 'react-icons/fa';
 
 export default function Navbar() {
-  const supabase = createClient();
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    const supabase = createClient();
+    let isMounted = true;
+
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) checkAdmin(user.id);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (isMounted) {
+          setUser(user);
+          if (user) checkAdmin(user.id, supabase);
+        }
+      } catch (error) {
+        // Ignore abort errors
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching user:', error);
+        }
+      }
     };
+
+    const checkAdmin = async (userId, supabase) => {
+      try {
+        const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
+        if (isMounted && data?.role === 'admin') {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error('Error checking admin:', error);
+      }
+    };
+
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) checkAdmin(session.user.id);
-      else setIsAdmin(false);
+      if (isMounted) {
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          checkAdmin(session.user.id, supabase);
+        } else {
+          setIsAdmin(false);
+        }
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const checkAdmin = async (userId) => {
-    const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
-    if (data?.role === 'admin') setIsAdmin(true);
-  };
-
-  // ✅ DELETE the broken ScrollButton function completely!
-  // (Remove lines 38-50 from your original file)
-
   const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login'); 
     router.refresh();      
   };
 
-  // ✅ This function already does what you need!
   const scrollToContact = () => {
-    const element = document.getElementById('message-box'); // Changed to message-box
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const messageBox = document.getElementById('message-box');
+    const input = document.getElementById('contact-input');
+    
+    if (messageBox) {
+      messageBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => {
+        if (input) input.focus();
+      }, 500);
     }
   };
+
+  // --- HIDE NAVBAR LOGIC ---
+  const hiddenPages = ['/login', '/reset-password'];
+  if (hiddenPages.includes(pathname)) {
+    return null;
+  }
+  // -------------------------
 
   return (
     <div className="navbar absolute top-6 left-4 right-4 w-auto rounded-3xl glass-panel shadow-sm z-50 px-4 md:px-6">
@@ -90,10 +126,9 @@ export default function Navbar() {
                   className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
                 >
                   <FaHistory className="text-secondary opacity-70" />
-                  سجل النشاطات
+                  سجل الإنجازات
                 </Link>
 
-                {/* ✅ Changed from handleClick to scrollToContact */}
                 <button 
                   onClick={scrollToContact}
                   className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all"

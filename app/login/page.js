@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaCheckCircle } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaCheckCircle, FaKey } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -10,7 +10,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false); // New State
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
   
   const router = useRouter();
   const supabase = createClient();
@@ -22,24 +25,21 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        // --- SIGN UP LOGIC (With Email Confirmation) ---
         const { error } = await supabase.auth.signUp({ 
           email, 
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`, // Redirects back to home after clicking email
+            emailRedirectTo: `${window.location.origin}/`,
           }
         });
         
         if (error) throw error;
 
-        // Don't auto-login. Show the "Check Email" screen instead.
         toast.dismiss(toastId);
         setVerificationSent(true);
         toast.success("تم إنشاء الحساب! يرجى تفعيل البريد الإلكتروني");
 
       } else {
-        // --- LOGIN LOGIC ---
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.includes("Email not confirmed")) {
@@ -57,6 +57,32 @@ export default function LoginPage() {
       toast.error(error.message || "حدث خطأ ما", { id: toastId });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // PASSWORD RESET HANDLER - NEW!
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast.error('الرجاء إدخال البريد الإلكتروني');
+      return;
+    }
+
+    setResetLoading(true);
+    const toastId = toast.loading('جاري إرسال رابط استعادة كلمة المرور...');
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    setResetLoading(false);
+
+    if (error) {
+      toast.error('حدث خطأ في إرسال البريد', { id: toastId });
+    } else {
+      toast.success('تم إرسال رابط الاستعادة إلى بريدك الإلكتروني!', { id: toastId });
+      setShowResetModal(false);
+      setResetEmail('');
     }
   };
 
@@ -134,6 +160,23 @@ export default function LoginPage() {
                   required
                 />
             </div>
+
+            {/* FORGOT PASSWORD LINK - NEW! (Only shows on login, not signup) */}
+            {!isSignUp && (
+              <div className="text-right -mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResetModal(true);
+                    setResetEmail(email);
+                  }}
+                  className="text-sm text-primary hover:text-primary/70 transition-colors inline-flex items-center gap-1"
+                >
+                  <FaKey className="text-xs" />
+                  نسيت كلمة المرور؟
+                </button>
+              </div>
+            )}
             
             <button 
               type="submit" 
@@ -155,6 +198,76 @@ export default function LoginPage() {
           </button>
         </div>
       </div>
+
+      {/* PASSWORD RESET MODAL - NEW! */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => {
+              setShowResetModal(false);
+              setResetEmail('');
+            }}
+          ></div>
+          
+          <div className="bg-white rounded-[2rem] p-8 relative z-10 max-w-md w-full shadow-2xl">
+            
+            {/* Modal Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaKey className="text-2xl text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold text-primary">استعادة كلمة المرور</h3>
+              <p className="text-gray-500 mt-2 text-sm">
+                أدخل بريدك الإلكتروني وسنرسل لك رابط لإعادة تعيين كلمة المرور
+              </p>
+            </div>
+            
+            {/* Modal Form */}
+            <form onSubmit={handlePasswordReset} className="space-y-4">
+              <div className="relative">
+                <FaEnvelope className="absolute top-4 right-4 text-gray-400 z-10" />
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  className="input input-bordered w-full rounded-full pr-12 text-right"
+                  placeholder="البريد الإلكتروني"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="btn btn-primary flex-1 rounded-full text-white"
+                  disabled={resetLoading}
+                >
+                  {resetLoading ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    'إرسال الرابط'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResetModal(false);
+                    setResetEmail('');
+                  }}
+                  className="btn btn-ghost flex-1 rounded-full"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+
+            <p className="text-center mt-6 text-xs text-gray-400">
+              ستصلك رسالة على بريدك الإلكتروني خلال دقائق
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
