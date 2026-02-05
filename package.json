@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-email/components": "^1.0.7",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.39.0",
@@ -18,8 +19,10 @@
     "next-image-export-optimizer": "^1.20.1",
     "react": "^18",
     "react-dom": "^18",
+    "react-email": "^5.2.7",
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
+    "resend": "^6.9.1",
     "sharp": "^0.34.5"
   },
   "devDependencies": {

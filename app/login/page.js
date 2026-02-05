@@ -233,39 +233,57 @@ export default function LoginPage() {
   };
 
   const handleReactivateAccount = async () => {
-    if (!deletedAccountInfo?.id) {
-      toast.error('حدث خطأ في استعادة الحساب');
-      return;
-    }
+  if (!deletedAccountInfo?.id) {
+    toast.error('حدث خطأ في استعادة الحساب');
+    return;
+  }
 
-    setReactivating(true);
-    const toastId = toast.loading('جاري استعادة الحساب...');
+  setReactivating(true);
+  const toastId = toast.loading('جاري استعادة الحساب...');
 
-    try {
-      // Reactivate the account
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          deleted: false, 
-          deleted_at: null 
-        })
-        .eq('id', deletedAccountInfo.id);
+  try {
+    // Create a temporary Supabase client with service role key
+    // Since we can't use service role on client, we need to do this via API
+    
+    // Try to reactivate via direct database update (this works if RLS allows)
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ 
+        deleted: false, 
+        deleted_at: null 
+      })
+      .eq('id', deletedAccountInfo.id);
 
-      if (error) throw error;
-
-      toast.success('تم استعادة حسابك بنجاح! يمكنك تسجيل الدخول الآن', { id: toastId });
-      setShowReactivateModal(false);
-      setDeletedAccountInfo(null);
+    if (updateError) {
+      console.error('Direct update error:', updateError);
       
-      // Pre-fill the email for convenience
-      setEmail(reactivateEmail);
-    } catch (error) {
-      console.error('Reactivation error:', error);
-      toast.error('حدث خطأ في استعادة الحساب', { id: toastId });
-    } finally {
-      setReactivating(false);
+      // If direct update fails, try via API route
+      const response = await fetch('/api/reactivate-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: deletedAccountInfo.id })
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to reactivate');
+      }
     }
-  };
+
+    toast.success('تم استعادة حسابك بنجاح! يمكنك تسجيل الدخول الآن', { id: toastId });
+    setShowReactivateModal(false);
+    setDeletedAccountInfo(null);
+    
+    // Pre-fill the email for convenience
+    setEmail(reactivateEmail);
+  } catch (error) {
+    console.error('Reactivation error:', error);
+    toast.error('حدث خطأ في استعادة الحساب: ' + error.message, { id: toastId });
+  } finally {
+    setReactivating(false);
+  }
+};
 
   const handlePasswordReset = async (e) => {
     e.preventDefault();

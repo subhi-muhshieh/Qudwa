@@ -273,6 +273,34 @@ export default function SettingsPage() {
                 onChange={toggleTheme}
               />
             </div>
+
+            {/* Email Notifications Toggle */}
+<div className="flex items-center justify-between p-4 bg-base-100 rounded-xl">
+  <div className="flex items-center gap-3">
+    <FaEnvelope className="text-primary" />
+    <span>إشعارات البريد الإلكتروني</span>
+  </div>
+  <input 
+    type="checkbox" 
+    className="toggle toggle-primary" 
+    checked={profile?.email_notifications ?? true}
+    onChange={async (e) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ email_notifications: e.target.checked })
+        .eq('id', user.id);
+      
+      if (!error) {
+        toast.success(e.target.checked ? 
+          'تم تفعيل الإشعارات' : 
+          'تم إيقاف الإشعارات'
+        );
+        // Update local state
+        setProfile({...profile, email_notifications: e.target.checked});
+      }
+    }}
+  />
+</div>
             
             {/* Notifications Toggle */}
             <div className="flex items-center justify-between p-4 bg-base-100 rounded-xl">

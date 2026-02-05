@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { FaPlus, FaTrash, FaEdit, FaCheck, FaTimes, FaCalendarAlt, FaClock, FaImage, FaInfoCircle, FaStar, FaHistory } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaEnvelope, FaCheck, FaTimes, FaCalendarAlt, FaClock, FaImage, FaInfoCircle, FaStar, FaHistory } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -78,6 +78,63 @@ export default function AdminDashboard() {
       toast.error('حدث خطأ!', { id: toastId });
     }
   };
+  const sendEmailNotifications = async (activity) => {
+  const toastId = toast.loading('جاري إرسال الإشعارات...');
+
+  try {
+    // Get all parents who have email notifications enabled
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, parent_name, email_notifications')
+      .eq('email_notifications', true)
+      .eq('deleted', false);
+
+    if (!profiles || profiles.length === 0) {
+      toast.error('لا يوجد مستخدمين للإرسال إليهم', { id: toastId });
+      return;
+    }
+
+    // Get their emails from auth
+    const recipients = [];
+    for (const profile of profiles) {
+      const { data: { user } } = await supabase.auth.admin.getUserById(profile.id);
+      if (user?.email) {
+        recipients.push({
+          email: user.email,
+          parent_name: profile.parent_name
+        });
+      }
+    }
+
+    // Send emails via API
+    const response = await fetch('/api/send-activity-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activity, recipients })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      toast.success(`تم الإرسال! نجح: ${result.sent}, فشل: ${result.failed}`, { id: toastId });
+    } else {
+      throw new Error('Failed to send emails');
+    }
+
+  } catch (error) {
+    console.error('Email error:', error);
+    toast.error('فشل إرسال الإشعارات', { id: toastId });
+  }
+};
+
+// Add this button in the activities table actions
+<button
+  onClick={() => sendEmailNotifications(activity)}
+  className="btn btn-sm btn-ghost text-blue-600"
+  title="إرسال إشعار بالبريد"
+>
+  <FaEnvelope />
+</button>
 
   const handleDelete = async (id) => {
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
