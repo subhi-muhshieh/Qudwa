@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { FaPlus, FaTrash, FaEdit, FaEnvelope, FaCheck, FaTimes, FaCalendarAlt, FaClock, FaImage, FaInfoCircle, FaStar, FaHistory } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaCheck, FaTimes, FaCalendarAlt, FaClock, FaImage, FaInfoCircle, FaStar, FaHistory, FaUpload, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -10,6 +10,9 @@ export default function AdminDashboard() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  
+  const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -50,6 +53,61 @@ export default function AdminDashboard() {
     if (data) setMessages(data);
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast.error('الرجاء اختيار صورة صالحة');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('حجم الصورة يجب أن يكون أقل من 5 ميغابايت');
+      return;
+    }
+
+    setUploading(true);
+    const toastId = toast.loading('جاري رفع الصورة...');
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('activity-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('activity-images')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      // Update form data
+      setFormData({ ...formData, image_url: publicUrl });
+      
+      toast.success('تم رفع الصورة بنجاح!', { id: toastId });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('فشل رفع الصورة: ' + error.message, { id: toastId });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const toastId = toast.loading(editingId ? 'جاري التحديث...' : 'جاري الإضافة...');
@@ -78,78 +136,33 @@ export default function AdminDashboard() {
       toast.error('حدث خطأ!', { id: toastId });
     }
   };
-  const sendEmailNotifications = async (activity) => {
-  const toastId = toast.loading('جاري إرسال الإشعارات...');
 
-  try {
-    // Get all parents who have email notifications enabled
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, parent_name, email_notifications')
-      .eq('email_notifications', true)
-      .eq('deleted', false);
-
-    if (!profiles || profiles.length === 0) {
-      toast.error('لا يوجد مستخدمين للإرسال إليهم', { id: toastId });
-      return;
-    }
-
-    // Get their emails from auth
-    const recipients = [];
-    for (const profile of profiles) {
-      const { data: { user } } = await supabase.auth.admin.getUserById(profile.id);
-      if (user?.email) {
-        recipients.push({
-          email: user.email,
-          parent_name: profile.parent_name
-        });
-      }
-    }
-
-    // Send emails via API
-    const response = await fetch('/api/send-activity-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activity, recipients })
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      toast.success(`تم الإرسال! نجح: ${result.sent}, فشل: ${result.failed}`, { id: toastId });
-    } else {
-      throw new Error('Failed to send emails');
-    }
-
-  } catch (error) {
-    console.error('Email error:', error);
-    toast.error('فشل إرسال الإشعارات', { id: toastId });
-  }
-};
-
-// Add this button in the activities table actions
-<button
-  onClick={() => sendEmailNotifications(activity)}
-  className="btn btn-sm btn-ghost text-blue-600"
-  title="إرسال إشعار بالبريد"
->
-  <FaEnvelope />
-</button>
-
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, imageUrl) => {
     if (!confirm('هل أنت متأكد من الحذف؟')) return;
     
     const toastId = toast.loading('جاري الحذف...');
-    const { error } = await supabase
-      .from('activities')
-      .delete()
-      .eq('id', id);
 
-    if (error) {
-      toast.error('فشل الحذف!', { id: toastId });
-    } else {
+    try {
+      // Delete image from storage if exists
+      if (imageUrl && imageUrl.includes('activity-images')) {
+        const imagePath = imageUrl.split('/activity-images/')[1];
+        if (imagePath) {
+          await supabase.storage.from('activity-images').remove([imagePath]);
+        }
+      }
+
+      // Delete activity
+      const { error } = await supabase
+        .from('activities')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
       toast.success('تم الحذف!', { id: toastId });
       fetchActivities();
+    } catch (error) {
+      toast.error('فشل الحذف!', { id: toastId });
     }
   };
 
@@ -173,6 +186,9 @@ export default function AdminDashboard() {
     });
     setEditingId(null);
     setIsAddingNew(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   if (loading) {
@@ -247,18 +263,42 @@ export default function AdminDashboard() {
                   />
                 </div>
 
+                {/* IMAGE UPLOAD - NEW! */}
                 <div className="form-control">
                   <label className="label">
-                    <span className="label-text font-bold">رابط الصورة</span>
+                    <span className="label-text font-bold">صورة النشاط</span>
                   </label>
-                  <input
-                    type="url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                    className="input input-bordered rounded-xl"
-                    placeholder="https://..."
-                    dir="ltr"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="file-input file-input-bordered file-input-primary rounded-xl flex-1"
+                      disabled={uploading}
+                    />
+                    {uploading && (
+                      <button type="button" className="btn btn-square btn-primary" disabled>
+                        <FaSpinner className="animate-spin" />
+                      </button>
+                    )}
+                  </div>
+                  {formData.image_url && (
+                    <div className="mt-2">
+                      <img 
+                        src={formData.image_url} 
+                        alt="Preview" 
+                        className="w-full h-32 object-cover rounded-xl"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({...formData, image_url: ''})}
+                        className="btn btn-xs btn-error btn-outline mt-2"
+                      >
+                        <FaTimes /> إزالة الصورة
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-control md:col-span-2">
@@ -349,7 +389,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <button type="submit" className="btn btn-primary text-white">
+                <button type="submit" className="btn btn-primary text-white" disabled={uploading}>
                   {editingId ? 'حفظ التعديلات' : 'إضافة النشاط'}
                 </button>
                 <button type="button" onClick={resetForm} className="btn btn-ghost">
@@ -380,6 +420,7 @@ export default function AdminDashboard() {
             <table className="table table-zebra">
               <thead>
                 <tr>
+                  <th>الصورة</th>
                   <th>العنوان</th>
                   <th>التاريخ</th>
                   <th>الحالة</th>
@@ -389,6 +430,19 @@ export default function AdminDashboard() {
               <tbody>
                 {activities.map((activity) => (
                   <tr key={activity.id}>
+                    <td>
+                      {activity.image_url ? (
+                        <img 
+                          src={activity.image_url} 
+                          alt={activity.title}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <FaImage className="text-gray-400" />
+                        </div>
+                      )}
+                    </td>
                     <td className="font-bold">{activity.title}</td>
                     <td>{activity.activity_date || 'غير محدد'}</td>
                     <td>
@@ -404,7 +458,7 @@ export default function AdminDashboard() {
                         <FaEdit />
                       </button>
                       <button
-                        onClick={() => handleDelete(activity.id)}
+                        onClick={() => handleDelete(activity.id, activity.image_url)}
                         className="btn btn-sm btn-ghost text-error"
                       >
                         <FaTrash />
