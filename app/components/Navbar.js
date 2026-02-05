@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser } from 'react-icons/fa';
+import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog } from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
 
 export default function Navbar() {
@@ -56,7 +56,7 @@ export default function Navbar() {
   };
 
  // --- HIDE NAVBAR LOGIC ---
-const hiddenPages = ['/login', '/reset-password', '/'];
+const hiddenPages = ['/login', '/reset-password', '/', '/settings'];
 if (hiddenPages.includes(pathname)) {
   return null;
 }
@@ -155,6 +155,11 @@ if (hiddenPages.includes(pathname)) {
                   <FaUser className="text-primary" /> الملف الشخصي
                 </Link>
               </li>
+              <li>
+    <Link href="/settings" className="gap-2">
+      <FaCog className="text-primary" /> الإعدادات
+    </Link>
+  </li>
               
               <li className="md:hidden"><Link href="/activities"><FaHistory /> سجل الإنجازات</Link></li>
               <li className="md:hidden"><button onClick={scrollToContact} className="w-full"><FaEnvelope /> راسل الإدارة</button></li>

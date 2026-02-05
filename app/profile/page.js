@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaCamera, FaPhone, FaEnvelope, FaInstagram, FaFacebook, FaTelegramPlane, FaUser, FaChild, FaSave, FaEdit, FaPlus, FaTrash, FaTimes, FaWhatsapp } from 'react-icons/fa';
+import Link from 'next/link';
+import { FaCamera, FaPhone, FaEnvelope, FaInstagram, FaFacebook, FaTelegramPlane, FaWhatsapp, FaUser, FaChild, FaSave, FaEdit, FaPlus, FaTrash, FaTimes, FaCheck, FaArrowRight } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
 
@@ -231,7 +232,16 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-base-200 py-24 px-4">
+      
       <div className="max-w-2xl mx-auto">
+
+         <Link 
+        href="/dashboard" 
+        className="btn btn-ghost btn-sm rounded-xl gap-2 mb-6"
+      >
+        <FaArrowRight />
+        العودة للرئيسية
+      </Link>
         
         <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden">
           
@@ -540,5 +550,6 @@ export default function ProfilePage() {
 
       </div>
     </div>
+    
   );
 }

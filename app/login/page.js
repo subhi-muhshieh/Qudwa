@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash, FaPhone } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash, FaPhone, FaUndo } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -15,6 +15,10 @@ export default function LoginPage() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [showReactivateModal, setShowReactivateModal] = useState(false);
+  const [reactivateEmail, setReactivateEmail] = useState('');
+  const [reactivating, setReactivating] = useState(false);
+  const [deletedAccountInfo, setDeletedAccountInfo] = useState(null);
   
   // Sign up fields
   const [parentName, setParentName] = useState('');
@@ -116,14 +120,106 @@ export default function LoginPage() {
         toast.success("تم إنشاء الحساب! يرجى تفعيل البريد الإلكتروني");
 
       } else {
+        // LOGIN LOGIC
         const { error } = await supabase.auth.signInWithPassword({ email, password });
+        
         if (error) {
-          if (error.message.includes("Email not confirmed")) {
+          // Check if it's a credentials error
+          if (error.message.includes("Invalid login credentials")) {
+            // Check if account is soft-deleted
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('deleted, deleted_at, parent_name')
+              .eq('id', (await supabase.auth.getUser()).data.user?.id || '')
+              .single();
+
+            // If no profile found by ID, try by email (for deleted accounts)
+            if (!profiles) {
+              // Try to find by matching email in auth metadata
+              const { data: allProfiles } = await supabase
+                .from('profiles')
+                .select('id, deleted, deleted_at, parent_name');
+              
+              // Check each profile to see if it belongs to this email
+              for (const profile of allProfiles || []) {
+                const { data: authUser } = await supabase.auth.admin?.getUser?.(profile.id);
+                if (authUser?.user?.email === email && profile.deleted) {
+                  const deletedDate = new Date(profile.deleted_at);
+                  const daysSinceDeleted = Math.floor((Date.now() - deletedDate) / (1000 * 60 * 60 * 24));
+                  
+                  if (daysSinceDeleted < 30) {
+                    // Can be reactivated
+                    setDeletedAccountInfo({
+                      id: profile.id,
+                      email: email,
+                      parent_name: profile.parent_name,
+                      deleted_at: profile.deleted_at,
+                      days_left: 30 - daysSinceDeleted
+                    });
+                    setReactivateEmail(email);
+                    setShowReactivateModal(true);
+                    toast.dismiss(toastId);
+                    setLoading(false);
+                    return;
+                  } else {
+                    // Permanently deleted
+                    toast.error('تم حذف هذا الحساب نهائياً', { id: toastId });
+                    setLoading(false);
+                    return;
+                  }
+                }
+              }
+            }
+
+            // If we get here, it's just wrong credentials
+            toast.error("خطأ في البريد أو كلمة المرور", { id: toastId });
+          } else if (error.message.includes("Email not confirmed")) {
             toast.error("يرجى تفعيل حسابك من البريد الإلكتروني أولاً", { id: toastId });
           } else {
             toast.error("خطأ في البريد أو كلمة المرور", { id: toastId });
           }
         } else {
+          // Successful login - check if account is marked as deleted
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('deleted, deleted_at, parent_name')
+              .eq('id', user.id)
+              .single();
+
+            if (profile?.deleted) {
+              // Account is soft-deleted
+              const deletedDate = new Date(profile.deleted_at);
+              const daysSinceDeleted = Math.floor((Date.now() - deletedDate) / (1000 * 60 * 60 * 24));
+              
+              if (daysSinceDeleted < 30) {
+                // Show reactivation option
+                setDeletedAccountInfo({
+                  id: user.id,
+                  email: user.email,
+                  parent_name: profile.parent_name,
+                  deleted_at: profile.deleted_at,
+                  days_left: 30 - daysSinceDeleted
+                });
+                setReactivateEmail(user.email);
+                setShowReactivateModal(true);
+                
+                // Sign them out for now
+                await supabase.auth.signOut();
+                toast.dismiss(toastId);
+                setLoading(false);
+                return;
+              } else {
+                // Account permanently deleted
+                await supabase.auth.signOut();
+                toast.error('هذا الحساب محذوف نهائياً', { id: toastId });
+                setLoading(false);
+                return;
+              }
+            }
+          }
+
           toast.success("تم تسجيل الدخول بنجاح", { id: toastId });
           router.push('/');
           router.refresh();
@@ -133,6 +229,41 @@ export default function LoginPage() {
       toast.error(error.message || "حدث خطأ ما", { id: toastId });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReactivateAccount = async () => {
+    if (!deletedAccountInfo?.id) {
+      toast.error('حدث خطأ في استعادة الحساب');
+      return;
+    }
+
+    setReactivating(true);
+    const toastId = toast.loading('جاري استعادة الحساب...');
+
+    try {
+      // Reactivate the account
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          deleted: false, 
+          deleted_at: null 
+        })
+        .eq('id', deletedAccountInfo.id);
+
+      if (error) throw error;
+
+      toast.success('تم استعادة حسابك بنجاح! يمكنك تسجيل الدخول الآن', { id: toastId });
+      setShowReactivateModal(false);
+      setDeletedAccountInfo(null);
+      
+      // Pre-fill the email for convenience
+      setEmail(reactivateEmail);
+    } catch (error) {
+      console.error('Reactivation error:', error);
+      toast.error('حدث خطأ في استعادة الحساب', { id: toastId });
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -457,6 +588,91 @@ export default function LoginPage() {
 
             <p className="text-center mt-6 text-xs text-gray-400">
               ستصلك رسالة على بريدك الإلكتروني خلال دقائق
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ACCOUNT REACTIVATION MODAL */}
+      {showReactivateModal && deletedAccountInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setShowReactivateModal(false)}
+          ></div>
+          
+          <div className="bg-white rounded-[2rem] p-8 relative z-10 max-w-md w-full shadow-2xl">
+            
+            {/* Modal Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaUndo className="text-2xl text-warning" />
+              </div>
+              <h3 className="text-2xl font-bold text-warning">الحساب محذوف</h3>
+              <p className="text-gray-600 mt-2">
+                تم حذف هذا الحساب مسبقاً
+              </p>
+            </div>
+
+            {/* Account Info */}
+            <div className="bg-base-100 rounded-xl p-4 mb-6">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">صاحب الحساب:</span>
+                  <span className="font-bold">{deletedAccountInfo.parent_name || 'غير محدد'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">البريد الإلكتروني:</span>
+                  <span className="font-bold" dir="ltr">{deletedAccountInfo.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">تاريخ الحذف:</span>
+                  <span className="font-bold">
+                    {new Date(deletedAccountInfo.deleted_at).toLocaleDateString('ar-SA')}
+                  </span>
+                </div>
+                <div className="divider my-2"></div>
+                <div className="text-center">
+                  <p className="text-sm text-warning font-bold">
+                    متبقي {deletedAccountInfo.days_left} يوم لاستعادة الحساب
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-center text-gray-600 mb-6">
+              هل تريد استعادة هذا الحساب؟
+            </p>
+            
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleReactivateAccount}
+                disabled={reactivating}
+                className="btn btn-success flex-1 text-white"
+              >
+                {reactivating ? (
+                  <span className="loading loading-spinner"></span>
+                ) : (
+                  <>
+                    <FaUndo />
+                    استعادة الحساب
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowReactivateModal(false);
+                  setDeletedAccountInfo(null);
+                }}
+                className="btn btn-ghost flex-1"
+              >
+                إلغاء
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-400 mt-4">
+              بعد انتهاء المدة المحددة، سيتم حذف الحساب نهائياً
             </p>
           </div>
         </div>

@@ -11,11 +11,10 @@ export default function Footer() {
   const pathname = usePathname();
 
   // --- HIDE FOOTER LOGIC ---
-  const hiddenPages = ['/', '/login', '/admin', '/reset-password', '/profile'];
-  if (hiddenPages.includes(pathname)) {
-    return null;
-  }
-  // -------------------------
+const hiddenPages = ['/', '/login', '/admin', '/reset-password', '/profile', '/settings'];
+if (hiddenPages.includes(pathname)) {
+  return null;
+}
 
   const sendTelegramMessage = async (e) => {
     e.preventDefault();

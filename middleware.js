@@ -44,13 +44,28 @@ export async function middleware(req) {
 
   const pathname = req.nextUrl.pathname;
 
+  // Check if user account is soft-deleted
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('deleted')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.deleted) {
+      // Force logout deleted accounts
+      await supabase.auth.signOut();
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+  }
+
+  // Rest of your middleware logic...
   // Admin page protection
   if (pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
-    // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -62,15 +77,14 @@ export async function middleware(req) {
     }
   }
 
-  // Protected routes (require login)
-  const protectedPaths = ['/dashboard', '/activities'];
+  // Protected routes
+  const protectedPaths = ['/dashboard', '/activities', '/settings', '/profile'];
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
 
   if (isProtectedPath && !user) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // If user is logged in and tries to access login page
   if (pathname === '/login' && user) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
@@ -83,6 +97,8 @@ export const config = {
     '/admin/:path*',
     '/dashboard/:path*',
     '/activities/:path*',
+    '/settings/:path*',
+    '/profile/:path*',
     '/login',
   ],
 };
