@@ -25,22 +25,71 @@ const sloganFont = localFont({
 });
 
 export const metadata = {
-  title: "قدوة - Qudwa",
-  description: "جيلٌ يبني، أثرٌ يبقى",
+  title: "منظمة قدوة | Qudwa Association",
+  description: "منظمة قدوة - جيلٌ يبني، أثرٌ يبقى. منظمة تربوية غير ربحية تهدف لبناء جيل واعٍ من خلال البرامج التعليمية والأنشطة المجتمعية للأطفال والشباب",
+  keywords: [
+    "منظمة قدوة",
+    "جمعية قدوة", 
+    "قدوة",
+    "Qudwa",
+    "Qudwa Association",
+    "أنشطة أطفال",
+    "برامج تربوية",
+    "منظمة غير ربحية",
+    "تعليم الأطفال",
+    "أنشطة تعليمية"
+  ],
   metadataBase: new URL('https://qudwa.pages.dev'),
   icons: {
     icon: '/logo.png',
   },
-   openGraph: {
-    title: 'منظمة قدوة',
+  verification: {
+    google: 'zzjsP0y-DESw8LxGxAzckfiYf6aPWAMPN0nnXGsjjUM',
+  },
+  openGraph: {
+    title: 'منظمة قدوة | Qudwa Association',
+    description: 'جيلٌ يبني، أثرٌ يبقى - منظمة تربوية غير ربحية',
+    url: 'https://qudwa.pages.dev',
+    siteName: 'منظمة قدوة',
+    images: [
+      {
+        url: '/logo.png',
+        width: 800,
+        height: 800,
+        alt: 'شعار منظمة قدوة',
+      },
+    ],
+    locale: 'ar_SA',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'منظمة قدوة | Qudwa Association',
     description: 'جيلٌ يبني، أثرٌ يبقى',
     images: ['/logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  alternates: {
+    canonical: 'https://qudwa.pages.dev',
   },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="ar" dir="rtl" data-theme="qudwaTheme"> 
+      <head>
+        <link rel="preload" href="/logo.png" as="image" />
+      </head>
       <body className={`${tajawal.className} ${nastaliq.variable} ${sloganFont.variable}`}>
         <ProfileProvider>
           <Navbar />
