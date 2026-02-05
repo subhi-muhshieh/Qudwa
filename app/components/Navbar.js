@@ -145,7 +145,7 @@ if (hiddenPages.includes(pathname)) {
                 )}
               </div>
             </label>
-            <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content glass-panel rounded-2xl w-56 border border-white/50 text-right">
+            <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-white rounded-2xl w-56 border border-gray-200 text-right">
               <li className="menu-title px-4 py-2 text-xs text-primary/70">
                 {profile?.parent_name || user.email}
               </li>
