@@ -157,7 +157,7 @@ if (hiddenPages.includes(pathname)) {
               </li>
               
               <li className="md:hidden"><Link href="/activities"><FaHistory /> سجل الإنجازات</Link></li>
-              <li className="md:hidden"><button onClick={scrollToContact} className="text-left w-full"><FaEnvelope /> راسل الإدارة</button></li>
+              <li className="md:hidden"><button onClick={scrollToContact} className="w-full"><FaEnvelope /> راسل الإدارة</button></li>
               {isAdmin && <li className="md:hidden"><Link href="/admin"><FaShieldAlt /> لوحة الإدارة</Link></li>}
               
               <div className="divider my-1 opacity-50"></div>
