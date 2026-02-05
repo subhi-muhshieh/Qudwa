@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { FaCamera, FaPhone, FaEnvelope, FaInstagram, FaFacebook, FaTelegramPlane, FaUser, FaChild, FaSave, FaEdit, FaPlus, FaTrash, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaCamera, FaPhone, FaEnvelope, FaInstagram, FaFacebook, FaTelegramPlane, FaUser, FaChild, FaSave, FaEdit, FaPlus, FaTrash, FaTimes, FaWhatsapp } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
 
@@ -480,46 +480,60 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Social Links */}
-            <div className="bg-base-100 rounded-2xl p-6">
-              <h3 className="font-bold text-primary mb-4">تواصل معنا</h3>
-              
-              <div className="flex flex-wrap gap-4 justify-center">
-                <a
-                  href="https://www.instagram.com/QudwaAssoc"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-circle btn-lg bg-gradient-to-br from-purple-500 to-pink-500 border-none text-white hover:scale-110 transition-transform"
-                >
-                  <FaInstagram className="text-xl" />
-                </a>
-                
-                <a
-                  href="https://www.facebook.com/QudwaAssoc"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-circle btn-lg bg-blue-600 border-none text-white hover:scale-110 transition-transform"
-                >
-                  <FaFacebook className="text-xl" />
-                </a>
-                
-                <a
-                  href="https://t.me/QudwaAssoc"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-circle btn-lg bg-sky-500 border-none text-white hover:scale-110 transition-transform"
-                >
-                  <FaTelegramPlane className="text-xl" />
-                </a>
-                
-                <a
-                  href="mailto:contact@qudwa.org"
-                  className="btn btn-circle btn-lg bg-red-500 border-none text-white hover:scale-110 transition-transform"
-                >
-                  <FaEnvelope className="text-xl" />
-                </a>
-              </div>
-            </div>
+           {/* Social Links */}
+<div className="bg-base-100 rounded-2xl p-6">
+  <h3 className="font-bold text-primary mb-4">تواصل معنا</h3>
+  
+  <div className="flex flex-wrap gap-4 justify-center">
+    <a
+      href="https://www.instagram.com/QudwaAssoc"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+      title="Instagram"
+    >
+      <FaInstagram />
+    </a>
+    
+    <a
+      href="https://www.facebook.com/QudwaAssoc"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+      title="Facebook"
+    >
+      <FaFacebook />
+    </a>
+    
+    <a
+      href="https://t.me/QudwaAssoc"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+      title="Telegram"
+    >
+      <FaTelegramPlane />
+    </a>
+    
+    <a
+      href="https://wa.me/963980931111"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+      title="WhatsApp"
+    >
+      <FaWhatsapp />
+    </a>
+    
+    <a
+      href="mailto:qudwaassoc@gmail.com"
+      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+      title="Email"
+    >
+      <FaEnvelope />
+    </a>
+  </div>
+</div>
 
           </div>
         </div>

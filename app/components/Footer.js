@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { FaPaperPlane, FaInstagram, FaFacebook, FaTelegramPlane } from 'react-icons/fa';
+import { FaPaperPlane, FaInstagram, FaFacebook, FaTelegramPlane, FaWhatsapp, FaEnvelope } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { createClient } from '../utils/supabase/client';
 
@@ -92,38 +92,59 @@ export default function Footer() {
             </form>
 
             {/* Column 3: Socials */}
-            <nav>
-                <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
-                <div className="grid grid-flow-col gap-4">
-                    
-                    <a 
-                      href="https://www.instagram.com/QudwaAssoc" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                    >
-                      <FaInstagram />
-                    </a>
-                    
-                    <a 
-                      href="https://www.facebook.com/QudwaAssoc" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                    >
-                      <FaFacebook />
-                    </a>
-                    
-                    <a 
-                      href="https://t.me/QudwaAssoc" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                    >
-                      <FaTelegramPlane />
-                    </a>
-                </div>
-            </nav>
+<nav>
+    <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
+    <div className="grid grid-flow-col gap-4">
+        
+        <a 
+          href="https://www.instagram.com/QudwaAssoc" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+          title="Instagram"
+        >
+          <FaInstagram />
+        </a>
+        
+        <a 
+          href="https://www.facebook.com/QudwaAssoc" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+          title="Facebook"
+        >
+          <FaFacebook />
+        </a>
+        
+        <a 
+          href="https://t.me/QudwaAssoc" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+          title="Telegram"
+        >
+          <FaTelegramPlane />
+        </a>
+        
+        <a 
+          href="https://wa.me/963980931111" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+          title="WhatsApp"
+        >
+          <FaWhatsapp />
+        </a>
+        
+        <a 
+          href="mailto:qudwaassoc@gmail.com" 
+          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+          title="Email"
+        >
+          <FaEnvelope />
+        </a>
+    </div>
+</nav>
         </div>
 
         {/* Copyright */}
