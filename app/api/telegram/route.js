@@ -1,51 +1,78 @@
-export const runtime = 'edge'; // <--- CRITICAL FOR CLOUDFLARE
-
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const { message, userEmail } = await request.json();
+    const { message, userEmail, parentName, parentPhone, children } = await request.json();
 
-    if (!message) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+    // Check if environment variables are set
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+      console.error('Missing Telegram environment variables');
+      return NextResponse.json(
+        { error: 'Telegram configuration missing' },
+        { status: 500 }
+      );
     }
 
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
-
-    if (!botToken || !chatId) {
-       return NextResponse.json({ error: 'Server configuration missing' }, { status: 500 });
+    // Format children list
+    let childrenText = '';
+    if (children && children.length > 0) {
+      childrenText = children.map((child, index) => 
+        `   ${index + 1}. ${child.name} (${child.age} سنة)`
+      ).join('\n');
+    } else {
+      childrenText = '   لا توجد بيانات';
     }
 
     const text = `
-📩 *New Qudwa Message*
-------------------------
-From: ${userEmail || 'Anonymous'}
-Message: ${message}
+📩 <b>رسالة جديدة من الموقع</b>
+
+👤 <b>ولي الأمر:</b> ${parentName || 'غير متوفر'}
+📧 <b>البريد:</b> ${userEmail || 'مستخدم غير مسجل'}
+📱 <b>رقم الهاتف:</b> ${parentPhone || 'غير متوفر'}
+
+👶 <b>الأبناء المسجلين:</b>
+${childrenText}
+
+💬 <b>الرسالة:</b>
+${message}
+
+⏰ <b>التوقيت:</b> ${new Date().toLocaleString('ar-SA')}
     `;
 
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text,
-        parse_mode: 'Markdown'
-      })
-    });
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: text,
+          parse_mode: 'HTML',
+        }),
+      }
+    );
 
-    if (!response.ok) {
-      const data = await response.json();
-      console.error("Telegram Error:", data);
-      throw new Error('Telegram API failed');
+    const data = await response.json();
+
+    if (!data.ok) {
+      console.error('Telegram API error:', data);
+      return NextResponse.json(
+        { error: 'Failed to send message to Telegram' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error sending to Telegram:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
