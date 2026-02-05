@@ -27,8 +27,14 @@ const sloganFont = localFont({
 export const metadata = {
   title: "قدوة - Qudwa",
   description: "جيلٌ يبني، أثرٌ يبقى",
+  metadataBase: new URL('https://qudwa.pages.dev'),
   icons: {
     icon: '/logo.png',
+  },
+   openGraph: {
+    title: 'منظمة قدوة',
+    description: 'جيلٌ يبني، أثرٌ يبقى',
+    images: ['/logo.png'],
   },
 };
 
