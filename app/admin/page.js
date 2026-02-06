@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { FaPlus, FaTrash, FaEdit, FaCheck, FaTimes, FaCalendarAlt, FaClock, FaImage, FaInfoCircle, FaStar, FaHistory, FaUpload, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -27,6 +27,8 @@ export default function AdminDashboard() {
     end_time: '',
     notable_notes: '',
     image_url: '',
+    registration_form_url: '',
+    capacity: 20,
     is_upcoming: false
   });
 
@@ -38,13 +40,20 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchActivities = async () => {
-    const { data } = await supabase
-      .from('activities')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data) setActivities(data);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      if (data) setActivities(data);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      toast.error('فشل تحميل النشاطات');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchMessages = async () => {
@@ -79,29 +88,24 @@ export default function AdminDashboard() {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('activity-images')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
         });
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
         .from('activity-images')
         .getPublicUrl(filePath);
 
-      const publicUrl = urlData.publicUrl;
-
-      setFormData({ ...formData, image_url: publicUrl });
+      setFormData({ ...formData, image_url: urlData.publicUrl });
       toast.success('تم رفع الصورة بنجاح!', { id: toastId });
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('فشل رفع الصورة: ' + error.message, { id: toastId });
+      toast.error('فشل رفع الصورة', { id: toastId });
     } finally {
       setUploading(false);
     }
@@ -112,10 +116,16 @@ export default function AdminDashboard() {
     const toastId = toast.loading(editingId ? 'جاري التحديث...' : 'جاري الإضافة...');
 
     try {
+      // Clean up the URL (remove whitespace)
+      const cleanFormData = {
+        ...formData,
+        registration_form_url: formData.registration_form_url?.trim() || null
+      };
+
       if (editingId) {
         const { error } = await supabase
           .from('activities')
-          .update(formData)
+          .update(cleanFormData)
           .eq('id', editingId);
 
         if (error) throw error;
@@ -123,7 +133,7 @@ export default function AdminDashboard() {
       } else {
         const { error } = await supabase
           .from('activities')
-          .insert([formData]);
+          .insert([cleanFormData]);
 
         if (error) throw error;
         toast.success('تم الإضافة بنجاح!', { id: toastId });
@@ -132,11 +142,11 @@ export default function AdminDashboard() {
       resetForm();
       fetchActivities();
     } catch (error) {
-      toast.error('حدث خطأ!', { id: toastId });
+      console.error(error);
+      toast.error('حدث خطأ أثناء الحفظ', { id: toastId });
     }
   };
 
-  // Replaces the old handleDelete
   const promptDelete = (id, imageUrl) => {
     setItemToDelete({ id, imageUrl });
   };
@@ -148,7 +158,6 @@ export default function AdminDashboard() {
     const toastId = toast.loading('جاري الحذف...');
 
     try {
-      // Delete image from storage if exists
       if (itemToDelete.imageUrl && itemToDelete.imageUrl.includes('activity-images')) {
         const imagePath = itemToDelete.imageUrl.split('/activity-images/')[1];
         if (imagePath) {
@@ -156,7 +165,6 @@ export default function AdminDashboard() {
         }
       }
 
-      // Delete activity
       const { error } = await supabase
         .from('activities')
         .delete()
@@ -166,7 +174,7 @@ export default function AdminDashboard() {
 
       toast.success('تم الحذف!', { id: toastId });
       fetchActivities();
-      setItemToDelete(null); // Close modal
+      setItemToDelete(null);
     } catch (error) {
       toast.error('فشل الحذف!', { id: toastId });
     } finally {
@@ -175,9 +183,15 @@ export default function AdminDashboard() {
   };
 
   const handleEdit = (activity) => {
-    setFormData(activity);
+    setFormData({
+        ...activity,
+        capacity: activity.capacity || 20,
+        registration_form_url: activity.registration_form_url || ''
+    });
     setEditingId(activity.id);
     setIsAddingNew(true);
+    // Scroll to form on mobile
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
@@ -190,6 +204,8 @@ export default function AdminDashboard() {
       end_time: '',
       notable_notes: '',
       image_url: '',
+      registration_form_url: '',
+      capacity: 20,
       is_upcoming: false
     });
     setEditingId(null);
@@ -213,12 +229,12 @@ export default function AdminDashboard() {
         
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-primary mb-4">لوحة التحكم الإدارية</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">لوحة التحكم الإدارية</h1>
           <p className="text-gray-600">إدارة النشاطات والفعاليات</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
           <div className="stat bg-white rounded-2xl shadow-sm">
             <div className="stat-figure text-primary">
               <FaStar className="text-3xl" />
@@ -250,7 +266,7 @@ export default function AdminDashboard() {
 
         {/* Add/Edit Form */}
         {isAddingNew && (
-          <div className="bg-white rounded-3xl p-8 mb-8 shadow-sm">
+          <div className="bg-white rounded-3xl p-6 md:p-8 mb-8 shadow-sm">
             <h2 className="text-2xl font-bold mb-6 text-primary">
               {editingId ? 'تعديل النشاط' : 'إضافة نشاط جديد'}
             </h2>
@@ -282,7 +298,7 @@ export default function AdminDashboard() {
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      className="file-input file-input-bordered file-input-primary rounded-xl flex-1"
+                      className="file-input file-input-bordered file-input-primary rounded-xl flex-1 w-full"
                       disabled={uploading}
                     />
                     {uploading && (
@@ -345,6 +361,23 @@ export default function AdminDashboard() {
                   />
                 </div>
 
+                <div className="form-control">
+                    <label className="label">
+                        <span className="label-text font-bold text-secondary">العدد الأقصى للمشاركين</span>
+                    </label>
+                    <div className="relative">
+                        <FaUsers className="absolute top-3 right-3 text-gray-400" />
+                        <input
+                            type="number"
+                            min="1"
+                            value={formData.capacity}
+                            onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value)})}
+                            className="input input-bordered rounded-xl w-full pr-10"
+                            placeholder="مثال: 20"
+                        />
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="form-control">
                     <label className="label">
@@ -383,6 +416,27 @@ export default function AdminDashboard() {
                   />
                 </div>
 
+                {/* NEW FIELD: Registration URL */}
+                <div className="form-control md:col-span-2">
+                  <label className="label">
+                    <span className="label-text font-bold text-blue-600">رابط استمارة التسجيل (Google Forms, etc)</span>
+                  </label>
+                  <div className="relative">
+                    <FaLink className="absolute top-3.5 right-3 text-blue-300" />
+                    <input
+                      type="url"
+                      value={formData.registration_form_url}
+                      onChange={(e) => setFormData({...formData, registration_form_url: e.target.value})}
+                      className="input input-bordered input-primary w-full rounded-xl pr-10 text-left"
+                      placeholder="https://docs.google.com/forms/..."
+                      dir="ltr"
+                    />
+                  </div>
+                  <label className="label">
+                    <span className="label-text-alt text-gray-400">اتركه فارغاً إذا كان لا يوجد تسجيل لهذا النشاط</span>
+                  </label>
+                </div>
+
                 <div className="form-control md:col-span-2">
                   <label className="label cursor-pointer justify-start gap-4">
                     <input
@@ -391,16 +445,16 @@ export default function AdminDashboard() {
                       onChange={(e) => setFormData({...formData, is_upcoming: e.target.checked})}
                       className="checkbox checkbox-primary"
                     />
-                    <span className="label-text font-bold">نشاط قادم</span>
+                    <span className="label-text font-bold">نشاط قادم (يظهر في الواجهة الرئيسية)</span>
                   </label>
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4">
-                <button type="submit" className="btn btn-primary text-white" disabled={uploading}>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="submit" className="btn btn-primary text-white flex-1" disabled={uploading}>
                   {editingId ? 'حفظ التعديلات' : 'إضافة النشاط'}
                 </button>
-                <button type="button" onClick={resetForm} className="btn btn-ghost">
+                <button type="button" onClick={resetForm} className="btn btn-ghost flex-1">
                   إلغاء
                 </button>
               </div>
@@ -413,24 +467,25 @@ export default function AdminDashboard() {
           <div className="text-center mb-8">
             <button
               onClick={() => setIsAddingNew(true)}
-              className="btn btn-primary btn-lg rounded-full text-white gap-2"
+              className="btn btn-primary btn-lg rounded-full text-white gap-2 shadow-lg"
             >
               <FaPlus /> إضافة نشاط جديد
             </button>
           </div>
         )}
 
-        {/* Activities List */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm">
+        {/* Activities List - Optimized for Mobile Scroll */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm overflow-hidden">
           <h2 className="text-2xl font-bold mb-6 text-primary">النشاطات الحالية</h2>
           
           <div className="overflow-x-auto">
-            <table className="table table-zebra">
+            <table className="table table-zebra w-full whitespace-nowrap">
               <thead>
                 <tr>
                   <th>الصورة</th>
                   <th>العنوان</th>
                   <th>التاريخ</th>
+                  <th>الرابط</th>
                   <th>الحالة</th>
                   <th>الإجراءات</th>
                 </tr>
@@ -443,10 +498,10 @@ export default function AdminDashboard() {
                         <img 
                           src={activity.image_url} 
                           alt={activity.title}
-                          className="w-16 h-16 object-cover rounded-lg"
+                          className="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg"
                         />
                       ) : (
-                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-lg flex items-center justify-center">
                           <FaImage className="text-gray-400" />
                         </div>
                       )}
@@ -454,23 +509,30 @@ export default function AdminDashboard() {
                     <td className="font-bold">{activity.title}</td>
                     <td>{activity.activity_date || 'غير محدد'}</td>
                     <td>
+                        {activity.registration_form_url ? (
+                            <a href={activity.registration_form_url} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-link">رابط</a>
+                        ) : '-'}
+                    </td>
+                    <td>
                       <span className={`badge ${activity.is_upcoming ? 'badge-primary' : 'badge-ghost'}`}>
                         {activity.is_upcoming ? 'قادم' : 'منتهي'}
                       </span>
                     </td>
-                    <td className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(activity)}
-                        className="btn btn-sm btn-ghost text-primary"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button
-                        onClick={() => promptDelete(activity.id, activity.image_url)}
-                        className="btn btn-sm btn-ghost text-error"
-                      >
-                        <FaTrash />
-                      </button>
+                    <td>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(activity)}
+                          className="btn btn-sm btn-square btn-ghost text-primary"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          onClick={() => promptDelete(activity.id, activity.image_url)}
+                          className="btn btn-sm btn-square btn-ghost text-error"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -481,7 +543,7 @@ export default function AdminDashboard() {
 
         {/* Recent Messages */}
         {messages.length > 0 && (
-          <div className="bg-white rounded-3xl p-8 shadow-sm mt-8">
+          <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm mt-8">
             <h2 className="text-2xl font-bold mb-6 text-primary">آخر الرسائل</h2>
             <div className="space-y-4">
               {messages.map((msg) => (
@@ -507,7 +569,7 @@ export default function AdminDashboard() {
             onClick={() => setItemToDelete(null)}
           ></div>
           
-          <div className="bg-white rounded-2xl p-8 relative z-10 max-w-md w-full shadow-2xl animate-scale-up">
+          <div className="bg-white rounded-2xl p-8 relative z-10 max-w-md w-full shadow-2xl">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaExclamationTriangle className="text-3xl text-error" />
@@ -518,7 +580,7 @@ export default function AdminDashboard() {
               </p>
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={executeDelete}
                 disabled={isDeleting}

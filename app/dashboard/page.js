@@ -2,7 +2,7 @@
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,7 +11,11 @@ export default function Dashboard() {
   const [upcomingActivity, setUpcomingActivity] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Registration States
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [registering, setRegistering] = useState(false);
   
   const supabase = createClient();
   const router = useRouter();
@@ -34,19 +38,71 @@ export default function Dashboard() {
     checkUserAndFetchData();
   }, [router]);
 
+  // Check Registration Status when Modal Opens
   useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      if (!selectedActivity || !user) return;
+      
+      setIsRegistered(false);
+
+      const { data } = await supabase
+        .from('activity_registrations')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('activity_id', selectedActivity.id)
+        .maybeSingle();
+
+      if (data) {
+        setIsRegistered(true);
+      }
+    };
+
     if (selectedActivity) {
       document.body.style.overflow = 'hidden';
+      checkRegistrationStatus();
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [selectedActivity]);
+  }, [selectedActivity, user]);
 
   const handleLike = async (activityId) => {
     const { error } = await supabase.from('likes').insert([{ user_id: user.id, activity_id: activityId }]);
     if (error) error.code === '23505' ? toast('أعجبك مسبقاً!', { icon: '✨' }) : toast.error("خطأ");
     else toast.success("شكراً لتفاعلك!");
+  };
+
+  // HYBRID HANDLER: Open Link + Save to DB
+  const handleRegister = async () => {
+    if (!user || !selectedActivity) return;
+
+    // 1. If link exists, open it immediately
+    if (selectedActivity.registration_form_url) {
+        window.open(selectedActivity.registration_form_url, '_blank');
+    } else {
+        toast.error("رابط التسجيل غير متوفر، ولكن تم تسجيل اهتمامك.");
+    }
+
+    // 2. If already registered, stop here
+    if (isRegistered) return;
+
+    // 3. Mark as registered in Database
+    setRegistering(true);
+    
+    const { error } = await supabase
+        .from('activity_registrations')
+        .insert([{ user_id: user.id, activity_id: selectedActivity.id }]);
+
+    if (!error || error.code === '23505') {
+        setIsRegistered(true);
+        if(selectedActivity.registration_form_url) {
+             toast.success("جاري فتح النموذج...", { duration: 2000 });
+        }
+    } else {
+        console.error(error);
+    }
+    
+    setRegistering(false);
   };
 
   const scrollToContact = () => {
@@ -296,10 +352,24 @@ export default function Dashboard() {
                     </div>
                 )}
                 
-                <div className="pt-4 flex gap-3">
+                <div className="pt-4 flex flex-col sm:flex-row gap-3">
                    {selectedActivity.is_upcoming && (
-                       <button className="btn btn-primary flex-1 rounded-xl text-white shadow-lg shadow-primary/30">
-                          تسجيل الحضور
+                       <button 
+                         onClick={handleRegister}
+                         disabled={registering}
+                         className={`btn flex-1 rounded-xl shadow-lg transition-all duration-300 gap-2 ${
+                           isRegistered 
+                             ? 'btn-success text-white' 
+                             : 'btn-primary text-white shadow-primary/30'
+                         }`}
+                       >
+                          {registering ? (
+                             <><FaSpinner className="animate-spin" /> جاري التحويل...</>
+                          ) : isRegistered ? (
+                             <><FaCheckCircle /> تم التسجيل (فتح الرابط مجدداً)</>
+                          ) : (
+                             <><FaExternalLinkAlt /> التسجيل في النشاط</>
+                          )}
                        </button>
                    )}
                    <button onClick={() => setSelectedActivity(null)} className="btn btn-ghost flex-1 rounded-xl">
