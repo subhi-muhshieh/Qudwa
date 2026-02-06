@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { FaPlus, FaTrash, FaEdit, FaCheck, FaTimes, FaCalendarAlt, FaClock, FaImage, FaInfoCircle, FaStar, FaHistory, FaUpload, FaSpinner } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaCheck, FaTimes, FaCalendarAlt, FaClock, FaImage, FaInfoCircle, FaStar, FaHistory, FaUpload, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -11,6 +11,10 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  
+  // State for Delete Modal
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const fileInputRef = useRef(null);
   
@@ -57,7 +61,6 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     if (!file.type.startsWith('image/')) {
       toast.error('الرجاء اختيار صورة صالحة');
       return;
@@ -76,7 +79,6 @@ export default function AdminDashboard() {
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('activity-images')
         .upload(filePath, file, {
@@ -89,16 +91,13 @@ export default function AdminDashboard() {
         throw uploadError;
       }
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('activity-images')
         .getPublicUrl(filePath);
 
       const publicUrl = urlData.publicUrl;
 
-      // Update form data
       setFormData({ ...formData, image_url: publicUrl });
-      
       toast.success('تم رفع الصورة بنجاح!', { id: toastId });
     } catch (error) {
       console.error('Upload error:', error);
@@ -137,15 +136,21 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDelete = async (id, imageUrl) => {
-    if (!confirm('هل أنت متأكد من الحذف؟')) return;
+  // Replaces the old handleDelete
+  const promptDelete = (id, imageUrl) => {
+    setItemToDelete({ id, imageUrl });
+  };
+
+  const executeDelete = async () => {
+    if (!itemToDelete) return;
     
+    setIsDeleting(true);
     const toastId = toast.loading('جاري الحذف...');
 
     try {
       // Delete image from storage if exists
-      if (imageUrl && imageUrl.includes('activity-images')) {
-        const imagePath = imageUrl.split('/activity-images/')[1];
+      if (itemToDelete.imageUrl && itemToDelete.imageUrl.includes('activity-images')) {
+        const imagePath = itemToDelete.imageUrl.split('/activity-images/')[1];
         if (imagePath) {
           await supabase.storage.from('activity-images').remove([imagePath]);
         }
@@ -155,14 +160,17 @@ export default function AdminDashboard() {
       const { error } = await supabase
         .from('activities')
         .delete()
-        .eq('id', id);
+        .eq('id', itemToDelete.id);
 
       if (error) throw error;
 
       toast.success('تم الحذف!', { id: toastId });
       fetchActivities();
+      setItemToDelete(null); // Close modal
     } catch (error) {
       toast.error('فشل الحذف!', { id: toastId });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -263,7 +271,7 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                {/* IMAGE UPLOAD - NEW! */}
+                {/* IMAGE UPLOAD */}
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-bold">صورة النشاط</span>
@@ -458,7 +466,7 @@ export default function AdminDashboard() {
                         <FaEdit />
                       </button>
                       <button
-                        onClick={() => handleDelete(activity.id, activity.image_url)}
+                        onClick={() => promptDelete(activity.id, activity.image_url)}
                         className="btn btn-sm btn-ghost text-error"
                       >
                         <FaTrash />
@@ -490,6 +498,45 @@ export default function AdminDashboard() {
         )}
 
       </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setItemToDelete(null)}
+          ></div>
+          
+          <div className="bg-white rounded-2xl p-8 relative z-10 max-w-md w-full shadow-2xl animate-scale-up">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaExclamationTriangle className="text-3xl text-error" />
+              </div>
+              <h3 className="text-2xl font-bold text-error">حذف النشاط</h3>
+              <p className="text-gray-500 mt-2">
+                هل أنت متأكد من حذف هذا النشاط؟ لا يمكن التراجع عن هذا الإجراء.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={executeDelete}
+                disabled={isDeleting}
+                className="btn btn-error flex-1 text-white"
+              >
+                {isDeleting ? <span className="loading loading-spinner"></span> : 'نعم، حذف'}
+              </button>
+              <button
+                onClick={() => setItemToDelete(null)}
+                className="btn btn-ghost flex-1"
+                disabled={isDeleting}
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
