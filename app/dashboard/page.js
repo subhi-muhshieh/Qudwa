@@ -2,7 +2,7 @@
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes } from 'react-icons/fa';
+import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaMapMarkerAlt } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -57,126 +57,236 @@ export default function Dashboard() {
     }
   };
 
-  const fadeInUp = { hidden: { opacity: 0, y: 100 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } } };
+  const fadeInUp = { hidden: { opacity: 0, y: 60 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-ring loading-lg text-primary"></span></div>;
 
   return (
     <main className="min-h-screen pt-32 pb-20 px-4 md:px-10 overflow-hidden relative">
       
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} className="text-center mb-20 mt-6">
-        <h2 className="text-4xl md:text-6xl text-accent font-black tracking-wide leading-tight drop-shadow-sm" style={{ fontFamily: 'var(--font-slogan)' }}>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16 mt-6">
+        <h2 className="text-4xl md:text-6xl text-primary font-black tracking-wide leading-tight drop-shadow-sm" style={{ fontFamily: 'var(--font-slogan)' }}>
           جيلٌ يبني، أثرٌ يبقى
         </h2>
-        <div className="w-24 h-2 bg-primary/20 mx-auto mt-6 rounded-full"></div>
+        <div className="w-24 h-2 bg-gradient-to-r from-primary to-accent mx-auto mt-6 rounded-full opacity-50"></div>
       </motion.div>
 
-      <motion.div className="max-w-6xl mx-auto mb-24" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={fadeInUp}>
-        <div className="glass-panel p-2 rounded-[2.5rem] shadow-sm">
-          <div className="bg-white/60 rounded-[2rem] overflow-hidden p-6 md:p-10 flex flex-col lg:flex-row-reverse gap-10 items-start transition-all">
-            {recentActivity ? (
-              <>
-                {recentActivity.image_url && (
-                  <div className="w-full lg:w-1/2 relative">
-                      <img src={recentActivity.image_url} className="rounded-3xl shadow-lg w-full object-cover h-[350px] md:h-[400px]" />
-                  </div>
-                )}
-                <div className="w-full lg:w-1/2 text-right">
-                  <div className="badge badge-secondary badge-outline mb-6 px-4 py-4 text-sm gap-2 font-bold bg-white/50 border-secondary/30 flex items-center h-auto">
-                    <FaStar className="text-base" /> 
-                    <span className="leading-none pt-1">آخر النشاطات</span>
-                  </div>
-                  <h1 className="text-3xl lg:text-5xl font-bold mb-6 text-neutral leading-tight">{recentActivity.title}</h1>
-                  <p className="text-lg text-neutral/70 leading-relaxed mb-8 pl-4 border-l-4 border-primary/20">{recentActivity.short_description}</p>
-                  <div className="flex flex-wrap gap-3">
-                      <button onClick={() => handleLike(recentActivity.id)} className="btn btn-primary rounded-2xl px-6 text-white shadow-lg shadow-primary/30"><FaHeart /> أعجبني</button>
-                      <button onClick={() => setSelectedActivity(recentActivity)} className="btn btn-ghost rounded-2xl">التفاصيل</button>
-                      <button onClick={scrollToContact} className="btn btn-outline btn-secondary rounded-2xl gap-2">
-                        <FaPaperPlane /> تواصل بشأن هذا
-                      </button>
-                  </div>
-                </div>
-              </>
-            ) : <div className="w-full text-center py-20 opacity-40">بانتظار إضافة نشاطات...</div>}
-          </div>
-        </div>
-      </motion.div>
-
+      {/* 1. UPCOMING ACTIVITY (Now at the top) */}
       {upcomingActivity && (
-        <motion.div className="max-w-4xl mx-auto mb-24 relative group" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.5 }} variants={fadeInUp}>
-          <div className="absolute inset-0 bg-secondary/30 rounded-[2.5rem] blur-2xl transform group-hover:scale-105 transition duration-500"></div>
-          <div className="card w-full bg-gradient-to-br from-primary to-accent text-white shadow-2xl overflow-hidden rounded-[2.5rem] relative z-10">
-            <div className="card-body p-8 md:p-12 text-right relative">
-                <div className="flex items-center gap-3 text-blue-100 mb-4 opacity-90"><FaCalendarAlt className="text-xl" /><span className="font-bold tracking-widest text-sm uppercase">النشاط القادم</span></div>
-                <h2 className="card-title text-3xl md:text-5xl font-bold mb-6">{upcomingActivity.title}</h2>
-                <p className="text-lg md:text-xl opacity-90 mb-10 font-light leading-relaxed">{upcomingActivity.short_description}</p>
-                <div className="card-actions justify-end border-t border-white/20 pt-6">
-                    <button onClick={() => setSelectedActivity(upcomingActivity)} className="btn btn-ghost bg-white/20 text-white hover:bg-white hover:text-primary border-none rounded-2xl px-8 gap-3 h-12">
-                        للمزيد من التفاصيل <FaArrowLeft />
+        <motion.div 
+          className="max-w-6xl mx-auto mb-20 relative group" 
+          initial="hidden" 
+          whileInView="visible" 
+          viewport={{ once: true, amount: 0.3 }} 
+          variants={fadeInUp}
+        >
+          {/* Glowing Background Effect */}
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.6rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+          
+          <div className="card w-full bg-gradient-to-br from-primary via-secondary to-accent text-white shadow-2xl rounded-[2.5rem] relative overflow-hidden">
+            
+            {/* Decorative circles */}
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-black/10 blur-3xl"></div>
+
+            <div className="card-body p-8 md:p-14 relative z-10">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                 <div className="badge bg-white/20 border-0 text-white backdrop-blur-md px-4 py-3 h-auto gap-2 text-sm font-bold shadow-sm">
+                    <FaCalendarAlt className="animate-pulse" />
+                    <span>النشاط القادم</span>
+                 </div>
+                 {upcomingActivity.activity_date && (
+                    <div className="text-blue-100 font-medium bg-black/10 px-4 py-2 rounded-xl">
+                      {upcomingActivity.activity_date}
+                    </div>
+                 )}
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-10 items-center">
+                <div className="w-full text-right space-y-6">
+                  <h2 className="text-4xl md:text-6xl font-black leading-tight drop-shadow-md">
+                    {upcomingActivity.title}
+                  </h2>
+                  <p className="text-lg md:text-xl text-blue-50 opacity-90 leading-relaxed font-light max-w-2xl">
+                    {upcomingActivity.short_description}
+                  </p>
+                  
+                  <div className="pt-4 flex flex-wrap gap-4">
+                    <button 
+                      onClick={() => setSelectedActivity(upcomingActivity)} 
+                      className="btn btn-lg bg-white text-primary hover:bg-blue-50 border-none rounded-2xl px-10 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+                    >
+                        التفاصيل والتسجيل <FaArrowLeft />
                     </button>
+                  </div>
                 </div>
+                
+                {/* Optional: If upcoming activity has an image, show it small, otherwise show icon */}
+                <div className="hidden lg:flex w-1/3 justify-center opacity-80">
+                   <FaCalendarAlt className="text-[10rem] text-white/20" />
+                </div>
+              </div>
             </div>
           </div>
         </motion.div>
       )}
 
+      {/* 2. RECENT ACTIVITY (Now below) */}
+      <motion.div 
+        className="max-w-6xl mx-auto mb-24" 
+        initial="hidden" 
+        whileInView="visible" 
+        viewport={{ once: true, amount: 0.2 }} 
+        variants={fadeInUp}
+      >
+        <div className="flex items-center gap-3 mb-6 px-4">
+           <div className="w-2 h-8 bg-secondary rounded-full"></div>
+           <h3 className="text-2xl font-bold text-neutral">أحدث ما قمنا به</h3>
+        </div>
+
+        <div className="glass-panel bg-white/70 backdrop-blur-xl border border-white/50 rounded-[2.5rem] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500">
+          <div className="flex flex-col lg:flex-row-reverse">
+            
+            {/* Image Section */}
+            {recentActivity?.image_url ? (
+              <div className="w-full lg:w-5/12 h-[300px] lg:h-auto relative group overflow-hidden">
+                  <img 
+                    src={recentActivity.image_url} 
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                    alt={recentActivity.title}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent lg:bg-gradient-to-r lg:from-black/20 lg:to-transparent"></div>
+                  <div className="absolute bottom-4 right-4 lg:top-4 lg:right-4 badge badge-secondary shadow-lg border-none">
+                     <FaStar className="mr-1 text-xs" /> تم إنجازه
+                  </div>
+              </div>
+            ) : (
+              <div className="w-full lg:w-5/12 bg-base-200 flex items-center justify-center min-h-[300px]">
+                <FaStar className="text-6xl text-base-300" />
+              </div>
+            )}
+
+            {/* Content Section */}
+            {recentActivity ? (
+              <div className="w-full lg:w-7/12 p-8 md:p-12 text-right flex flex-col justify-center">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-neutral">{recentActivity.title}</h2>
+                <p className="text-lg text-neutral/70 leading-relaxed mb-8">
+                  {recentActivity.short_description}
+                </p>
+                
+                <div className="flex flex-wrap gap-3 mt-auto">
+                    <button 
+                      onClick={() => handleLike(recentActivity.id)} 
+                      className="btn btn-outline btn-primary rounded-xl px-6 hover:bg-primary hover:text-white transition-all gap-2"
+                    >
+                      <FaHeart /> أعجبني
+                    </button>
+                    <button 
+                      onClick={() => setSelectedActivity(recentActivity)} 
+                      className="btn btn-ghost text-neutral/60 hover:text-primary rounded-xl"
+                    >
+                      قراءة المزيد...
+                    </button>
+                    <div className="flex-grow"></div>
+                    <button 
+                      onClick={scrollToContact} 
+                      className="btn btn-sm btn-ghost text-secondary opacity-70 hover:opacity-100 gap-2"
+                    >
+                      <FaPaperPlane /> تواصل معنا
+                    </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-12 text-center w-full text-neutral/50">جاري تحميل النشاطات...</div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* MODAL (Kept the same logic, just refined the look slightly) */}
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
             className="fixed inset-0 z-[100] flex items-center justify-center px-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedActivity(null)}></div>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedActivity(null)}></div>
             <motion.div 
-              className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto"
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+              className="bg-base-100 w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto scrollbar-hide"
+              initial={{ scale: 0.95, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 30 }}
             >
-              <button onClick={() => setSelectedActivity(null)} className="absolute top-4 left-4 btn btn-circle btn-sm btn-ghost bg-black/10 z-20 hover:bg-red-500 hover:text-white transition-colors">
+              <button 
+                onClick={() => setSelectedActivity(null)} 
+                className="absolute top-4 left-4 btn btn-circle btn-sm bg-black/20 border-none text-white z-20 hover:bg-red-500 transition-colors"
+              >
                 <FaTimes />
               </button>
 
               {selectedActivity.image_url && (
-                <div className="w-full h-48 md:h-64 relative">
+                <div className="w-full h-64 md:h-80 relative">
                   <img src={selectedActivity.image_url} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <h3 className="absolute bottom-6 right-6 text-3xl font-bold text-white drop-shadow-md">{selectedActivity.title}</h3>
+                  <div className="absolute inset-0 bg-gradient-to-t from-base-100 via-transparent to-transparent"></div>
+                  <div className="absolute bottom-0 right-0 p-8 w-full">
+                    <h3 className="text-3xl md:text-4xl font-bold text-neutral drop-shadow-sm">{selectedActivity.title}</h3>
+                  </div>
                 </div>
               )}
 
-              <div className="p-8 text-right space-y-6">
-                {!selectedActivity.image_url && <h3 className="text-3xl font-bold text-primary">{selectedActivity.title}</h3>}
+              <div className="p-8 md:p-10 text-right space-y-8">
+                {!selectedActivity.image_url && <h3 className="text-3xl md:text-4xl font-bold text-primary mb-6">{selectedActivity.title}</h3>}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-base-100 p-4 rounded-2xl border border-base-200">
+                {/* Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedActivity.activity_date && (
-                        <div className="flex items-center gap-3 text-neutral/80">
-                            <div className="p-2 bg-blue-100 text-primary rounded-full"><FaCalendarAlt /></div>
-                            <span className="font-bold">{selectedActivity.activity_date}</span>
+                        <div className="flex items-center gap-4 bg-base-200/50 p-4 rounded-2xl">
+                            <div className="w-10 h-10 bg-blue-100 text-primary rounded-full flex items-center justify-center"><FaCalendarAlt /></div>
+                            <div>
+                                <div className="text-xs text-neutral/50">التاريخ</div>
+                                <div className="font-bold text-neutral">{selectedActivity.activity_date}</div>
+                            </div>
                         </div>
                     )}
                     {selectedActivity.start_time && (
-                        <div className="flex items-center gap-3 text-neutral/80">
-                            <div className="p-2 bg-orange-100 text-orange-500 rounded-full"><FaClock /></div>
-                            <span className="font-bold">
-                              {selectedActivity.start_time.slice(0,5)} 
-                              {selectedActivity.end_time ? ` - ${selectedActivity.end_time.slice(0,5)}` : ''}
-                            </span>
+                        <div className="flex items-center gap-4 bg-base-200/50 p-4 rounded-2xl">
+                            <div className="w-10 h-10 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center"><FaClock /></div>
+                            <div>
+                                <div className="text-xs text-neutral/50">الوقت</div>
+                                <div className="font-bold text-neutral">
+                                  {selectedActivity.start_time.slice(0,5)} 
+                                  {selectedActivity.end_time ? ` - ${selectedActivity.end_time.slice(0,5)}` : ''}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                <div>
-                    <h4 className="font-bold text-lg text-primary mb-2 border-b pb-2">التفاصيل الكاملة</h4>
-                    <p className="text-neutral/80 leading-relaxed whitespace-pre-wrap">{selectedActivity.full_report}</p>
+                <div className="prose prose-lg max-w-none text-neutral/80">
+                    <h4 className="font-bold text-xl text-primary mb-4 flex items-center gap-2">
+                        <FaInfoCircle className="text-lg" /> التفاصيل
+                    </h4>
+                    <p className="whitespace-pre-wrap leading-loose text-base">{selectedActivity.full_report}</p>
                 </div>
 
                 {selectedActivity.notable_notes && (
-                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-2xl">
-                        <div className="flex items-center gap-2 text-yellow-700 font-bold mb-2">
-                            <FaInfoCircle /> ملاحظات هامة
+                    <div className="bg-warning/10 border border-warning/20 p-6 rounded-2xl flex gap-4 items-start">
+                        <FaStar className="text-warning text-xl mt-1 shrink-0" />
+                        <div>
+                            <h5 className="font-bold text-warning-content mb-1">ملاحظات هامة</h5>
+                            <p className="text-neutral/70 text-sm whitespace-pre-wrap">{selectedActivity.notable_notes}</p>
                         </div>
-                        <p className="text-yellow-800 text-sm whitespace-pre-wrap">{selectedActivity.notable_notes}</p>
                     </div>
                 )}
+                
+                <div className="pt-4 flex gap-3">
+                   {selectedActivity.is_upcoming && (
+                       <button className="btn btn-primary flex-1 rounded-xl text-white shadow-lg shadow-primary/30">
+                          تسجيل الحضور
+                       </button>
+                   )}
+                   <button onClick={() => setSelectedActivity(null)} className="btn btn-ghost flex-1 rounded-xl">
+                      إغلاق
+                   </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

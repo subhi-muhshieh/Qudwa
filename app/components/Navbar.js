@@ -56,7 +56,7 @@ export default function Navbar() {
   };
 
  // --- HIDE NAVBAR LOGIC ---
-const hiddenPages = ['/login', '/reset-password', '/', '/settings'];
+const hiddenPages = ['/login', '/reset-password', '/'];
 if (hiddenPages.includes(pathname)) {
   return null;
 }

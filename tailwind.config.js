@@ -7,14 +7,13 @@ export default {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: ['class', '[data-theme="dark"]'], // Helps Tailwind utilities recognize dark mode
   theme: {
     extend: {
       backgroundImage: {
-        // We will create the leaf pattern in CSS, but this enables it
         'leaf-pattern': "url('/leaf-pattern.svg')", 
       },
       borderRadius: {
-        // "Soft Rounded" usually means 1rem to 1.5rem (xl to 2xl), not full pills
         'box': '1.5rem', 
       }
     },
@@ -23,14 +22,31 @@ export default {
   daisyui: {
     themes: [
       {
+        // YOUR ORIGINAL LIGHT THEME
         qudwaTheme: {
-          "primary": "#1281c3",   // Your Main Blue
-          "secondary": "#1599d3", // Lighter Blue
-          "accent": "#1268b1",    // Darker Blue highlight
-          "neutral": "#0c4a6e",   // Dark text (Deep Ocean Blue)
-          "base-100": "#f0f9ff",  // Very light azure (not pure white)
-          "base-200": "#e0f2fe",  // Slightly darker azure for cards
-          "base-300": "#bae6fd",  // Borders
+          "primary": "#1281c3",   
+          "secondary": "#1599d3", 
+          "accent": "#1268b1",    
+          "neutral": "#0c4a6e",   
+          "base-100": "#f0f9ff",  
+          "base-200": "#e0f2fe",  
+          "base-300": "#bae6fd",  
+          "info": "#3abff8",
+          "success": "#36d399",
+          "warning": "#fbbd23",
+          "error": "#f87272",
+        },
+      },
+      {
+        // NEW CUSTOM DARK THEME
+        dark: {
+          "primary": "#38bdf8",   // Brighter blue to pop against dark bg
+          "secondary": "#0ea5e9", 
+          "accent": "#7dd3fc",    
+          "neutral": "#f0f9ff",   // Light text
+          "base-100": "#0f172a",  // Deep Slate (Background)
+          "base-200": "#1e293b",  // Lighter Slate (Cards)
+          "base-300": "#334155",  // Borders
           "info": "#3abff8",
           "success": "#36d399",
           "warning": "#fbbd23",

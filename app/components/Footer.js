@@ -11,27 +11,52 @@ export default function Footer() {
   const pathname = usePathname();
 
   // --- HIDE FOOTER LOGIC ---
-const hiddenPages = ['/', '/login', '/admin', '/reset-password', '/profile', '/settings'];
-if (hiddenPages.includes(pathname)) {
-  return null;
-}
+  const hiddenPages = ['/', '/login', '/admin', '/reset-password', '/profile', '/settings'];
+  if (hiddenPages.includes(pathname)) {
+    return null;
+  }
 
   const sendTelegramMessage = async (e) => {
     e.preventDefault();
     if (!msg) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-
     const toastId = toast.loading("جاري الإرسال...");
+    
     try {
+      // 1. Get Current User
+      const { data: { user } } = await supabase.auth.getUser();
+
+      // 2. Fetch Profile Data (Parent Name, Phone, Children)
+      let profileData = {};
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('parent_name, parent_phone, children')
+          .eq('id', user.id)
+          .single();
+          
+        if (profile) {
+          profileData = profile;
+        }
+      }
+
+      // 3. Send Message with Profile Data
       await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, userEmail: user?.email }),
+        body: JSON.stringify({ 
+          message: msg, 
+          userEmail: user?.email,
+          parentName: profileData.parent_name,
+          parentPhone: profileData.parent_phone,
+          children: profileData.children
+        }),
       });
+      
       toast.success("وصلت رسالتك!", { id: toastId });
       setMsg('');
     } catch (error) {
+      console.error(error);
       toast.error("فشل الإرسال", { id: toastId });
     }
   };
@@ -91,59 +116,59 @@ if (hiddenPages.includes(pathname)) {
             </form>
 
             {/* Column 3: Socials */}
-<nav>
-    <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
-    <div className="grid grid-flow-col gap-4">
-        
-        <a 
-          href="https://www.instagram.com/QudwaAssoc" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-          title="Instagram"
-        >
-          <FaInstagram />
-        </a>
-        
-        <a 
-          href="https://www.facebook.com/QudwaAssoc" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-          title="Facebook"
-        >
-          <FaFacebook />
-        </a>
-        
-        <a 
-          href="https://t.me/QudwaAssoc" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-          title="Telegram"
-        >
-          <FaTelegramPlane />
-        </a>
-        
-        <a 
-          href="https://wa.me/963980931111" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-          title="WhatsApp"
-        >
-          <FaWhatsapp />
-        </a>
-        
-        <a 
-          href="mailto:qudwaassoc@gmail.com" 
-          className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-          title="Email"
-        >
-          <FaEnvelope />
-        </a>
-    </div>
-</nav>
+            <nav>
+                <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
+                <div className="grid grid-flow-col gap-4">
+                    
+                    <a 
+                      href="https://www.instagram.com/QudwaAssoc" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                      title="Instagram"
+                    >
+                      <FaInstagram />
+                    </a>
+                    
+                    <a 
+                      href="https://www.facebook.com/QudwaAssoc" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                      title="Facebook"
+                    >
+                      <FaFacebook />
+                    </a>
+                    
+                    <a 
+                      href="https://t.me/QudwaAssoc" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                      title="Telegram"
+                    >
+                      <FaTelegramPlane />
+                    </a>
+                    
+                    <a 
+                      href="https://wa.me/963980931111" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                      title="WhatsApp"
+                    >
+                      <FaWhatsapp />
+                    </a>
+                    
+                    <a 
+                      href="mailto:qudwa.ltk@gmail.com" 
+                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
+                      title="Email"
+                    >
+                      <FaEnvelope />
+                    </a>
+                </div>
+            </nav>
         </div>
 
         {/* Copyright */}

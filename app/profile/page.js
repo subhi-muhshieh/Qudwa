@@ -536,7 +536,7 @@ export default function ProfilePage() {
     </a>
     
     <a
-      href="mailto:qudwaassoc@gmail.com"
+      href="mailto:qudwa.ltk@gmail.com"
       className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
       title="Email"
     >
