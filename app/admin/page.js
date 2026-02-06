@@ -224,7 +224,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 py-20 px-4">
+    // FIX APPLIED HERE: changed py-20 to pt-32 pb-20
+    <div className="min-h-screen bg-base-200 pt-32 pb-20 px-4">
       <div className="max-w-7xl mx-auto">
         
         {/* Header */}

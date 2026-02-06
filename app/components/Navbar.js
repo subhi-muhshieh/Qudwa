@@ -80,7 +80,7 @@ export default function Navbar() {
                   className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
                 >
                   <FaHistory className="text-secondary opacity-70" />
-                  سجل الإنجازات
+                  سجل النشاطات
                 </Link>
 
                 <button 

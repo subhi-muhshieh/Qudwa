@@ -46,7 +46,6 @@ export default function SettingsPage() {
     setLoading(false);
 
     // 2. Check Local Storage for Theme
-    // We check if the saved theme is 'dark'
     const savedTheme = localStorage.getItem('theme');
     
     // Logic: If saved is dark, OR no save but system prefers dark
@@ -55,7 +54,6 @@ export default function SettingsPage() {
       document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       setDarkMode(false);
-      // IMPORTANT: We use 'qudwaTheme' for light mode, not 'light'
       document.documentElement.setAttribute('data-theme', 'qudwaTheme');
     }
   }, [user, router]);
@@ -73,7 +71,6 @@ export default function SettingsPage() {
     const newMode = !darkMode;
     setDarkMode(newMode);
     
-    // Define exact theme names from tailwind.config.js
     const newTheme = newMode ? 'dark' : 'qudwaTheme';
     
     // Apply to DOM
@@ -86,10 +83,6 @@ export default function SettingsPage() {
         icon: newMode ? <FaMoon /> : <FaSun />,
     });
   };
-
-  // ... Rest of the component (toggleNotifications, handleExportData, return statement) 
-  // REMAINS EXACTLY THE SAME as the code I gave you in the previous step.
-  // The crucial part was changing 'light' to 'qudwaTheme' inside toggleTheme.
 
   // Optional: Toggle notifications
   const toggleNotifications = () => {
@@ -127,7 +120,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 py-24 px-4 transition-colors duration-300">
+    // FIX APPLIED HERE: Changed 'py-24' to 'pt-32 pb-24'
+    <div className="min-h-screen bg-base-200 pt-32 pb-24 px-4 transition-colors duration-300">
       <div className="max-w-2xl mx-auto">
         
         {/* Header */}

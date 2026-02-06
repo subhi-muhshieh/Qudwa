@@ -232,9 +232,7 @@ export default function Dashboard() {
                     alt={recentActivity.title}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent lg:bg-gradient-to-r lg:from-black/20 lg:to-transparent"></div>
-                  <div className="absolute bottom-4 right-4 lg:top-4 lg:right-4 badge badge-secondary shadow-lg border-none">
-                     <FaStar className="mr-1 text-xs" /> تم إنجازه
-                  </div>
+                 
               </div>
             ) : (
               <div className="w-full lg:w-5/12 bg-base-200 flex items-center justify-center min-h-[300px]">
