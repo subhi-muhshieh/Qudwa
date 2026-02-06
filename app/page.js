@@ -64,7 +64,7 @@ export default function LandingPage() {
         transition={{ delay: 0.5, duration: 0.8 }}
       >
         <h2 className="text-2xl md:text-3xl font-bold text-neutral mb-8 opacity-80" style={{ fontFamily: 'var(--font-slogan)' }}>
-           جيلٌ يبني، أثرٌ يبقى
+           جيلٌ يبني... أثرٌ يبقى
         </h2>
 
         <Link href="/login" className="block w-full">

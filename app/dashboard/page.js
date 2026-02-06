@@ -122,7 +122,7 @@ export default function Dashboard() {
       
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16 mt-6">
         <h2 className="text-4xl md:text-6xl text-primary font-black tracking-wide leading-tight drop-shadow-sm" style={{ fontFamily: 'var(--font-slogan)' }}>
-          جيلٌ يبني، أثرٌ يبقى
+          جيلٌ يبني... أثرٌ يبقى
         </h2>
         <div className="w-24 h-2 bg-gradient-to-r from-primary to-accent mx-auto mt-6 rounded-full opacity-50"></div>
       </motion.div>

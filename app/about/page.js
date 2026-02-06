@@ -95,7 +95,7 @@ export default function AboutPage() {
             className="text-2xl md:text-3xl opacity-90 mb-6"
             style={{ fontFamily: 'var(--font-slogan)' }}
           >
-            جيلٌ يبني، أثرٌ يبقى
+            جيلٌ يبني... أثرٌ يبقى
           </p>
           
           <p className="text-lg opacity-80 max-w-2xl mx-auto">

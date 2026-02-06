@@ -367,7 +367,7 @@ export default function SettingsPage() {
         {/* App Version */}
         <div className="text-center text-gray-400 text-sm py-4">
           <p>منظمة قدوة - الإصدار 1.0.0</p>
-          <p>جيلٌ يبني، أثرٌ يبقى</p>
+          <p>جيلٌ يبني... أثرٌ يبقى</p>
         </div>
 
       </div>

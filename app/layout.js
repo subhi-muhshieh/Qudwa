@@ -26,7 +26,7 @@ const sloganFont = localFont({
 
 export const metadata = {
   title: "منظمة قدوة | Qudwa Association",
-  description: "منظمة قدوة - جيلٌ يبني، أثرٌ يبقى. منظمة تربوية غير ربحية تهدف لبناء جيل واعٍ من خلال البرامج التعليمية والأنشطة المجتمعية للأطفال والشباب",
+  description: "منظمة قدوة - جيلٌ يبني... أثرٌ يبقى. منظمة تربوية غير ربحية تهدف لبناء جيل واعٍ من خلال البرامج التعليمية والأنشطة المجتمعية للأطفال والشباب",
   keywords: [
     "منظمة قدوة",
     "جمعية قدوة", 
@@ -48,7 +48,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'منظمة قدوة | Qudwa Association',
-    description: 'جيلٌ يبني، أثرٌ يبقى - منظمة تربوية غير ربحية',
+    description: 'جيلٌ يبني... أثرٌ يبقى - منظمة تربوية غير ربحية',
     url: 'https://qudwa.pages.dev',
     siteName: 'منظمة قدوة',
     images: [
@@ -65,7 +65,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'منظمة قدوة | Qudwa Association',
-    description: 'جيلٌ يبني، أثرٌ يبقى',
+    description: 'جيلٌ يبني... أثرٌ يبقى',
     images: ['/logo.png'],
   },
   robots: {
