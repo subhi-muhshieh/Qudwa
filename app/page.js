@@ -63,7 +63,7 @@ export default function LandingPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.8 }}
       >
-        <h2 className="text-2xl md:text-3xl font-bold text-neutral mb-8 opacity-80" style={{ fontFamily: 'var(--font-slogan)' }}>
+        <h2 className="text-2xl md:text-3xl font-bold text-neutral mb-8 opacity-80 font-slogan">
            جيلٌ يبني... أثرٌ يبقى
         </h2>
 

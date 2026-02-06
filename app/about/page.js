@@ -92,8 +92,7 @@ export default function AboutPage() {
           </h1>
           
           <p 
-            className="text-2xl md:text-3xl opacity-90 mb-6"
-            style={{ fontFamily: 'var(--font-slogan)' }}
+            className="text-2xl md:text-3xl opacity-90 mb-6 font-slogan"
           >
             جيلٌ يبني... أثرٌ يبقى
           </p>

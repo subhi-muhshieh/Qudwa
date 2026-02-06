@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'; 
+import React, { useState, useEffect, useRef } from 'react'; 
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
@@ -11,10 +11,34 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, profile } = useProfile();
   
-  // SIMPLIFIED LOGIC:
-  // Instead of fetching from DB again, we check the profile we already have.
-  // We check if profile exists AND if the role is explicitly 'admin'.
+  // 1. New State for Dropdown
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
   const isAdmin = profile?.role === 'admin';
+
+  // 2. Click Outside Logic
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Toggle function
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  // Close when a link is clicked
+  const closeDropdown = () => {
+    setIsDropdownOpen(false);
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -24,6 +48,7 @@ export default function Navbar() {
   };
 
   const scrollToContact = () => {
+    closeDropdown(); // Close menu if open on mobile
     const messageBox = document.getElementById('message-box');
     const input = document.getElementById('contact-input');
     
@@ -60,8 +85,7 @@ export default function Navbar() {
 
           <div className="flex flex-col items-start justify-center h-12">
              <span 
-                className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none transition-all duration-300 group-hover:text-secondary group-hover:scale-105 origin-right" 
-                style={{ fontFamily: 'var(--font-nastaliq)' }}
+                className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none transition-all duration-300 group-hover:text-secondary group-hover:scale-105 origin-right font-nastaliq" 
              >
                 قُدوَة
              </span>
@@ -109,8 +133,18 @@ export default function Navbar() {
 
       <div className="flex-none gap-2 ml-2">
         {user ? (
-          <div className="dropdown dropdown-end">
-            <label tabIndex={0} className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors">
+          // 3. Apply Ref and Manual Class
+          <div 
+            className={`dropdown dropdown-end ${isDropdownOpen ? 'dropdown-open' : ''}`} 
+            ref={dropdownRef}
+          >
+            {/* Changed label to div/button to handle click manually */}
+            <div 
+                role="button" 
+                tabIndex={0} 
+                onClick={toggleDropdown}
+                className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors"
+            >
               <div className="bg-primary/10 text-primary rounded-full w-10 overflow-hidden">
                 {profile?.avatar_url ? (
                   <img 
@@ -124,8 +158,14 @@ export default function Navbar() {
                   </span>
                 )}
               </div>
-            </label>
-            <ul tabIndex={0} className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-white rounded-2xl w-56 border border-gray-200 text-right">
+            </div>
+            
+            {/* Added onClick={closeDropdown} to UL so links close the menu */}
+            <ul 
+                tabIndex={0} 
+                onClick={closeDropdown}
+                className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-white rounded-2xl w-56 border border-gray-200 text-right"
+            >
               <li className="menu-title px-4 py-2 text-xs text-primary/70">
                 {profile?.parent_name || user.email}
               </li>
@@ -142,7 +182,7 @@ export default function Navbar() {
               </li>
               
               <li className="md:hidden"><Link href="/activities"><FaHistory /> سجل الإنجازات</Link></li>
-              <li className="md:hidden"><button onClick={scrollToContact} className="w-full"><FaEnvelope /> راسل الإدارة</button></li>
+              <li className="md:hidden"><button onClick={(e) => { e.stopPropagation(); scrollToContact(); }} className="w-full"><FaEnvelope /> راسل الإدارة</button></li>
               
               {/* Admin Button - Mobile Menu */}
               {isAdmin && <li className="md:hidden"><Link href="/admin"><FaShieldAlt /> لوحة الإدارة</Link></li>}

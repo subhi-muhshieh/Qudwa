@@ -7,9 +7,13 @@ export default {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: ['class', '[data-theme="dark"]'], // Helps Tailwind utilities recognize dark mode
+  darkMode: ['class', '[data-theme="dark"]'], 
   theme: {
     extend: {
+      // ADDED THIS SECTION
+      fontFamily: {
+        slogan: ['var(--font-slogan)'],
+      },
       backgroundImage: {
         'leaf-pattern': "url('/leaf-pattern.svg')", 
       },
@@ -22,7 +26,6 @@ export default {
   daisyui: {
     themes: [
       {
-        // YOUR ORIGINAL LIGHT THEME
         qudwaTheme: {
           "primary": "#1281c3",   
           "secondary": "#1599d3", 
@@ -38,15 +41,14 @@ export default {
         },
       },
       {
-        // NEW CUSTOM DARK THEME
         dark: {
-          "primary": "#38bdf8",   // Brighter blue to pop against dark bg
+          "primary": "#38bdf8",   
           "secondary": "#0ea5e9", 
           "accent": "#7dd3fc",    
-          "neutral": "#f0f9ff",   // Light text
-          "base-100": "#0f172a",  // Deep Slate (Background)
-          "base-200": "#1e293b",  // Lighter Slate (Cards)
-          "base-300": "#334155",  // Borders
+          "neutral": "#f0f9ff",   
+          "base-100": "#0f172a",  
+          "base-200": "#1e293b",  
+          "base-300": "#334155",  
           "info": "#3abff8",
           "success": "#36d399",
           "warning": "#fbbd23",

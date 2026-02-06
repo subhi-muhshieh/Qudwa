@@ -120,8 +120,9 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen pt-32 pb-20 px-4 md:px-10 overflow-hidden relative">
       
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16 mt-6">
-        <h2 className="text-4xl md:text-6xl text-primary font-black tracking-wide leading-tight drop-shadow-sm" style={{ fontFamily: 'var(--font-slogan)' }}>
+                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16 mt-6">
+        {/* CHANGED: font-black -> font-normal */}
+        <h2 className="text-4xl md:text-6xl text-primary font-normal tracking-wide leading-tight drop-shadow-sm font-slogan">
           جيلٌ يبني... أثرٌ يبقى
         </h2>
         <div className="w-24 h-2 bg-gradient-to-r from-primary to-accent mx-auto mt-6 rounded-full opacity-50"></div>
