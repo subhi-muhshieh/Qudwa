@@ -10,9 +10,10 @@ export default {
   darkMode: ['class', '[data-theme="dark"]'], 
   theme: {
     extend: {
-      // ADDED THIS SECTION
       fontFamily: {
+        // We added slogan before, now we add nastaliq back
         slogan: ['var(--font-slogan)'],
+        nastaliq: ['var(--font-nastaliq)'], 
       },
       backgroundImage: {
         'leaf-pattern': "url('/leaf-pattern.svg')", 
