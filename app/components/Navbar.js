@@ -11,13 +11,13 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, profile } = useProfile();
   
-  // 1. New State for Dropdown
+  // State for Dropdown
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   
   const isAdmin = profile?.role === 'admin';
 
-  // 2. Click Outside Logic
+  // Click Outside Logic
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -30,12 +30,11 @@ export default function Navbar() {
     };
   }, []);
 
-  // Toggle function
+  // Simple Toggle (No blur needed anymore because we aren't using CSS focus)
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
 
-  // Close when a link is clicked
   const closeDropdown = () => {
     setIsDropdownOpen(false);
   };
@@ -48,7 +47,7 @@ export default function Navbar() {
   };
 
   const scrollToContact = () => {
-    closeDropdown(); // Close menu if open on mobile
+    closeDropdown();
     const messageBox = document.getElementById('message-box');
     const input = document.getElementById('contact-input');
     
@@ -60,7 +59,6 @@ export default function Navbar() {
     }
   };
 
-  // --- HIDE NAVBAR LOGIC ---
   const hiddenPages = ['/login', '/reset-password', '/'];
   if (hiddenPages.includes(pathname)) {
     return null;
@@ -117,7 +115,6 @@ export default function Navbar() {
               </>
             )}
 
-            {/* Admin Button - Desktop */}
             {isAdmin && (
               <Link 
                 href="/admin" 
@@ -133,17 +130,15 @@ export default function Navbar() {
 
       <div className="flex-none gap-2 ml-2">
         {user ? (
-          // 3. Apply Ref and Manual Class
-          <div 
-            className={`dropdown dropdown-end ${isDropdownOpen ? 'dropdown-open' : ''}`} 
-            ref={dropdownRef}
-          >
-            {/* Changed label to div/button to handle click manually */}
+          // We removed 'dropdown' class to disable CSS focus behavior.
+          // We use 'relative' to position our custom menu.
+          <div className="relative" ref={dropdownRef}>
+            
+            {/* Profile Trigger */}
             <div 
                 role="button" 
-                tabIndex={0} 
                 onClick={toggleDropdown}
-                className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors"
+                className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors cursor-pointer"
             >
               <div className="bg-primary/10 text-primary rounded-full w-10 overflow-hidden">
                 {profile?.avatar_url ? (
@@ -160,35 +155,44 @@ export default function Navbar() {
               </div>
             </div>
             
-            {/* Added onClick={closeDropdown} to UL so links close the menu */}
+            {/* Custom Dropdown Menu with Smooth Animation */}
             <ul 
-                tabIndex={0} 
-                onClick={closeDropdown}
-                className="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-white rounded-2xl w-56 border border-gray-200 text-right"
+                className={`
+                  absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-white rounded-2xl w-56 border border-gray-200 text-right z-50
+                  origin-top-left transition-all duration-200 ease-in-out
+                  ${isDropdownOpen 
+                    ? 'opacity-100 scale-100 visible translate-y-0' 
+                    : 'opacity-0 scale-95 invisible -translate-y-2 pointer-events-none'}
+                `}
+                onClick={(e) => {
+                   // Close menu when clicking links inside
+                   if(e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON') {
+                       closeDropdown();
+                   }
+                }}
             >
-              <li className="menu-title px-4 py-2 text-xs text-primary/70">
+              <li className="menu-title px-4 py-2 text-xs text-primary/70 border-b border-gray-100 mb-2">
                 {profile?.parent_name || user.email}
               </li>
               
               <li>
-                <Link href="/profile" className="gap-2">
+                <Link href="/profile" className="gap-2 py-2">
                   <FaUser className="text-primary" /> الملف الشخصي
                 </Link>
               </li>
               <li>
-                <Link href="/settings" className="gap-2">
+                <Link href="/settings" className="gap-2 py-2">
                   <FaCog className="text-primary" /> الإعدادات
                 </Link>
               </li>
               
-              <li className="md:hidden"><Link href="/activities"><FaHistory /> سجل الإنجازات</Link></li>
-              <li className="md:hidden"><button onClick={(e) => { e.stopPropagation(); scrollToContact(); }} className="w-full"><FaEnvelope /> راسل الإدارة</button></li>
+              <li className="md:hidden"><Link href="/activities" className="py-2"><FaHistory /> سجل الإنجازات</Link></li>
+              <li className="md:hidden"><button onClick={(e) => { e.stopPropagation(); scrollToContact(); }} className="w-full py-2"><FaEnvelope /> راسل الإدارة</button></li>
               
-              {/* Admin Button - Mobile Menu */}
-              {isAdmin && <li className="md:hidden"><Link href="/admin"><FaShieldAlt /> لوحة الإدارة</Link></li>}
+              {isAdmin && <li className="md:hidden"><Link href="/admin" className="py-2"><FaShieldAlt /> لوحة الإدارة</Link></li>}
               
               <div className="divider my-1 opacity-50"></div>
-              <li><button onClick={handleLogout} className="text-error gap-2 hover:bg-error/10"><FaSignOutAlt /> خروج</button></li>
+              <li><button onClick={handleLogout} className="text-error gap-2 hover:bg-error/10 py-2"><FaSignOutAlt /> خروج</button></li>
             </ul>
           </div>
         ) : (
