@@ -3,7 +3,6 @@ import React from 'react';
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog } from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
 
@@ -11,30 +10,11 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, profile } = useProfile();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user) return;
-      
-      const supabase = createClient();
-      try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        if (data?.role === 'admin') {
-          setIsAdmin(true);
-        }
-      } catch (error) {
-        console.error('Error checking admin:', error);
-      }
-    };
-
-    checkAdmin();
-  }, [user]);
+  
+  // SIMPLIFIED LOGIC:
+  // Instead of fetching from DB again, we check the profile we already have.
+  // We check if profile exists AND if the role is explicitly 'admin'.
+  const isAdmin = profile?.role === 'admin';
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -55,12 +35,11 @@ export default function Navbar() {
     }
   };
 
- // --- HIDE NAVBAR LOGIC ---
-const hiddenPages = ['/login', '/reset-password', '/'];
-if (hiddenPages.includes(pathname)) {
-  return null;
-}
-  // -------------------------
+  // --- HIDE NAVBAR LOGIC ---
+  const hiddenPages = ['/login', '/reset-password', '/'];
+  if (hiddenPages.includes(pathname)) {
+    return null;
+  }
 
   return (
     <div className="navbar absolute top-6 left-4 right-4 w-auto rounded-3xl glass-panel shadow-sm z-50 px-4 md:px-6">
@@ -114,6 +93,7 @@ if (hiddenPages.includes(pathname)) {
               </>
             )}
 
+            {/* Admin Button - Desktop */}
             {isAdmin && (
               <Link 
                 href="/admin" 
@@ -156,13 +136,15 @@ if (hiddenPages.includes(pathname)) {
                 </Link>
               </li>
               <li>
-    <Link href="/settings" className="gap-2">
-      <FaCog className="text-primary" /> الإعدادات
-    </Link>
-  </li>
+                <Link href="/settings" className="gap-2">
+                  <FaCog className="text-primary" /> الإعدادات
+                </Link>
+              </li>
               
               <li className="md:hidden"><Link href="/activities"><FaHistory /> سجل الإنجازات</Link></li>
               <li className="md:hidden"><button onClick={scrollToContact} className="w-full"><FaEnvelope /> راسل الإدارة</button></li>
+              
+              {/* Admin Button - Mobile Menu */}
               {isAdmin && <li className="md:hidden"><Link href="/admin"><FaShieldAlt /> لوحة الإدارة</Link></li>}
               
               <div className="divider my-1 opacity-50"></div>

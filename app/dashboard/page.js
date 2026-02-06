@@ -71,7 +71,7 @@ export default function Dashboard() {
         <div className="w-24 h-2 bg-gradient-to-r from-primary to-accent mx-auto mt-6 rounded-full opacity-50"></div>
       </motion.div>
 
-      {/* 1. UPCOMING ACTIVITY (Now at the top) */}
+      {/* 1. UPCOMING ACTIVITY */}
       {upcomingActivity && (
         <motion.div 
           className="max-w-6xl mx-auto mb-20 relative group" 
@@ -89,7 +89,9 @@ export default function Dashboard() {
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl"></div>
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-black/10 blur-3xl"></div>
 
-            <div className="card-body p-8 md:p-14 relative z-10">
+            <div className="card-body p-8 md:p-12 relative z-10">
+              
+              {/* Header Badge */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                  <div className="badge bg-white/20 border-0 text-white backdrop-blur-md px-4 py-3 h-auto gap-2 text-sm font-bold shadow-sm">
                     <FaCalendarAlt className="animate-pulse" />
@@ -102,36 +104,54 @@ export default function Dashboard() {
                  )}
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-10 items-center">
-                <div className="w-full text-right space-y-6">
-                  <h2 className="text-4xl md:text-6xl font-black leading-tight drop-shadow-md">
+              {/* Content Split: Text vs Image */}
+              <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 items-center">
+                
+                {/* Right Side: Text */}
+                <div className="w-full lg:w-1/2 text-right space-y-6 order-2 lg:order-1">
+                  <h2 className="text-4xl md:text-5xl font-black leading-tight drop-shadow-md">
                     {upcomingActivity.title}
                   </h2>
-                  <p className="text-lg md:text-xl text-blue-50 opacity-90 leading-relaxed font-light max-w-2xl">
+                  <p className="text-lg md:text-xl text-blue-50 opacity-90 leading-relaxed font-light">
                     {upcomingActivity.short_description}
                   </p>
                   
                   <div className="pt-4 flex flex-wrap gap-4">
                     <button 
                       onClick={() => setSelectedActivity(upcomingActivity)} 
-                      className="btn btn-lg bg-white text-primary hover:bg-blue-50 border-none rounded-2xl px-10 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+                      className="btn btn-lg bg-white text-primary hover:bg-blue-50 border-none rounded-2xl px-10 shadow-xl w-full md:w-auto"
                     >
                         التفاصيل والتسجيل <FaArrowLeft />
                     </button>
                   </div>
                 </div>
                 
-                {/* Optional: If upcoming activity has an image, show it small, otherwise show icon */}
-                <div className="hidden lg:flex w-1/3 justify-center opacity-80">
-                   <FaCalendarAlt className="text-[10rem] text-white/20" />
+                {/* Left Side: Image */}
+                <div className="w-full lg:w-1/2 order-1 lg:order-2 flex justify-center lg:justify-end">
+                   {upcomingActivity.image_url ? (
+                      <div className="relative w-full max-w-md h-64 md:h-80 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 transform rotate-2 hover:rotate-0 transition-all duration-500">
+                        <img 
+                          src={upcomingActivity.image_url} 
+                          alt="Upcoming Activity" 
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Shine Effect */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
+                      </div>
+                   ) : (
+                      <div className="hidden lg:flex justify-center opacity-80">
+                         <FaCalendarAlt className="text-[10rem] text-white/20" />
+                      </div>
+                   )}
                 </div>
+
               </div>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* 2. RECENT ACTIVITY (Now below) */}
+      {/* 2. RECENT ACTIVITY */}
       <motion.div 
         className="max-w-6xl mx-auto mb-24" 
         initial="hidden" 
@@ -203,7 +223,7 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* MODAL (Kept the same logic, just refined the look slightly) */}
+      {/* MODAL */}
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
@@ -235,7 +255,6 @@ export default function Dashboard() {
               <div className="p-8 md:p-10 text-right space-y-8">
                 {!selectedActivity.image_url && <h3 className="text-3xl md:text-4xl font-bold text-primary mb-6">{selectedActivity.title}</h3>}
 
-                {/* Info Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedActivity.activity_date && (
                         <div className="flex items-center gap-4 bg-base-200/50 p-4 rounded-2xl">
