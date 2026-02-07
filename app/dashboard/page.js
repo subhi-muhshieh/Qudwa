@@ -2,6 +2,8 @@
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+// Added Link import
+import Link from 'next/link'; 
 import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,7 +14,6 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Registration States
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
@@ -38,7 +39,6 @@ export default function Dashboard() {
     checkUserAndFetchData();
   }, [router]);
 
-  // Check Registration Status when Modal Opens
   useEffect(() => {
     const checkRegistrationStatus = async () => {
       if (!selectedActivity || !user) return;
@@ -72,21 +72,17 @@ export default function Dashboard() {
     else toast.success("شكراً لتفاعلك!");
   };
 
-  // HYBRID HANDLER: Open Link + Save to DB
   const handleRegister = async () => {
     if (!user || !selectedActivity) return;
 
-    // 1. If link exists, open it immediately
     if (selectedActivity.registration_form_url) {
         window.open(selectedActivity.registration_form_url, '_blank');
     } else {
         toast.error("رابط التسجيل غير متوفر، ولكن تم تسجيل اهتمامك.");
     }
 
-    // 2. If already registered, stop here
     if (isRegistered) return;
 
-    // 3. Mark as registered in Database
     setRegistering(true);
     
     const { error } = await supabase
@@ -105,13 +101,7 @@ export default function Dashboard() {
     setRegistering(false);
   };
 
-  const scrollToContact = () => {
-    const element = document.getElementById('message-box');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      element.focus();
-    }
-  };
+  // REMOVED: scrollToContact function
 
   const fadeInUp = { hidden: { opacity: 0, y: 60 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
 
@@ -120,10 +110,9 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen pt-32 pb-20 px-4 md:px-10 overflow-hidden relative">
       
-                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16 mt-6">
-        {/* CHANGED: font-black -> font-normal */}
-        <h2 className="text-4xl md:text-6xl text-primary font-normal tracking-wide leading-tight drop-shadow-sm font-slogan">
-          جيلٌ يبني... أثرٌ يبقى
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16 mt-6">
+        <h2 className="text-4xl md:text-6xl text-primary font-bold tracking-normal leading-tight drop-shadow-sm font-slogan">
+          جيلٌ يبني، أثرٌ يبقى
         </h2>
         <div className="w-24 h-2 bg-gradient-to-r from-primary to-accent mx-auto mt-6 rounded-full opacity-50"></div>
       </motion.div>
@@ -137,18 +126,13 @@ export default function Dashboard() {
           viewport={{ once: true, amount: 0.3 }} 
           variants={fadeInUp}
         >
-          {/* Glowing Background Effect */}
           <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.6rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
           
           <div className="card w-full bg-gradient-to-br from-primary via-secondary to-accent text-white shadow-2xl rounded-[2.5rem] relative overflow-hidden">
-            
-            {/* Decorative circles */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl"></div>
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-black/10 blur-3xl"></div>
 
             <div className="card-body p-8 md:p-12 relative z-10">
-              
-              {/* Header Badge */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                  <div className="badge bg-white/20 border-0 text-white backdrop-blur-md px-4 py-3 h-auto gap-2 text-sm font-bold shadow-sm">
                     <FaCalendarAlt className="animate-pulse" />
@@ -161,10 +145,7 @@ export default function Dashboard() {
                  )}
               </div>
 
-              {/* Content Split: Text vs Image */}
               <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 items-center">
-                
-                {/* Right Side: Text */}
                 <div className="w-full lg:w-1/2 text-right space-y-6 order-2 lg:order-1">
                   <h2 className="text-4xl md:text-5xl font-black leading-tight drop-shadow-md">
                     {upcomingActivity.title}
@@ -183,7 +164,6 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
-                {/* Left Side: Image */}
                 <div className="w-full lg:w-1/2 order-1 lg:order-2 flex justify-center lg:justify-end">
                    {upcomingActivity.image_url ? (
                       <div className="relative w-full max-w-md h-64 md:h-80 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 transform rotate-2 hover:rotate-0 transition-all duration-500">
@@ -192,7 +172,6 @@ export default function Dashboard() {
                           alt="Upcoming Activity" 
                           className="w-full h-full object-cover"
                         />
-                        {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                    ) : (
@@ -201,7 +180,6 @@ export default function Dashboard() {
                       </div>
                    )}
                 </div>
-
               </div>
             </div>
           </div>
@@ -224,7 +202,6 @@ export default function Dashboard() {
         <div className="glass-panel bg-white/70 backdrop-blur-xl border border-white/50 rounded-[2.5rem] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500">
           <div className="flex flex-col lg:flex-row-reverse">
             
-            {/* Image Section */}
             {recentActivity?.image_url ? (
               <div className="w-full lg:w-5/12 h-[300px] lg:h-auto relative group overflow-hidden">
                   <img 
@@ -233,7 +210,9 @@ export default function Dashboard() {
                     alt={recentActivity.title}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent lg:bg-gradient-to-r lg:from-black/20 lg:to-transparent"></div>
-                 
+                  <div className="absolute bottom-4 right-4 lg:top-4 lg:right-4 badge badge-secondary shadow-lg border-none">
+                     <FaStar className="mr-1 text-xs" /> تم إنجازه
+                  </div>
               </div>
             ) : (
               <div className="w-full lg:w-5/12 bg-base-200 flex items-center justify-center min-h-[300px]">
@@ -241,7 +220,6 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Content Section */}
             {recentActivity ? (
               <div className="w-full lg:w-7/12 p-8 md:p-12 text-right flex flex-col justify-center">
                 <h2 className="text-3xl md:text-4xl font-bold mb-4 text-neutral">{recentActivity.title}</h2>
@@ -263,12 +241,14 @@ export default function Dashboard() {
                       قراءة المزيد...
                     </button>
                     <div className="flex-grow"></div>
-                    <button 
-                      onClick={scrollToContact} 
+                    
+                    {/* UPDATED: Changed from Button(scrollTo) to Link(/contact) */}
+                    <Link 
+                      href="/contact"
                       className="btn btn-sm btn-ghost text-secondary opacity-70 hover:opacity-100 gap-2"
                     >
                       <FaPaperPlane /> تواصل معنا
-                    </button>
+                    </Link>
                 </div>
               </div>
             ) : (
@@ -278,7 +258,7 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* MODAL */}
+      {/* MODAL (Unchanged Logic, just rendering) */}
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
@@ -309,7 +289,7 @@ export default function Dashboard() {
 
               <div className="p-8 md:p-10 text-right space-y-8">
                 {!selectedActivity.image_url && <h3 className="text-3xl md:text-4xl font-bold text-primary mb-6">{selectedActivity.title}</h3>}
-
+                {/* ... existing modal content ... */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedActivity.activity_date && (
                         <div className="flex items-center gap-4 bg-base-200/50 p-4 rounded-2xl">

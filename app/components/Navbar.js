@@ -11,13 +11,11 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, profile } = useProfile();
   
-  // State for Dropdown
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   
   const isAdmin = profile?.role === 'admin';
 
-  // Click Outside Logic
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -30,7 +28,6 @@ export default function Navbar() {
     };
   }, []);
 
-  // Simple Toggle (No blur needed anymore because we aren't using CSS focus)
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
@@ -46,18 +43,7 @@ export default function Navbar() {
     router.refresh();      
   };
 
-  const scrollToContact = () => {
-    closeDropdown();
-    const messageBox = document.getElementById('message-box');
-    const input = document.getElementById('contact-input');
-    
-    if (messageBox) {
-      messageBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setTimeout(() => {
-        if (input) input.focus();
-      }, 500);
-    }
-  };
+  // REMOVED: scrollToContact function is no longer needed
 
   const hiddenPages = ['/login', '/reset-password', '/'];
   if (hiddenPages.includes(pathname)) {
@@ -105,13 +91,14 @@ export default function Navbar() {
                   سجل النشاطات
                 </Link>
 
-                <button 
-                  onClick={scrollToContact}
+                {/* UPDATED: Changed from Button to Link to /contact */}
+                <Link 
+                  href="/contact"
                   className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all"
                 >
                   <FaEnvelope className="text-secondary opacity-70" />
                   راسل الإدارة
-                </button>
+                </Link>
               </>
             )}
 
@@ -130,11 +117,8 @@ export default function Navbar() {
 
       <div className="flex-none gap-2 ml-2">
         {user ? (
-          // We removed 'dropdown' class to disable CSS focus behavior.
-          // We use 'relative' to position our custom menu.
           <div className="relative" ref={dropdownRef}>
             
-            {/* Profile Trigger */}
             <div 
                 role="button" 
                 onClick={toggleDropdown}
@@ -155,7 +139,6 @@ export default function Navbar() {
               </div>
             </div>
             
-            {/* Custom Dropdown Menu with Smooth Animation */}
             <ul 
                 className={`
                   absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-white rounded-2xl w-56 border border-gray-200 text-right z-50
@@ -165,7 +148,6 @@ export default function Navbar() {
                     : 'opacity-0 scale-95 invisible -translate-y-2 pointer-events-none'}
                 `}
                 onClick={(e) => {
-                   // Close menu when clicking links inside
                    if(e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON') {
                        closeDropdown();
                    }
@@ -187,7 +169,13 @@ export default function Navbar() {
               </li>
               
               <li className="md:hidden"><Link href="/activities" className="py-2"><FaHistory /> سجل الإنجازات</Link></li>
-              <li className="md:hidden"><button onClick={(e) => { e.stopPropagation(); scrollToContact(); }} className="w-full py-2"><FaEnvelope /> راسل الإدارة</button></li>
+              
+              {/* UPDATED: Changed Mobile Link to /contact */}
+              <li className="md:hidden">
+                <Link href="/contact" className="w-full py-2">
+                  <FaEnvelope /> راسل الإدارة
+                </Link>
+              </li>
               
               {isAdmin && <li className="md:hidden"><Link href="/admin" className="py-2"><FaShieldAlt /> لوحة الإدارة</Link></li>}
               

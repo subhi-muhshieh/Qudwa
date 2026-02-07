@@ -1,181 +1,109 @@
 'use client'
-import { useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { FaPaperPlane, FaInstagram, FaFacebook, FaTelegramPlane, FaWhatsapp, FaEnvelope } from 'react-icons/fa';
-import toast from 'react-hot-toast';
-import { createClient } from '../utils/supabase/client';
+import Link from 'next/link';
+import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaInstagram, FaHeart, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
 
 export default function Footer() {
-  const [msg, setMsg] = useState('');
-  const supabase = createClient();
-  const pathname = usePathname();
-
-  // --- HIDE FOOTER LOGIC ---
-  const hiddenPages = ['/', '/login', '/admin', '/reset-password', '/profile', '/settings'];
-  if (hiddenPages.includes(pathname)) {
-    return null;
-  }
-
-  const sendTelegramMessage = async (e) => {
-    e.preventDefault();
-    if (!msg) return;
-
-    const toastId = toast.loading("جاري الإرسال...");
-    
-    try {
-      // 1. Get Current User
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // 2. Fetch Profile Data (Parent Name, Phone, Children)
-      let profileData = {};
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('parent_name, parent_phone, children')
-          .eq('id', user.id)
-          .single();
-          
-        if (profile) {
-          profileData = profile;
-        }
-      }
-
-      // 3. Send Message with Profile Data
-      await fetch('/api/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: msg, 
-          userEmail: user?.email,
-          parentName: profileData.parent_name,
-          parentPhone: profileData.parent_phone,
-          children: profileData.children
-        }),
-      });
-      
-      toast.success("وصلت رسالتك!", { id: toastId });
-      setMsg('');
-    } catch (error) {
-      console.error(error);
-      toast.error("فشل الإرسال", { id: toastId });
+  
+  const contactLinks = [
+    {
+      name: 'WhatsApp',
+      icon: <FaWhatsapp className="text-xl" />,
+      url: 'https://wa.me/963980931111', 
+      color: 'hover:text-[#25D366]'
+    },
+    {
+      name: 'Telegram',
+      icon: <FaTelegram className="text-xl" />,
+      url: 'https://t.me/QudwaAssoc', 
+      color: 'hover:text-[#0088cc]'
+    },
+    {
+      name: 'Messenger',
+      icon: <FaFacebookMessenger className="text-xl" />,
+      url: 'https://m.me/QudwaAssoc', 
+      color: 'hover:text-[#0084FF]'
+    },
+    {
+      name: 'Instagram',
+      icon: <FaInstagram className="text-xl" />,
+      url: 'https://instagram.com/QudwaAssoc', 
+      color: 'hover:text-[#E1306C]'
+    },
+    // Added Email Option
+    {
+      name: 'البريد الإلكتروني',
+      icon: <FaEnvelope className="text-xl" />,
+      url: 'mailto:qudwa.ltk@gmail.com', 
+      color: 'hover:text-[#EA4335]' // Gmail Red
     }
-  };
+  ];
 
   return (
-    <footer className="bg-base-200 text-base-content pt-10 mt-20">
+    <footer className="bg-neutral text-neutral-content pt-10 pb-6 rounded-t-[2rem] mt-10">
       
-      <div className="container mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* 1. TOP BIG BOX (Slogan) */}
-        <div className="bg-neutral rounded-[2.5rem] p-10 md:p-16 text-center mb-16 relative overflow-hidden group">
-            {/* Background Decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-700"></div>
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-primary/20 rounded-full blur-3xl -ml-10 -mb-10"></div>
-            
-            <div className="relative z-10">
-                <h2 className="text-3xl md:text-5xl font-black text-white mb-6 leading-tight" style={{ fontFamily: 'var(--font-slogan)' }}>
-                    نصنع الأثر، ونبني المستقبل
-                </h2>
-                <div className="inline-block border-2 border-white/30 rounded-full px-8 py-3 text-white/80 font-bold tracking-widest uppercase">
-                    معاً نحو الأفضل
-                </div>
-            </div>
+        {/* Column 1: Brand & Slogan */}
+        <div className="space-y-3 text-center md:text-right">
+          <div className="flex items-center justify-center md:justify-start gap-3">
+            <img src="/logo.png" alt="Logo" className="w-14 h-14 object-contain bg-white rounded-full p-1" />
+            <h2 className="text-2xl font-bold font-nastaliq text-white drop-shadow-md">قُدوَة</h2>
+          </div>
+          <p className="text-gray-400 text-sm leading-relaxed max-w-xs mx-auto md:mx-0">
+            جيلٌ يبني... أثرٌ يبقى.
+            <br/>
+            نسعى لبناء جيل واعٍ ومثقف من خلال برامج تربوية وترفيهية هادفة.
+          </p>
         </div>
 
-        {/* 2. BOTTOM COLUMNS */}
-        <div className="footer py-10 border-t border-base-300">
-            
-            {/* Column 1: Navigation */}
-            <nav className="gap-4">
-                <header className="footer-title opacity-100 text-primary text-lg">روابط سريعة</header> 
-                <a href="/dashboard" className="link link-hover text-base">الرئيسية</a>
-                <a href="/activities" className="link link-hover text-base">سجل النشاطات</a>
-            </nav> 
-
-            {/* Column 2: Contact Form */}
-            <form onSubmit={sendTelegramMessage} className="w-full md:w-96">
-                <header className="footer-title opacity-100 text-primary text-lg">تواصل مع الإدارة</header> 
-                <fieldset className="form-control w-full">
-                    <label className="label">
-                        <span className="label-text">أرسل ملاحظة أو اقتراح للمسؤولين مباشرة</span>
-                    </label>
-                    <div className="relative" id="message-box" >
-                        <input 
-                            id="contact-input" 
-                            type="text" 
-                            placeholder="اكتب رسالتك هنا..." 
-                            className="input input-bordered w-full pr-12 rounded-xl focus:outline-none focus:border-primary bg-base-100" 
-                            value={msg}
-                            onChange={(e) => setMsg(e.target.value)}
-                        />
-                        <button type="submit" className="absolute top-0 left-0 rounded-l-xl btn btn-primary join-item text-white">
-                            <FaPaperPlane className="transform scale-x-[-1]" />
-                        </button>
-                    </div>
-                </fieldset>
-            </form>
-
-            {/* Column 3: Socials */}
-            <nav>
-                <header className="footer-title opacity-100 text-primary text-lg">تابعنا</header> 
-                <div className="grid grid-flow-col gap-4">
-                    
-                    <a 
-                      href="https://www.instagram.com/QudwaAssoc" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                      title="Instagram"
-                    >
-                      <FaInstagram />
-                    </a>
-                    
-                    <a 
-                      href="https://www.facebook.com/QudwaAssoc" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                      title="Facebook"
-                    >
-                      <FaFacebook />
-                    </a>
-                    
-                    <a 
-                      href="https://t.me/QudwaAssoc" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                      title="Telegram"
-                    >
-                      <FaTelegramPlane />
-                    </a>
-                    
-                    <a 
-                      href="https://wa.me/963980931111" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                      title="WhatsApp"
-                    >
-                      <FaWhatsapp />
-                    </a>
-                    
-                    <a 
-                      href="mailto:qudwa.ltk@gmail.com" 
-                      className="text-2xl text-secondary hover:text-primary transition-colors cursor-pointer"
-                      title="Email"
-                    >
-                      <FaEnvelope />
-                    </a>
-                </div>
-            </nav>
+        {/* Column 2: Quick Links */}
+        <div className="text-center">
+          <h3 className="text-lg font-bold text-white mb-3">روابط سريعة</h3>
+          <ul className="space-y-2 text-sm">
+            <li><Link href="/dashboard" className="link link-hover hover:text-primary transition-colors">الرئيسية</Link></li>
+            <li><Link href="/activities" className="link link-hover hover:text-primary transition-colors">سجل النشاطات</Link></li>
+            <li><Link href="/contact" className="link link-hover hover:text-primary transition-colors">تواصل معنا</Link></li>
+            <li><Link href="/about" className="link link-hover hover:text-primary transition-colors">عن الجمعية</Link></li>
+          </ul>
         </div>
 
-        {/* Copyright */}
-        <div className="text-center py-8 text-sm opacity-50 border-t border-base-300 mt-10">
-            <p>جميع الحقوق محفوظة © {new Date().getFullYear()} - منظمة قدوة</p>
+        {/* Column 3: Direct Contact Buttons */}
+        <div className="text-center md:text-left">
+          <h3 className="text-lg font-bold text-white mb-3">تحدث معنا مباشرة</h3>
+          
+          <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto md:mx-0 md:mr-auto">
+             {contactLinks.map((link, idx) => (
+                <a 
+                  key={idx}
+                  href={link.url}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  // Logic: If it is the last item (index 4), make it span 2 columns
+                  className={`btn btn-sm btn-outline border-white/20 text-white hover:bg-white hover:border-white transition-all gap-2 h-10 font-normal ${link.color} ${idx === 4 ? 'col-span-2' : ''}`}
+                >
+                   {link.icon}
+                   {link.name}
+                </a>
+             ))}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-1 text-xs text-gray-400 items-center md:items-start">
+             <div className="flex items-center gap-2">
+                <FaMapMarkerAlt /> <span>اللاذقية، سوريا</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <FaPhone /> <span>+963 980 931 111</span>
+             </div>
+          </div>
         </div>
 
+      </div>
+
+      <div className="border-t border-white/10 mt-8 pt-6 text-center text-xs text-gray-500">
+        <p className="flex items-center justify-center gap-1">
+          صنع بكل <FaHeart className="text-red-500 animate-pulse" /> من أجل مستقبل أفضل
+        </p>
+        <p className="mt-1">© {new Date().getFullYear()} منظمة قدوة. جميع الحقوق محفوظة.</p>
       </div>
     </footer>
   );
