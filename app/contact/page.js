@@ -36,7 +36,7 @@ export default function ContactPage() {
     {
       name: 'Instagram',
       icon: <FaInstagram className="text-2xl sm:text-3xl" />,
-      url: 'https://instagram.com/QudwaAssoc',
+      url: 'https://ig.me/m/QudwaAssoc',
       color: 'bg-gradient-to-tr from-[#FFB800] via-[#FF0069] to-[#D300C5]',
       textColor: 'text-white'
     }
