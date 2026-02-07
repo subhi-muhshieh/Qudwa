@@ -26,7 +26,7 @@ export default function Footer() {
     {
       name: 'Instagram',
       icon: <FaInstagram className="text-xl" />,
-      url: 'https://instagram.com/QudwaAssoc', 
+      url: 'https://ig.me/m/QudwaAssoc', 
       color: 'hover:text-[#E1306C]'
     },
     // Added Email Option
