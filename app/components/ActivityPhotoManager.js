@@ -1,30 +1,57 @@
 'use client'
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { FaImages, FaPlus, FaTrash, FaSpinner, FaGripVertical, FaTimes } from 'react-icons/fa';
+import { FaImages, FaPlus, FaTrash, FaSpinner, FaTimes, FaCompress, FaCheck } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { compressImageForGallery } from '../utils/imageUtils';
+
+// Debounce hook
+function useDebounce(callback, delay) {
+  const timeoutRef = useRef(null);
+
+  const debouncedCallback = useCallback((...args) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  }, [callback, delay]);
+
+  return debouncedCallback;
+}
 
 export default function ActivityPhotoManager({ activityId, activityTitle, onClose }) {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, compressing: false });
+  const [savingCaptions, setSavingCaptions] = useState({}); // Track which photos are saving
   const fileInputRef = useRef(null);
   
   const supabase = createClient();
 
   // Fetch photos on mount
-  useState(() => {
+  useEffect(() => {
     const fetchPhotos = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('activity_photos')
         .select('*')
         .eq('activity_id', activityId)
         .order('display_order', { ascending: true });
       
-      if (data) setPhotos(data);
+      if (error) {
+        console.error('Error fetching photos:', error);
+        toast.error('خطأ في تحميل الصور');
+      }
+      
+      if (data) {
+        setPhotos(data);
+      }
       setLoading(false);
     };
+    
     fetchPhotos();
   }, [activityId]);
 
@@ -33,69 +60,126 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
     if (files.length === 0) return;
 
     setUploading(true);
-    const toastId = toast.loading(`جاري رفع ${files.length} صورة...`);
+    setUploadProgress({ current: 0, total: files.length, compressing: false });
+    
+    const toastId = toast.loading(`جاري تجهيز ${files.length} صورة...`);
 
     try {
       const uploadedPhotos = [];
+      let successCount = 0;
+      let errorCount = 0;
 
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        let file = files[i];
         
-        // Validate file
+        setUploadProgress({ current: i + 1, total: files.length, compressing: true });
+        toast.loading(`جاري معالجة الصورة ${i + 1} من ${files.length}...`, { id: toastId });
+
+        // Validate file type
         if (!file.type.startsWith('image/')) {
           toast.error(`${file.name} ليس ملف صورة`);
+          errorCount++;
           continue;
         }
 
-        if (file.size > 10 * 1024 * 1024) {
-          toast.error(`${file.name} أكبر من 10 ميغابايت`);
+        // Check if HEIC and reject
+        const isHeic = file.name.toLowerCase().endsWith('.heic') || 
+                       file.name.toLowerCase().endsWith('.heif');
+        if (isHeic) {
+          toast.error(`${file.name}: صور HEIC غير مدعومة`);
+          errorCount++;
           continue;
         }
 
-        // Upload to storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${activityId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        try {
+          // Compress image if needed
+          const originalSize = file.size / 1024 / 1024;
 
-        const { error: uploadError } = await supabase.storage
-          .from('activity-images')
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
+          if (file.size > 10 * 1024 * 1024) {
+            toast.loading(`جاري ضغط ${file.name} (${originalSize.toFixed(1)}MB)...`, { id: toastId });
+            
+            try {
+              file = await compressImageForGallery(file, 10);
+            } catch (compressError) {
+              console.error('Compression error:', compressError);
+              toast.error(`فشل ضغط ${file.name}`);
+              errorCount++;
+              continue;
+            }
+          }
 
-        if (uploadError) {
-          console.error('Upload error:', uploadError);
-          continue;
-        }
+          setUploadProgress({ current: i + 1, total: files.length, compressing: false });
+          toast.loading(`جاري رفع الصورة ${i + 1} من ${files.length}...`, { id: toastId });
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('activity-images')
-          .getPublicUrl(fileName);
+          // Upload to storage
+          const fileExt = file.name.split('.').pop() || 'jpg';
+          const fileName = `${activityId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        // Insert into database
-        const { data: photoData, error: insertError } = await supabase
-          .from('activity_photos')
-          .insert({
-            activity_id: activityId,
-            image_url: urlData.publicUrl,
-            display_order: photos.length + i
-          })
-          .select()
-          .single();
+          const { error: uploadError } = await supabase.storage
+            .from('activity-images')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: false
+            });
 
-        if (!insertError && photoData) {
-          uploadedPhotos.push(photoData);
+          if (uploadError) {
+            console.error('Upload error:', uploadError);
+            toast.error(`فشل رفع ${file.name}`);
+            errorCount++;
+            continue;
+          }
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('activity-images')
+            .getPublicUrl(fileName);
+
+          // Insert into database
+          const { data: photoData, error: insertError } = await supabase
+            .from('activity_photos')
+            .insert({
+              activity_id: activityId,
+              image_url: urlData.publicUrl,
+              display_order: photos.length + uploadedPhotos.length
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('Database insert error:', insertError);
+            toast.error(`فشل حفظ بيانات ${file.name}`);
+            errorCount++;
+            continue;
+          }
+
+          if (photoData) {
+            uploadedPhotos.push(photoData);
+            successCount++;
+          }
+        } catch (err) {
+          console.error('Error processing file:', err);
+          errorCount++;
         }
       }
 
-      setPhotos([...photos, ...uploadedPhotos]);
-      toast.success(`تم رفع ${uploadedPhotos.length} صورة بنجاح`, { id: toastId });
+      // Update state with new photos
+      if (uploadedPhotos.length > 0) {
+        setPhotos(prevPhotos => [...prevPhotos, ...uploadedPhotos]);
+        toast.success(`تم رفع ${successCount} صورة بنجاح! 🎉`, { id: toastId });
+      } else {
+        toast.error(`فشل رفع جميع الصور`, { id: toastId });
+      }
+
+      if (errorCount > 0 && successCount > 0) {
+        toast.error(`فشل رفع ${errorCount} ملف`);
+      }
+
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('حدث خطأ أثناء الرفع', { id: toastId });
     } finally {
       setUploading(false);
+      setUploadProgress({ current: 0, total: 0, compressing: false });
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -105,7 +189,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
 
     try {
       // Delete from storage
-      if (imageUrl.includes('activity-images')) {
+      if (imageUrl && imageUrl.includes('activity-images')) {
         const path = imageUrl.split('/activity-images/')[1];
         if (path) {
           await supabase.storage.from('activity-images').remove([path]);
@@ -113,12 +197,18 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
       }
 
       // Delete from database
-      await supabase
+      const { error: deleteDbError } = await supabase
         .from('activity_photos')
         .delete()
         .eq('id', photoId);
 
-      setPhotos(photos.filter(p => p.id !== photoId));
+      if (deleteDbError) {
+        console.error('Database delete error:', deleteDbError);
+        toast.error('فشل حذف الصورة', { id: toastId });
+        return;
+      }
+
+      setPhotos(prevPhotos => prevPhotos.filter(p => p.id !== photoId));
       toast.success('تم حذف الصورة', { id: toastId });
     } catch (error) {
       console.error('Delete error:', error);
@@ -126,15 +216,51 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
     }
   };
 
-  const updateCaption = async (photoId, caption) => {
-    await supabase
+  // Save caption to database (actual save)
+  const saveCaptionToDatabase = async (photoId, caption) => {
+    setSavingCaptions(prev => ({ ...prev, [photoId]: 'saving' }));
+    
+    const { error } = await supabase
       .from('activity_photos')
       .update({ caption })
       .eq('id', photoId);
     
-    setPhotos(photos.map(p => 
-      p.id === photoId ? { ...p, caption } : p
-    ));
+    if (error) {
+      console.error('Caption update error:', error);
+      setSavingCaptions(prev => ({ ...prev, [photoId]: 'error' }));
+      toast.error('فشل حفظ الوصف');
+    } else {
+      setSavingCaptions(prev => ({ ...prev, [photoId]: 'saved' }));
+      // Clear "saved" status after 2 seconds
+      setTimeout(() => {
+        setSavingCaptions(prev => ({ ...prev, [photoId]: null }));
+      }, 2000);
+    }
+  };
+
+  // Debounced save - saves 1 second after user stops typing
+  const debouncedSave = useDebounce(saveCaptionToDatabase, 1000);
+
+  // Update caption locally (instant) and trigger debounced save
+  const handleCaptionChange = (photoId, caption) => {
+    // Update local state immediately for smooth typing
+    setPhotos(prevPhotos => 
+      prevPhotos.map(p => 
+        p.id === photoId ? { ...p, caption } : p
+      )
+    );
+    
+    // Mark as "typing" (will save soon)
+    setSavingCaptions(prev => ({ ...prev, [photoId]: 'typing' }));
+    
+    // Trigger debounced save
+    debouncedSave(photoId, caption);
+  };
+
+  // Save immediately on blur (when user clicks away)
+  const handleCaptionBlur = (photoId, caption) => {
+    // Cancel any pending debounced save
+    saveCaptionToDatabase(photoId, caption);
   };
 
   return (
@@ -153,7 +279,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         exit={{ scale: 0.95, y: 20 }}
       >
         {/* Header */}
-        <div className="p-6 border-b border-base-200 flex items-center justify-between">
+        <div className="p-6 border-b border-base-200 flex items-center justify-between bg-gradient-to-l from-primary/5 to-transparent">
           <div>
             <h2 className="text-2xl font-bold text-primary flex items-center gap-3">
               <FaImages />
@@ -163,9 +289,9 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
           </div>
           <button
             onClick={onClose}
-            className="btn btn-circle btn-ghost"
+            className="btn btn-circle btn-ghost hover:bg-error/10 hover:text-error transition-colors"
           >
-            <FaTimes />
+            <FaTimes className="text-lg" />
           </button>
         </div>
 
@@ -182,7 +308,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
                   multiple
                   onChange={handleFileSelect}
                   className="hidden"
@@ -190,12 +316,16 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="btn btn-primary btn-lg w-full rounded-2xl gap-3"
+                  className="btn btn-primary btn-lg w-full rounded-2xl gap-3 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
                 >
                   {uploading ? (
                     <>
                       <FaSpinner className="animate-spin" />
-                      جاري الرفع...
+                      {uploadProgress.compressing ? (
+                        <>جاري ضغط الصورة {uploadProgress.current} من {uploadProgress.total}...</>
+                      ) : (
+                        <>جاري رفع الصورة {uploadProgress.current} من {uploadProgress.total}...</>
+                      )}
                     </>
                   ) : (
                     <>
@@ -204,9 +334,32 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                     </>
                   )}
                 </button>
-                <p className="text-center text-neutral/50 text-sm mt-2">
-                  يمكنك اختيار عدة صور دفعة واحدة (الحد الأقصى 10 ميغابايت لكل صورة)
-                </p>
+                
+                {/* Info Text */}
+                <div className="flex items-center justify-center gap-2 mt-3 text-neutral/50 text-sm">
+                  <FaCompress className="text-primary" />
+                  <span>يمكنك رفع صور بأي حجم - سيتم ضغطها تلقائياً</span>
+                </div>
+                
+                {/* Progress Bar */}
+                {uploading && (
+                  <div className="mt-4">
+                    <div className="flex justify-between text-sm text-neutral/60 mb-2">
+                      <span>
+                        {uploadProgress.compressing ? 'جاري الضغط...' : 'جاري الرفع...'}
+                      </span>
+                      <span>{uploadProgress.current} / {uploadProgress.total}</span>
+                    </div>
+                    <div className="w-full h-2 bg-base-200 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-primary to-secondary"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Photos Grid */}
@@ -219,7 +372,8 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
-                        className="group relative bg-base-200 rounded-2xl overflow-hidden aspect-square"
+                        layout
+                        className="group relative bg-base-200 rounded-2xl overflow-hidden aspect-square shadow-md hover:shadow-xl transition-shadow"
                       >
                         <img
                           src={photo.image_url}
@@ -227,31 +381,81 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                           className="w-full h-full object-cover"
                         />
                         
-                        {/* Overlay */}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-3">
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => handleDeletePhoto(photo.id, photo.image_url)}
-                            className="btn btn-error btn-sm rounded-xl gap-2"
-                          >
-                            <FaTrash />
-                            حذف
-                          </button>
+                        {/* Order Badge - Always visible */}
+                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-lg font-bold z-10">
+                          {index + 1}
                         </div>
 
-                        {/* Order Badge */}
-                        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg">
-                          {index + 1}
+                        {/* Caption Badge - Shows if caption exists and not hovering */}
+                        {photo.caption && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 group-hover:opacity-0 transition-opacity">
+                            <p className="text-white text-xs truncate">{photo.caption}</p>
+                          </div>
+                        )}
+                        
+                        {/* Hover Overlay with Controls */}
+                        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col p-3">
+                          
+                          {/* Top: Delete Button */}
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleDeletePhoto(photo.id, photo.image_url)}
+                              className="btn btn-error btn-sm btn-circle"
+                              title="حذف الصورة"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                          
+                          {/* Middle: Spacer */}
+                          <div className="flex-1"></div>
+                          
+                          {/* Bottom: Caption Input */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-white/70 text-xs">وصف الصورة (اختياري)</label>
+                              
+                              {/* Save Status Indicator */}
+                              {savingCaptions[photo.id] === 'saving' && (
+                                <span className="text-yellow-400 text-xs flex items-center gap-1">
+                                  <FaSpinner className="animate-spin text-[10px]" />
+                                  جاري الحفظ...
+                                </span>
+                              )}
+                              {savingCaptions[photo.id] === 'saved' && (
+                                <span className="text-green-400 text-xs flex items-center gap-1">
+                                  <FaCheck className="text-[10px]" />
+                                  تم الحفظ
+                                </span>
+                              )}
+                              {savingCaptions[photo.id] === 'typing' && (
+                                <span className="text-white/50 text-xs">
+                                  ...
+                                </span>
+                              )}
+                            </div>
+                            <input
+                              type="text"
+                              placeholder="أضف وصفاً للصورة..."
+                              value={photo.caption || ''}
+                              onChange={(e) => handleCaptionChange(photo.id, e.target.value)}
+                              onBlur={(e) => handleCaptionBlur(photo.id, e.target.value)}
+                              className="input input-sm w-full rounded-xl bg-white text-neutral placeholder:text-neutral/50"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
                         </div>
                       </motion.div>
                     ))}
                   </AnimatePresence>
                 </div>
               ) : (
-                <div className="text-center py-12 bg-base-100 rounded-2xl border-2 border-dashed border-base-300">
-                  <FaImages className="text-5xl text-base-300 mx-auto mb-4" />
-                  <p className="text-neutral/50">لا توجد صور لهذا النشاط</p>
-                  <p className="text-neutral/40 text-sm">اضغط على "إضافة صور جديدة" للبدء</p>
+                <div className="text-center py-16 bg-base-100 rounded-3xl border-2 border-dashed border-base-300">
+                  <div className="w-20 h-20 bg-base-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaImages className="text-4xl text-base-content/30" />
+                  </div>
+                  <p className="text-neutral/50 text-lg font-medium">لا توجد صور لهذا النشاط</p>
+                  <p className="text-neutral/40 text-sm mt-1">اضغط على "إضافة صور جديدة" للبدء</p>
                 </div>
               )}
             </>
@@ -259,12 +463,17 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-base-200 bg-base-100">
+        <div className="p-6 border-t border-base-200 bg-base-100/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
-            <span className="text-neutral/60">
-              {photos.length} صورة
-            </span>
-            <button onClick={onClose} className="btn btn-primary rounded-xl">
+            <div className="flex items-center gap-2">
+              <span className="text-neutral/60 font-medium">
+                {photos.length} صورة
+              </span>
+              {photos.length > 0 && (
+                <span className="badge badge-primary badge-sm">محفوظة</span>
+              )}
+            </div>
+            <button onClick={onClose} className="btn btn-primary rounded-xl px-8">
               تم
             </button>
           </div>
