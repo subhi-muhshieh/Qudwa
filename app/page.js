@@ -21,7 +21,7 @@ export default function LandingPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-between py-12 px-6 relative overflow-hidden font-sans">
+    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-center gap-8 py-12 px-6 relative overflow-hidden font-sans">
         
       {/* 1. Background Decoration */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -ml-20 -mt-20 pointer-events-none"></div>
@@ -32,25 +32,25 @@ export default function LandingPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="mt-8 z-10"
+        className="z-10"
       >
-        <h1 className="text-6xl md:text-7xl text-primary drop-shadow-sm" style={{ fontFamily: 'var(--font-nastaliq)' }}>
+        <h1 className="text-5xl sm:text-6xl md:text-7xl text-primary drop-shadow-sm" style={{ fontFamily: 'var(--font-nastaliq)' }}>
           قُدوَة
         </h1>
       </motion.div>
 
       {/* 3. Center Image */}
       <motion.div 
-        className="relative w-full max-w-sm flex justify-center items-center z-10"
+        className="relative flex justify-center items-center z-10"
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2, duration: 0.8 }}
       >
-        <div className="absolute w-48 h-48 bg-blue-400/20 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute w-32 sm:w-40 md:w-48 h-32 sm:h-40 md:h-48 bg-blue-400/20 rounded-full blur-2xl animate-pulse"></div>
         <motion.img 
           src="/logo.png" 
           alt="Qudwa Logo"
-          className="w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-2xl z-10"
+          className="w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 object-contain drop-shadow-2xl z-10"
           animate={{ y: [0, -15, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -58,12 +58,12 @@ export default function LandingPage() {
 
       {/* 4. Bottom Section */}
       <motion.div 
-        className="w-full max-w-md text-center z-10 mb-8"
+        className="w-full max-w-md text-center z-10"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.8 }}
       >
-        <h2 className="text-2xl md:text-3xl font-bold text-neutral mb-8 opacity-80 font-slogan">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral mb-8 opacity-80 font-slogan">
            جيلٌ يبني... أثرٌ يبقى
         </h2>
 
@@ -71,7 +71,7 @@ export default function LandingPage() {
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="btn btn-primary w-full h-16 rounded-full text-xl text-white shadow-xl shadow-primary/30 border-none"
+            className="btn btn-primary w-full h-14 sm:h-16 rounded-full text-lg sm:text-xl text-white shadow-xl shadow-primary/30 border-none"
           >
             ابدأ رحلتك معنا
           </motion.button>
