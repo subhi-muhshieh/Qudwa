@@ -1,19 +1,104 @@
 'use client'
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-// Added Link import
 import Link from 'next/link'; 
-import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
+import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner, FaRegHeart } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// --- SPECIALIZED LIKE BUTTON COMPONENT ---
+// This handles the animation, state, and database logic independently
+const LikeButton = ({ activityId, userId }) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [animating, setAnimating] = useState(false);
+  const supabase = createClient();
+
+  // 1. Check if user already liked this activity on load
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      const { data } = await supabase
+        .from('likes')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('activity_id', activityId)
+        .maybeSingle();
+      
+      if (data) setIsLiked(true);
+      setLoading(false);
+    };
+    checkLikeStatus();
+  }, [activityId, userId, supabase]);
+
+  // 2. Handle the toggle
+  const toggleLike = async () => {
+    if (loading) return;
+    
+    // Optimistic UI: Switch state immediately for speed
+    const previousState = isLiked;
+    setIsLiked(!previousState);
+    setAnimating(true); // Trigger animation
+
+    if (!previousState) {
+      // ADD LIKE
+      const { error } = await supabase
+        .from('likes')
+        .insert([{ user_id: userId, activity_id: activityId }]);
+      
+      if (error) {
+        setIsLiked(previousState); // Revert on error
+        toast.error("حدث خطأ");
+      }
+    } else {
+      // REMOVE LIKE
+      const { error } = await supabase
+        .from('likes')
+        .delete()
+        .eq('user_id', userId)
+        .eq('activity_id', activityId);
+        
+      if (error) {
+        setIsLiked(previousState); // Revert on error
+        toast.error("حدث خطأ");
+      }
+    }
+    
+    // Reset animation state after it plays
+    setTimeout(() => setAnimating(false), 300);
+  };
+
+  return (
+    <motion.button
+      onClick={toggleLike}
+      whileTap={{ scale: 0.8 }}
+      className={`btn rounded-xl px-6 transition-all duration-300 gap-2 border-2 ${
+        isLiked 
+          ? 'btn-error bg-red-50 text-red-500 border-red-200' // Liked Style
+          : 'btn-outline border-base-300 hover:border-red-300 hover:text-red-500' // Unliked Style
+      }`}
+    >
+      <motion.div
+        animate={animating ? { scale: [1, 1.5, 1], rotate: [0, 15, -15, 0] } : {}}
+        transition={{ duration: 0.4 }}
+      >
+        {isLiked ? <FaHeart className="text-lg" /> : <FaRegHeart className="text-lg" />}
+      </motion.div>
+      <span className="font-bold">
+        {isLiked ? "أعجبني" : "أعجبني"}
+      </span>
+    </motion.button>
+  );
+};
+
+// --- MAIN DASHBOARD COMPONENT ---
 export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState(null);
   const [upcomingActivity, setUpcomingActivity] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
+  // Registration States
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
@@ -39,6 +124,7 @@ export default function Dashboard() {
     checkUserAndFetchData();
   }, [router]);
 
+  // Check Registration Status
   useEffect(() => {
     const checkRegistrationStatus = async () => {
       if (!selectedActivity || !user) return;
@@ -65,12 +151,6 @@ export default function Dashboard() {
     }
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedActivity, user]);
-
-  const handleLike = async (activityId) => {
-    const { error } = await supabase.from('likes').insert([{ user_id: user.id, activity_id: activityId }]);
-    if (error) error.code === '23505' ? toast('أعجبك مسبقاً!', { icon: '✨' }) : toast.error("خطأ");
-    else toast.success("شكراً لتفاعلك!");
-  };
 
   const handleRegister = async () => {
     if (!user || !selectedActivity) return;
@@ -101,7 +181,13 @@ export default function Dashboard() {
     setRegistering(false);
   };
 
-  // REMOVED: scrollToContact function
+  const scrollToContact = () => {
+    const element = document.getElementById('message-box');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.focus();
+    }
+  };
 
   const fadeInUp = { hidden: { opacity: 0, y: 60 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
 
@@ -126,13 +212,18 @@ export default function Dashboard() {
           viewport={{ once: true, amount: 0.3 }} 
           variants={fadeInUp}
         >
+          {/* Glowing Background Effect */}
           <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.6rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
           
           <div className="card w-full bg-gradient-to-br from-primary via-secondary to-accent text-white shadow-2xl rounded-[2.5rem] relative overflow-hidden">
+            
+            {/* Decorative circles */}
             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl"></div>
             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-black/10 blur-3xl"></div>
 
             <div className="card-body p-8 md:p-12 relative z-10">
+              
+              {/* Header Badge */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                  <div className="badge bg-white/20 border-0 text-white backdrop-blur-md px-4 py-3 h-auto gap-2 text-sm font-bold shadow-sm">
                     <FaCalendarAlt className="animate-pulse" />
@@ -145,7 +236,10 @@ export default function Dashboard() {
                  )}
               </div>
 
+              {/* Content Split: Text vs Image */}
               <div className="flex flex-col lg:flex-row gap-8 lg:gap-14 items-center">
+                
+                {/* Right Side: Text */}
                 <div className="w-full lg:w-1/2 text-right space-y-6 order-2 lg:order-1">
                   <h2 className="text-4xl md:text-5xl font-black leading-tight drop-shadow-md">
                     {upcomingActivity.title}
@@ -164,6 +258,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
+                {/* Left Side: Image */}
                 <div className="w-full lg:w-1/2 order-1 lg:order-2 flex justify-center lg:justify-end">
                    {upcomingActivity.image_url ? (
                       <div className="relative w-full max-w-md h-64 md:h-80 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 transform rotate-2 hover:rotate-0 transition-all duration-500">
@@ -172,6 +267,7 @@ export default function Dashboard() {
                           alt="Upcoming Activity" 
                           className="w-full h-full object-cover"
                         />
+                        {/* Shine Effect */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                    ) : (
@@ -180,6 +276,7 @@ export default function Dashboard() {
                       </div>
                    )}
                 </div>
+
               </div>
             </div>
           </div>
@@ -202,6 +299,7 @@ export default function Dashboard() {
         <div className="glass-panel bg-white/70 backdrop-blur-xl border border-white/50 rounded-[2.5rem] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500">
           <div className="flex flex-col lg:flex-row-reverse">
             
+            {/* Image Section */}
             {recentActivity?.image_url ? (
               <div className="w-full lg:w-5/12 h-[300px] lg:h-auto relative group overflow-hidden">
                   <img 
@@ -220,6 +318,7 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Content Section */}
             {recentActivity ? (
               <div className="w-full lg:w-7/12 p-8 md:p-12 text-right flex flex-col justify-center">
                 <h2 className="text-3xl md:text-4xl font-bold mb-4 text-neutral">{recentActivity.title}</h2>
@@ -228,12 +327,10 @@ export default function Dashboard() {
                 </p>
                 
                 <div className="flex flex-wrap gap-3 mt-auto">
-                    <button 
-                      onClick={() => handleLike(recentActivity.id)} 
-                      className="btn btn-outline btn-primary rounded-xl px-6 hover:bg-primary hover:text-white transition-all gap-2"
-                    >
-                      <FaHeart /> أعجبني
-                    </button>
+                    
+                    {/* NEW ANIMATED LIKE BUTTON */}
+                    <LikeButton activityId={recentActivity.id} userId={user.id} />
+                    
                     <button 
                       onClick={() => setSelectedActivity(recentActivity)} 
                       className="btn btn-ghost text-neutral/60 hover:text-primary rounded-xl"
@@ -258,7 +355,7 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* MODAL (Unchanged Logic, just rendering) */}
+      {/* MODAL */}
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
@@ -289,7 +386,7 @@ export default function Dashboard() {
 
               <div className="p-8 md:p-10 text-right space-y-8">
                 {!selectedActivity.image_url && <h3 className="text-3xl md:text-4xl font-bold text-primary mb-6">{selectedActivity.title}</h3>}
-                {/* ... existing modal content ... */}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedActivity.activity_date && (
                         <div className="flex items-center gap-4 bg-base-200/50 p-4 rounded-2xl">
