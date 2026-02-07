@@ -39,6 +39,13 @@ export default function ContactPage() {
       url: 'https://ig.me/m/QudwaAssoc',
       color: 'bg-gradient-to-tr from-[#FFB800] via-[#FF0069] to-[#D300C5]',
       textColor: 'text-white'
+    },
+    {
+        name: 'البريد الإلكتروني',
+         icon: <FaEnvelope className="text-2xl sm:text-3xl" />,
+         url: 'mailto:qudwa.ltk@gmail.com?subject=استفسار من موقع قدوة',
+         color: 'bg-gray-600 hover:bg-gray-700',
+         textColor: 'text-white'
     }
   ];
 
