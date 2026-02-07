@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner, FaRegHeart } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { updateActivityStatuses } from '../utils/activityHelpers'; 
 
 // --- SPECIALIZED LIKE BUTTON COMPONENT ---
 // This handles the animation, state, and database logic independently
@@ -113,10 +114,25 @@ export default function Dashboard() {
       if (!user) { router.replace('/login'); return; }
       setUser(user);
 
-      const { data: past } = await supabase.from('activities').select('*').eq('is_upcoming', false).order('created_at', { ascending: false }).limit(1).single();
+      await updateActivityStatuses(supabase);
+
+      // Then fetch the updated data
+      const { data: past } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('is_upcoming', false)
+        .order('activity_date', { ascending: false })
+        .limit(1)
+        .single();
       if (past) setRecentActivity(past);
 
-      const { data: coming } = await supabase.from('activities').select('*').eq('is_upcoming', true).order('created_at', { ascending: false }).limit(1).single();
+      const { data: coming } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('is_upcoming', true)
+        .order('activity_date', { ascending: false })
+        .limit(1)
+        .single();
       if (coming) setUpcomingActivity(coming);
       
       setLoading(false);

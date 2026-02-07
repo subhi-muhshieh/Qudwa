@@ -92,7 +92,7 @@ export default function Footer() {
                 <FaMapMarkerAlt /> <span>اللاذقية، سوريا</span>
              </div>
              <div className="flex items-center gap-2">
-                <FaPhone /> <span>+963 980 931 111</span>
+                <FaPhone /> <span dir="ltr">+963 980 931 111</span>
              </div>
           </div>
         </div>

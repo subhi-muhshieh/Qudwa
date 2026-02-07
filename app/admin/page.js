@@ -1,8 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink, FaSync} from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { updateActivityStatuses } from '../utils/activityHelpers'; 
 
 export default function AdminDashboard() {
   const [activities, setActivities] = useState([]);
@@ -11,6 +12,7 @@ export default function AdminDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   
   // State for Delete Modal
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -34,25 +36,70 @@ export default function AdminDashboard() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchActivities();
-    fetchMessages();
+   useEffect(() => {
+    const initializeData = async () => {
+      // Auto-update statuses first
+      await updateActivityStatuses(supabase);
+      
+      // Then fetch data
+      fetchActivities();
+      fetchMessages();
+    };
+    
+    initializeData();
   }, []);
 
   const fetchActivities = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('activities')
-        .select('*')
-        .order('created_at', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .order('activity_date', { ascending: false }); // CHANGED: Order by activity_date
+    
+    if (error) throw error;
+    
+    if (data) {
+      // Optional: Secondary sort for activities with same date or null dates
+      const sortedData = data.sort((a, b) => {
+        // First sort by activity_date (if both have dates)
+        if (a.activity_date && b.activity_date) {
+          return new Date(b.activity_date) - new Date(a.activity_date);
+        }
+        // If one has no date, put it at the end
+        if (!a.activity_date) return 1;
+        if (!b.activity_date) return -1;
+        
+        // If dates are equal or both null, sort by created_at as fallback
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
       
-      if (error) throw error;
-      if (data) setActivities(data);
+      setActivities(sortedData);
+    }
+  } catch (error) {
+    console.error('Error fetching activities:', error);
+    toast.error('فشل تحميل النشاطات');
+  } finally {
+    setLoading(false);
+  }
+};
+
+ const handleSyncStatuses = async () => {
+    setSyncing(true);
+    const toastId = toast.loading('جاري تحديث حالة النشاطات...');
+    
+    try {
+      const updatedCount = await updateActivityStatuses(supabase);
+      await fetchActivities();
+      
+      if (updatedCount > 0) {
+        toast.success(`تم تحديث ${updatedCount} نشاط تلقائياً`, { id: toastId });
+      } else {
+        toast.success('جميع النشاطات محدثة بالفعل', { id: toastId });
+      }
     } catch (error) {
-      console.error('Error fetching activities:', error);
-      toast.error('فشل تحميل النشاطات');
+      toast.error('حدث خطأ أثناء التحديث', { id: toastId });
     } finally {
-      setLoading(false);
+      setSyncing(false);
     }
   };
 
@@ -233,6 +280,15 @@ export default function AdminDashboard() {
           <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">لوحة التحكم الإدارية</h1>
           <p className="text-gray-600">إدارة النشاطات والفعاليات</p>
         </div>
+
+        <button 
+            onClick={handleSyncStatuses}
+            disabled={syncing}
+            className="btn btn-ghost btn-sm gap-2 text-secondary"
+          >
+            <FaSync className={syncing ? 'animate-spin' : ''} />
+            تحديث تلقائي للحالات
+          </button>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaCalendarAlt, FaClock, FaInfoCircle, FaTimes, FaSearch, FaArrowLeft } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { updateActivityStatuses } from '../utils/activityHelpers';
 
 export default function ActivitiesArchive() {
   const [activities, setActivities] = useState([]);
@@ -19,14 +20,33 @@ export default function ActivitiesArchive() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace('/login'); return; }
 
+       // AUTO-UPDATE: Check and update activity statuses first
+      await updateActivityStatuses(supabase);
+
       // Fetch ALL past activities
       const { data } = await supabase
         .from('activities')
         .select('*')
         .eq('is_upcoming', false) // Only past activities
-        .order('created_at', { ascending: false }); // Newest first
+        .order('activity_date', { ascending: false }); // CHANGED: Order by activity_date instead of created_at
       
-      if (data) setActivities(data);
+      if (data) {
+        // OPTIONAL: Secondary sort for activities with same date or null dates
+        const sortedData = data.sort((a, b) => {
+          // First sort by activity_date (if both have dates)
+          if (a.activity_date && b.activity_date) {
+            return new Date(b.activity_date) - new Date(a.activity_date);
+          }
+          // If one has no date, put it at the end
+          if (!a.activity_date) return 1;
+          if (!b.activity_date) return -1;
+          
+          // If dates are equal or both null, sort by created_at as fallback
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+        
+        setActivities(sortedData);
+      }
       setLoading(false);
     };
 
