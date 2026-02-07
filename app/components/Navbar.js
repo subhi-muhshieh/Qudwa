@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog } from 'react-icons/fa';
+import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog, FaImages } from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
 
 export default function Navbar() {
@@ -99,6 +99,13 @@ export default function Navbar() {
                   <FaEnvelope className="text-secondary opacity-70" />
                   راسل الإدارة
                 </Link>
+                <Link 
+  href="/gallery" 
+  className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
+>
+  <FaImages className="text-secondary opacity-70" />
+  معرض الصور
+</Link>
               </>
             )}
 
@@ -176,6 +183,12 @@ export default function Navbar() {
                   <FaEnvelope /> راسل الإدارة
                 </Link>
               </li>
+
+              <li className="md:hidden">
+  <Link href="/gallery" className="py-2">
+    <FaImages /> معرض الصور
+  </Link>
+</li>
               
               {isAdmin && <li className="md:hidden"><Link href="/admin" className="py-2"><FaShieldAlt /> لوحة الإدارة</Link></li>}
               

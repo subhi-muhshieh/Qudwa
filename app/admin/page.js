@@ -1,9 +1,10 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
-import { FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink, FaSync} from 'react-icons/fa';
+import { FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink, FaSync, FaImages} from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { updateActivityStatuses } from '../utils/activityHelpers'; 
+import ActivityPhotoManager from '../components/ActivityPhotoManager';
 
 export default function AdminDashboard() {
   const [activities, setActivities] = useState([]);
@@ -33,6 +34,8 @@ export default function AdminDashboard() {
     capacity: 20,
     is_upcoming: false
   });
+
+  const [photoManagerActivity, setPhotoManagerActivity] = useState(null);
 
   const supabase = createClient();
 
@@ -589,6 +592,13 @@ export default function AdminDashboard() {
                         >
                           <FaTrash />
                         </button>
+                        <button
+  onClick={() => setPhotoManagerActivity(activity)}
+  className="btn btn-sm btn-square btn-ghost text-secondary"
+  title="إدارة الصور"
+>
+  <FaImages />
+</button>
                       </div>
                     </td>
                   </tr>
@@ -656,6 +666,14 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      {/* PHOTO MANAGER MODAL */}
+{photoManagerActivity && (
+  <ActivityPhotoManager
+    activityId={photoManagerActivity.id}
+    activityTitle={photoManagerActivity.title}
+    onClose={() => setPhotoManagerActivity(null)}
+  />
+)}
     </div>
   );
 }
