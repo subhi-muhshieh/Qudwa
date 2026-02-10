@@ -68,7 +68,7 @@ export default function ActivitiesArchive() {
       {/* HEADER */}
       <div className="text-center mb-16">
         <h1 className="text-4xl md:text-5xl font-black text-primary mb-4" style={{ fontFamily: 'var(--font-slogan)' }}>
-          سجل الإنجازات
+          سجل النشاطات
         </h1>
         <p className="text-neutral/60 text-lg">أرشيف كامل لكل ما قدمته قدوة للمجتمع</p>
       </div>
