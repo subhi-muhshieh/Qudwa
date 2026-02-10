@@ -9,12 +9,22 @@ import { useProfile } from '../context/ProfileContext';
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, profile } = useProfile();
+  const contextData = useProfile(); // Get the whole context object
+  const { user, profile } = contextData;
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   
-  const isAdmin = profile?.role === 'admin';
+  // Debugging: See exactly what we are getting
+  useEffect(() => {
+    if (user) {
+        console.log("Navbar Context Data:", contextData);
+        console.log("User Role:", profile?.role);
+    }
+  }, [user, profile, contextData]);
+
+  // Safer Admin Check
+  const isAdmin = profile && profile.role === 'admin';
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -42,8 +52,6 @@ export default function Navbar() {
     router.push('/login'); 
     router.refresh();      
   };
-
-  // REMOVED: scrollToContact function is no longer needed
 
   const hiddenPages = ['/login', '/reset-password', '/'];
   if (hiddenPages.includes(pathname)) {
@@ -91,7 +99,6 @@ export default function Navbar() {
                   سجل النشاطات
                 </Link>
 
-                {/* UPDATED: Changed from Button to Link to /contact */}
                 <Link 
                   href="/contact"
                   className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all"
@@ -99,16 +106,18 @@ export default function Navbar() {
                   <FaEnvelope className="text-secondary opacity-70" />
                   راسل الإدارة
                 </Link>
+
                 <Link 
-  href="/gallery" 
-  className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
->
-  <FaImages className="text-secondary opacity-70" />
-  معرض الصور
-</Link>
+                  href="/gallery" 
+                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
+                >
+                  <FaImages className="text-secondary opacity-70" />
+                  معرض الصور
+                </Link>
               </>
             )}
 
+            {/* ADMIN BUTTON */}
             {isAdmin && (
               <Link 
                 href="/admin" 
@@ -140,7 +149,7 @@ export default function Navbar() {
                   />
                 ) : (
                   <span className="text-lg font-bold flex items-center justify-center h-full">
-                    {user.email[0].toUpperCase()}
+                    {user.email ? user.email[0].toUpperCase() : 'U'}
                   </span>
                 )}
               </div>
@@ -177,7 +186,6 @@ export default function Navbar() {
               
               <li className="md:hidden"><Link href="/activities" className="py-2"><FaHistory /> سجل الإنجازات</Link></li>
               
-              {/* UPDATED: Changed Mobile Link to /contact */}
               <li className="md:hidden">
                 <Link href="/contact" className="w-full py-2">
                   <FaEnvelope /> راسل الإدارة
@@ -185,12 +193,19 @@ export default function Navbar() {
               </li>
 
               <li className="md:hidden">
-  <Link href="/gallery" className="py-2">
-    <FaImages /> معرض الصور
-  </Link>
-</li>
+                <Link href="/gallery" className="py-2">
+                  <FaImages /> معرض الصور
+                </Link>
+              </li>
               
-              {isAdmin && <li className="md:hidden"><Link href="/admin" className="py-2"><FaShieldAlt /> لوحة الإدارة</Link></li>}
+              {/* ADMIN LINK IN DROPDOWN (For Mobile) */}
+              {isAdmin && (
+                <li className="border-t border-gray-100 mt-1 pt-1">
+                  <Link href="/admin" className="py-2 text-primary font-bold">
+                    <FaShieldAlt /> لوحة الإدارة
+                  </Link>
+                </li>
+              )}
               
               <div className="divider my-1 opacity-50"></div>
               <li><button onClick={handleLogout} className="text-error gap-2 hover:bg-error/10 py-2"><FaSignOutAlt /> خروج</button></li>

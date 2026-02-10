@@ -2,8 +2,12 @@
 import { useState } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
-// Removed FaUndo from imports as it is no longer needed
-import { FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash, FaPhone } from 'react-icons/fa';
+import { 
+  FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, 
+  FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash, FaPhone,
+  FaHandsHelping, FaHandHoldingHeart, FaUsers, FaUserFriends,
+  FaBuilding, FaSitemap, FaTimes
+} from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -14,42 +18,95 @@ export default function LoginPage() {
   const [verificationSent, setVerificationSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
+  // User Type State
+  const [userType, setUserType] = useState('parent'); 
+  
+  // Member Specific State (Array of roles for multiple positions)
+  const [memberRoles, setMemberRoles] = useState([{ rank: '', office: '' }]);
+
+  // Donor Specific State
+  const [donorParty, setDonorParty] = useState('');
+
   // Password Reset States
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   
-  // REMOVED: All state variables related to Reactivation/Deletion (reactivateEmail, deletedAccountInfo, etc.)
-  
-  // Sign up fields
-  const [parentName, setParentName] = useState('');
-  const [parentPhone, setParentPhone] = useState('');
+  // Common Fields
+  const [fullName, setFullName] = useState(''); 
+  const [phoneNumber, setPhoneNumber] = useState(''); 
   const [children, setChildren] = useState([{ name: '', age: '' }]);
   
   const router = useRouter();
   const supabase = createClient();
 
-  // Add a new child input
-  const addChild = () => {
-    setChildren([...children, { name: '', age: '' }]);
+  // --- DATA LISTS ---
+
+  const userTypes = [
+    { id: 'parent', label: 'ولي أمر', icon: <FaUserFriends />, desc: 'لتسجيل أبنائك' },
+    { id: 'member', label: 'عضو جمعية', icon: <FaUsers />, desc: 'للكادر الإداري' },
+    { id: 'volunteer', label: 'متطوع', icon: <FaHandsHelping />, desc: 'للانضمام للفريق' },
+    { id: 'donor', label: 'داعم/مانح', icon: <FaHandHoldingHeart />, desc: 'لدعم الجمعية' },
+  ];
+
+  const offices = [
+    { id: 'activity', label: 'مكتب الأنشطة' },
+    { id: 'media', label: 'المكتب الإعلامي' },
+    { id: 'scientific', label: 'المكتب العلمي' },
+    { id: 'logistic', label: 'المكتب اللوجستي' },
+  ];
+
+  const memberRanks = [
+    { id: 'president', label: 'رئيس الجمعية', noOffice: true }, // President has no office
+    { id: 'vice_president', label: 'نائب رئيس الجمعية', noOffice: false },
+    { id: 'office_manager', label: 'مدير مكتب', noOffice: false },
+    { id: 'secretary', label: 'أمين سر', noOffice: false },
+    { id: 'monetary_manager', label: 'مدير مالي', noOffice: false },
+    { id: 'member', label: 'عضو', noOffice: false },
+  ];
+
+  // --- HANDLERS ---
+
+  // Member Roles Handlers
+  const addRole = () => {
+    setMemberRoles([...memberRoles, { rank: '', office: '' }]);
   };
 
-  // Remove a child input
-  const removeChild = (index) => {
-    if (children.length > 1) {
-      const newChildren = children.filter((_, i) => i !== index);
-      setChildren(newChildren);
+  const removeRole = (index) => {
+    if (memberRoles.length > 1) {
+      setMemberRoles(memberRoles.filter((_, i) => i !== index));
     }
   };
 
-  // Update child data
+  const updateRole = (index, field, value) => {
+    const newRoles = [...memberRoles];
+    newRoles[index][field] = value;
+
+    // Logic: If rank becomes President, clear the office field automatically
+    if (field === 'rank' && value === 'president') {
+        newRoles[index].office = ''; 
+    }
+    
+    setMemberRoles(newRoles);
+  };
+
+  // Children Handlers
+  const addChild = () => {
+    setChildren([...children, { name: '', age: '' }]);
+  };
+  
+  const removeChild = (index) => {
+    if (children.length > 1) {
+      setChildren(children.filter((_, i) => i !== index));
+    }
+  };
+
   const updateChild = (index, field, value) => {
     const newChildren = [...children];
     newChildren[index][field] = value;
     setChildren(newChildren);
   };
 
-  // Handle age input - only allow numbers
   const handleAgeChange = (index, value) => {
     const numbersOnly = value.replace(/[^0-9]/g, '');
     if (numbersOnly === '' || (parseInt(numbersOnly) >= 1 && parseInt(numbersOnly) <= 99)) {
@@ -57,10 +114,9 @@ export default function LoginPage() {
     }
   };
 
-  // Handle phone input - only allow numbers
   const handlePhoneChange = (value) => {
     const numbersOnly = value.replace(/[^0-9+]/g, '');
-    setParentPhone(numbersOnly);
+    setPhoneNumber(numbersOnly);
   };
 
   const handleAuth = async (e) => {
@@ -70,73 +126,82 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        // --- SIGN UP LOGIC (Unchanged) ---
+        // --- SIGN UP VALIDATION ---
         
-        // Validate signup fields
-        if (!parentName.trim()) {
-          toast.error("الرجاء إدخال اسم ولي الأمر", { id: toastId });
-          setLoading(false);
-          return;
+        if (!fullName.trim()) {
+          toast.error("الرجاء إدخال الاسم الكامل", { id: toastId });
+          setLoading(false); return;
         }
-
-        if (!parentPhone.trim()) {
+        if (!phoneNumber.trim()) {
           toast.error("الرجاء إدخال رقم الهاتف", { id: toastId });
-          setLoading(false);
-          return;
+          setLoading(false); return;
         }
 
-        // Check if at least one child has valid data
-        const validChildren = children.filter(child => child.name.trim() && child.age);
-        if (validChildren.length === 0) {
-          toast.error("الرجاء إدخال بيانات طفل واحد على الأقل", { id: toastId });
-          setLoading(false);
-          return;
+        let finalChildren = [];
+        let finalMemberRoles = [];
+
+        // 1. Parent Validation
+        if (userType === 'parent') {
+          finalChildren = children.filter(child => child.name.trim() && child.age);
+          if (finalChildren.length === 0) {
+            toast.error("الرجاء إدخال بيانات طفل واحد على الأقل", { id: toastId });
+            setLoading(false); return;
+          }
         }
 
+        // 2. Member Validation
+        if (userType === 'member') {
+          // Filter out rows where rank is empty
+          finalMemberRoles = memberRoles.filter(r => r.rank);
+          
+          if (finalMemberRoles.length === 0) {
+            toast.error("الرجاء اختيار صفة واحدة على الأقل", { id: toastId });
+            setLoading(false); return;
+          }
+
+          // Validate: If rank is NOT president, Office must be selected
+          for (let role of finalMemberRoles) {
+             if (role.rank !== 'president' && !role.office) {
+                 toast.error("الرجاء اختيار المكتب لجميع الصفات المختارة", { id: toastId });
+                 setLoading(false); return;
+             }
+          }
+        }
+
+        // --- SUPABASE SIGN UP ---
         const { data, error } = await supabase.auth.signUp({ 
           email, 
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
             data: {
-              parent_name: parentName,
-              parent_phone: parentPhone,
-              children: validChildren,
+              parent_name: fullName,
+              parent_phone: phoneNumber,
+              user_type: userType,
+              children: finalChildren,
+              member_roles: finalMemberRoles, // Save array of roles
+              donor_party: userType === 'donor' ? donorParty : null
             }
           }
         });
         
         if (error) throw error;
 
-        // Save to profiles table after signup
-        if (data.user) {
-          await supabase.from('profiles').upsert({
-            id: data.user.id,
-            parent_name: parentName,
-            parent_phone: parentPhone,
-            children: validChildren,
-          });
-        }
-
         toast.dismiss(toastId);
         setVerificationSent(true);
         toast.success("تم إنشاء الحساب! يرجى تفعيل البريد الإلكتروني");
 
       } else {
-        // --- LOGIN LOGIC (Cleaned) ---
-        // REMOVED: All logic that checked 'profiles' table for deleted users.
-        
+        // --- LOGIN LOGIC ---
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         
         if (error) {
           if (error.message.includes("Email not confirmed")) {
             toast.error("يرجى تفعيل حسابك من البريد الإلكتروني أولاً", { id: toastId });
           } else {
-            // Standard error for wrong password or invalid email
             toast.error("خطأ في البريد أو كلمة المرور", { id: toastId });
           }
         } else {
-          // Successful login
           toast.success("تم تسجيل الدخول بنجاح", { id: toastId });
           router.push('/');
           router.refresh();
@@ -149,13 +214,10 @@ export default function LoginPage() {
     }
   };
 
-  // REMOVED: handleReactivateAccount function
-
   const handlePasswordReset = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
-      toast.error('الرجاء إدخال البريد الإلكتروني');
-      return;
+      toast.error('الرجاء إدخال البريد الإلكتروني'); return;
     }
 
     setResetLoading(true);
@@ -170,18 +232,20 @@ export default function LoginPage() {
     if (error) {
       toast.error('حدث خطأ في إرسال البريد', { id: toastId });
     } else {
-      toast.success('تم إرسال رابط الاستعادة إلى بريدك الإلكتروني!', { id: toastId });
+      toast.success('تم إرسال الرابط بنجاح!', { id: toastId });
       setShowResetModal(false);
       setResetEmail('');
     }
   };
 
-  // Reset form when switching between login/signup
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
-    setParentName('');
-    setParentPhone('');
+    setFullName('');
+    setPhoneNumber('');
     setChildren([{ name: '', age: '' }]);
+    setMemberRoles([{ rank: '', office: '' }]);
+    setUserType('parent');
+    setDonorParty('');
   };
 
   if (verificationSent) {
@@ -221,18 +285,38 @@ export default function LoginPage() {
       <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-primary/20 rounded-full blur-3xl"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-secondary/20 rounded-full blur-3xl"></div>
 
-      <div className="card w-full max-w-md bg-base-100/80 backdrop-blur-xl shadow-2xl rounded-[2.5rem] border border-white/50">
-        <div className="card-body p-10 text-center">
+      <div className="card w-full max-w-lg bg-base-100/80 backdrop-blur-xl shadow-2xl rounded-[2.5rem] border border-white/50">
+        <div className="card-body p-6 md:p-10 text-center">
           
-          <h2 className="text-4xl font-black mb-2 text-primary" style={{ fontFamily: 'var(--font-tajawal)' }}>
+          <h2 className="text-3xl md:text-4xl font-black mb-2 text-primary" style={{ fontFamily: 'var(--font-tajawal)' }}>
             {isSignUp ? "انضم إلى قدوة" : "تسجيل الدخول"}
           </h2>
           <p className="opacity-60 mb-8 text-sm text-neutral">
-            {isSignUp ? "أنشئ حساباً جديداً وسيتم إرسال رابط تفعيل إليك" : "مرحباً بعودتك! اشتقنا إليك"}
+            {isSignUp ? "اختر نوع حسابك وأنشئ حساباً جديداً" : "مرحباً بعودتك! اشتقنا إليك"}
           </p>
           
           <form onSubmit={handleAuth} className="flex flex-col gap-5">
             
+            {/* SIGN UP: User Type Selection */}
+            {isSignUp && (
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                {userTypes.map((type) => (
+                  <div 
+                    key={type.id}
+                    onClick={() => setUserType(type.id)}
+                    className={`cursor-pointer rounded-2xl p-3 border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 text-center relative
+                      ${userType === type.id 
+                        ? 'border-primary bg-primary/5 text-primary shadow-inner' 
+                        : 'border-transparent bg-white hover:bg-white/50 text-gray-500'
+                      }`}
+                  >
+                    <div className="text-xl">{type.icon}</div>
+                    <span className="text-xs font-bold">{type.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Email Input */}
             <div className="relative">
                 <FaEnvelope className="absolute top-4 left-4 text-gray-400 z-10" />
@@ -268,26 +352,25 @@ export default function LoginPage() {
                 </button>
             </div>
 
-            {/* SIGN UP ONLY FIELDS */}
+            {/* SIGN UP FIELDS */}
             {isSignUp && (
-              <>
-                {/* Divider */}
-                <div className="divider opacity-50 my-2">معلومات ولي الأمر</div>
+              <div className="animate-fade-in-up space-y-4">
+                <div className="divider opacity-50 my-1 text-xs">المعلومات الشخصية</div>
 
-                {/* Parent Name */}
+                {/* Name */}
                 <div className="relative">
                     <FaUser className="absolute top-4 right-4 text-gray-400 z-10" />
                     <input 
                       type="text" 
-                      placeholder="اسم ولي الأمر" 
+                      placeholder="الاسم الثلاثي" 
                       className="input input-bordered w-full rounded-full pr-12 bg-base-200/50 focus:bg-white transition-colors text-right"
-                      value={parentName}
-                      onChange={(e) => setParentName(e.target.value)}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       required
                     />
                 </div>
 
-                {/* Parent Phone */}
+                {/* Phone */}
                 <div className="relative">
                     <FaPhone className="absolute top-4 left-4 text-gray-400 z-10" />
                     <input 
@@ -295,77 +378,160 @@ export default function LoginPage() {
                       placeholder="رقم الهاتف" 
                       dir="ltr"
                       className="input input-bordered w-full rounded-full pl-12 bg-base-200/50 focus:bg-white transition-colors text-left"
-                      value={parentPhone}
+                      value={phoneNumber}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       required
                     />
                 </div>
 
-                {/* Children Section */}
-                <div className="space-y-4">
-                  <div className="divider opacity-50 my-2">بيانات الأبناء</div>
-                  
-                  {children.map((child, index) => (
-                    <div key={index} className="bg-base-200/30 p-4 rounded-2xl space-y-3 relative">
-                      
-                      {/* Child Number Label */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                          الطفل {index + 1}
-                        </span>
-                        
-                        {/* Remove Button (only show if more than 1 child) */}
-                        {children.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeChild(index)}
-                            className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                          >
-                            <FaTrash />
-                          </button>
-                        )}
-                      </div>
+                {/* --- 1. MEMBER SPECIFIC FIELDS (Multiple Roles) --- */}
+                {userType === 'member' && (
+                  <div className="bg-primary/5 p-4 rounded-3xl space-y-4 border border-primary/10">
+                    <h4 className="font-bold text-primary text-sm flex items-center gap-2">
+                       <FaSitemap /> المناصب والمهام
+                    </h4>
 
-                      {/* Child Name */}
-                      <div className="relative">
-                        <FaChild className="absolute top-4 right-4 text-gray-400 z-10" />
-                        <input 
-                          type="text" 
-                          placeholder="اسم الطفل" 
-                          className="input input-bordered w-full rounded-full pr-12 bg-white focus:bg-white transition-colors text-right"
-                          value={child.name}
-                          onChange={(e) => updateChild(index, 'name', e.target.value)}
-                          required
-                        />
-                      </div>
+                    {memberRoles.map((role, index) => (
+                      <div key={index} className="bg-white p-3 rounded-2xl border border-gray-100 relative shadow-sm space-y-3">
+                         
+                         {/* Remove Button (Only if more than 1 role) */}
+                         {memberRoles.length > 1 && (
+                            <button 
+                              type="button" 
+                              onClick={() => removeRole(index)}
+                              className="absolute top-2 left-2 text-error hover:bg-error/10 p-1 rounded-full transition-colors"
+                              title="إزالة المنصب"
+                            >
+                                <FaTimes />
+                            </button>
+                         )}
+                         
+                         <div className="space-y-3 pt-1">
+                            {/* Rank Select */}
+                            <div className="form-control">
+                               <label className="text-[10px] font-bold text-gray-400 block mb-1">الصفة / المنصب</label>
+                               <select 
+                                  className="select select-bordered select-sm w-full rounded-xl"
+                                  value={role.rank}
+                                  onChange={(e) => updateRole(index, 'rank', e.target.value)}
+                                  required
+                               >
+                                  <option value="" disabled>اختر الصفة...</option>
+                                  {memberRanks.map(r => (
+                                     <option key={r.id} value={r.id}>{r.label}</option>
+                                  ))}
+                               </select>
+                            </div>
 
-                      {/* Child Age - Text input that only accepts numbers */}
-                      <div className="relative">
-                        <span className="absolute top-4 right-4 text-gray-400 z-10 text-xs font-bold">عمر</span>
-                        <input 
-                          type="text"
-                          inputMode="numeric"
-                          placeholder="عمر الطفل" 
-                          className="input input-bordered w-full rounded-full pr-12 bg-white focus:bg-white transition-colors text-right"
-                          value={child.age}
-                          onChange={(e) => handleAgeChange(index, e.target.value)}
-                          required
-                        />
+                            {/* Office Select (Hidden if President) */}
+                            {role.rank !== 'president' && (
+                                <div className="form-control animate-fade-in-up">
+                                   <label className="text-[10px] font-bold text-gray-400 block mb-1">المكتب التابع له</label>
+                                   <select 
+                                      className="select select-bordered select-sm w-full rounded-xl"
+                                      value={role.office}
+                                      onChange={(e) => updateRole(index, 'office', e.target.value)}
+                                      required
+                                   >
+                                      <option value="" disabled>اختر المكتب...</option>
+                                      {offices.map(o => (
+                                         <option key={o.id} value={o.id}>{o.label}</option>
+                                      ))}
+                                   </select>
+                                </div>
+                            )}
+                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  {/* Add Another Child Button */}
-                  <button
-                    type="button"
-                    onClick={addChild}
-                    className="btn btn-outline btn-primary btn-sm w-full rounded-full gap-2"
-                  >
-                    <FaPlus />
-                    إضافة طفل آخر
-                  </button>
-                </div>
-              </>
+                    <button 
+                      type="button" 
+                      onClick={addRole}
+                      className="btn btn-outline btn-primary btn-sm w-full rounded-xl gap-2 border-dashed"
+                    >
+                       <FaPlus /> إضافة منصب آخر
+                    </button>
+                  </div>
+                )}
+
+                {/* --- 2. DONOR SPECIFIC FIELDS --- */}
+                {userType === 'donor' && (
+                  <div className="bg-orange-50 p-4 rounded-3xl space-y-2 border border-orange-100">
+                    <h4 className="font-bold text-orange-600 text-sm flex items-center gap-2">
+                       <FaBuilding /> الجهة المانحة (اختياري)
+                    </h4>
+                    <input 
+                      type="text" 
+                      placeholder="اسم الجمعية / المنظمة / الشركة" 
+                      className="input input-bordered w-full rounded-2xl bg-white"
+                      value={donorParty}
+                      onChange={(e) => setDonorParty(e.target.value)}
+                    />
+                    <p className="text-[10px] text-gray-400 pr-2">اتركه فارغاً إذا كنت داعماً بصفة شخصية</p>
+                  </div>
+                )}
+
+                {/* --- 3. PARENT SPECIFIC FIELDS --- */}
+                {userType === 'parent' && (
+                  <div className="space-y-4">
+                    <div className="divider opacity-50 my-2 text-xs">بيانات الأبناء</div>
+                    
+                    {children.map((child, index) => (
+                      <div key={index} className="bg-base-200/30 p-4 rounded-2xl space-y-3 relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
+                            الطفل {index + 1}
+                          </span>
+                          
+                          {children.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeChild(index)}
+                              className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+                            >
+                              <FaTrash />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="relative">
+                          <FaChild className="absolute top-4 right-4 text-gray-400 z-10" />
+                          <input 
+                            type="text" 
+                            placeholder="اسم الطفل" 
+                            className="input input-bordered w-full rounded-full pr-12 bg-white focus:bg-white transition-colors text-right"
+                            value={child.name}
+                            onChange={(e) => updateChild(index, 'name', e.target.value)}
+                            required
+                          />
+                        </div>
+
+                        <div className="relative">
+                          <span className="absolute top-4 right-4 text-gray-400 z-10 text-xs font-bold">عمر</span>
+                          <input 
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="عمر الطفل" 
+                            className="input input-bordered w-full rounded-full pr-12 bg-white focus:bg-white transition-colors text-right"
+                            value={child.age}
+                            onChange={(e) => handleAgeChange(index, e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={addChild}
+                      className="btn btn-outline btn-primary btn-sm w-full rounded-full gap-2"
+                    >
+                      <FaPlus />
+                      إضافة طفل آخر
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Forgot Password Link - Only on Login */}
@@ -418,8 +584,6 @@ export default function LoginPage() {
           ></div>
           
           <div className="bg-white rounded-[2rem] p-8 relative z-10 max-w-md w-full shadow-2xl">
-            
-            {/* Modal Header */}
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FaKey className="text-2xl text-primary" />
@@ -430,7 +594,6 @@ export default function LoginPage() {
               </p>
             </div>
             
-            {/* Modal Form */}
             <form onSubmit={handlePasswordReset} className="space-y-4">
               <div className="relative">
                 <FaEnvelope className="absolute top-4 left-4 text-gray-400 z-10" />
@@ -469,15 +632,9 @@ export default function LoginPage() {
                 </button>
               </div>
             </form>
-
-            <p className="text-center mt-6 text-xs text-gray-400">
-              ستصلك رسالة على بريدك الإلكتروني خلال دقائق
-            </p>
           </div>
         </div>
       )}
-      
-      {/* REMOVED: REACTIVATION MODAL BLOCK */}
       
     </div>
   );
