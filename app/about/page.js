@@ -243,7 +243,7 @@ export default function AboutPage() {
               </a>
               
               <a
-                href="mailto:qudwaassoc@gmail.com"
+                href="mailto:qudwa.ltk@gmail.com"
                 className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30"
               >
                 <FaEnvelope className="text-xl" />
