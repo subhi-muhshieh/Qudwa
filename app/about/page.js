@@ -20,40 +20,44 @@ import {
 export default function AboutPage() {
   
   const stats = [
-    { number: "500+", label: "طفل مستفيد", icon: <FaChild /> },
-    { number: "50+", label: "نشاط منفذ", icon: <FaStar /> },
-    { number: "20+", label: "متطوع نشط", icon: <FaUsers /> },
-    { number: "3", label: "سنوات خبرة", icon: <FaGraduationCap /> },
+    { number: "15+", label: "متطوع واعد", icon: <FaChild /> },
+    { number: "5+", label: "نشاط منفذ", icon: <FaStar /> },
+    { number: "19", label: "متطوع نشط", icon: <FaUsers /> },
+    { number: "1", label: "سنوات الخبرة", icon: <FaGraduationCap /> },
   ];
 
   const values = [
     {
       icon: <FaHeart className="text-3xl" />,
-      title: "الحب والرعاية",
-      description: "نؤمن بأن كل طفل يستحق أن يُحب ويُرعى، ونسعى لتوفير بيئة آمنة ومحبة لجميع أطفالنا."
+      title: "الاحترام",
+      description: "احترام الذات و الآخرين و الاختلاف."
     },
     {
       icon: <FaLightbulb className="text-3xl" />,
-      title: "الإبداع والابتكار",
-      description: "نشجع التفكير الإبداعي ونوفر بيئة محفزة تتيح للأطفال استكشاف مواهبهم وتطوير قدراتهم."
+      title: "الإبداع",
+      description: "التعلم بأساليب مبتكرة و ممتعة."
     },
     {
       icon: <FaHandsHelping className="text-3xl" />,
-      title: "التعاون والعمل الجماعي",
-      description: "نغرس في الأطفال قيم التعاون والمشاركة من خلال الأنشطة الجماعية والمشاريع المشتركة."
+      title: "العمل الجماعي",
+      description: "النجاح يصنعه الفريق."
     },
     {
       icon: <FaGraduationCap className="text-3xl" />,
-      title: "التعلم المستمر",
+      title: "الإبداع",
       description: "نؤمن بأن التعلم رحلة لا تنتهي، ونسعى لتنمية حب المعرفة والاستكشاف لدى الأطفال."
     },
   ];
 
   const team = [
-    { name: "أحمد محمد", role: "المدير التنفيذي", image: null },
-    { name: "فاطمة علي", role: "مديرة البرامج", image: null },
-    { name: "محمود خالد", role: "منسق الأنشطة", image: null },
-    { name: "سارة أحمد", role: "مسؤولة التواصل", image: null },
+    { name: "عمر عيسى", role: "رئيس الجمعية", image: null },
+    { name: "محمد أنور بوادقجي", role: "نائب رئيس الجمعية", image: null },
+    { name: "عبادة جولاق", role: "أمين الصندوق", image: null },
+    { name: "صبحي محشية", role: "أمين السر", image: null },
+    { name: "محمد المقدم", role: "مدير الأنشطة", image: null },
+    { name: "عبد الله شرف", role: "مدير الإعلام", image: null },
+    { name: "أحمد رفاعي", role: "مدير اللوجستيات", image: null },
+    { name: "محمود عليو", role: "مسؤول الموارد العلمية و البشرية", image: null },
   ];
 
   return (
@@ -123,13 +127,13 @@ export default function AboutPage() {
             
             <div className="space-y-4 text-base-content/70 leading-relaxed text-lg">
               <p>
-                منظمة قدوة هي منظمة مجتمعية غير ربحية تأسست عام 2021 بهدف الاستثمار في الأجيال الناشئة وتزويدهم بالمهارات والقيم اللازمة ليكونوا قادة المستقبل.
+                نحن مجموعةٌ من الشباب، نؤمنُ بدورنا في صناعةِ التَّغيير الإيجابي في المجتمع، و أنَّ التعليمَ يكون أكثرَ تأثيراً عندما يقترن بالمتعةِ و التجربة.
               </p>
               <p>
-                نؤمن بأن كل طفل يحمل في داخله إمكانيات هائلة تنتظر من يكتشفها ويصقلها. لذلك نقدم مجموعة متنوعة من البرامج والأنشطة التي تناسب مختلف الأعمار والاهتمامات.
+                اجتمعنا على فكرة أن القيم لا تُفرض، بل تُغرَس.
               </p>
               <p>
-                من خلال فريقنا المتخصص من المربين والمتطوعين، نسعى لخلق بيئة محفزة تجمع بين التعلم والمتعة، حيث يمكن للأطفال اكتساب مهارات جديدة وبناء صداقات قوية وتطوير شخصياتهم.
+                نسعى إلى تمكينِ الفئة الشبابيَّة و بناء شخصياتٍ واعدة و متوازنة، قادرة على التأثير إيجاباً بنفسها و محيطها.
               </p>
             </div>
           </div>
@@ -143,14 +147,14 @@ export default function AboutPage() {
             <div className="bg-primary/5 border border-primary/10 rounded-3xl p-8">
               <h3 className="text-2xl font-bold text-primary mb-4">رؤيتنا</h3>
               <p className="text-base-content/70 leading-relaxed">
-                أن نكون المنظمة الرائدة في بناء جيل واعٍ ومسؤول، يتمتع بالقيم الإيجابية والمهارات اللازمة للمساهمة في تطوير مجتمعه وبناء مستقبل أفضل.
+                شبابٌ واعٍ، صاحب قيمٍ راسخة، و قدوة إيجابية تساهم في بناء مجتمع متماسك و متقدِّم، نعدُّ من كلِّ شابٍّ قدوةً ملهمةً قادرةً على إحداثِ فرقٍ و قيادةِ التغييرِ الإيجابيِّ في المجتمع.
               </p>
             </div>
             
             <div className="bg-secondary/5 border border-secondary/10 rounded-3xl p-8">
               <h3 className="text-2xl font-bold text-secondary mb-4">رسالتنا</h3>
               <p className="text-base-content/70 leading-relaxed">
-                تقديم برامج تربوية وتعليمية متميزة تساهم في تنمية شخصية الطفل بشكل متكامل، وغرس القيم الإيجابية، وتطوير المهارات الحياتية في بيئة آمنة ومحفزة.
+                رفعُ مستوى القيم الأخلاقيَّة و الإنسانيَّة لدى الشبابِ من خلال برامجَ تعليميَّةٍ و تربويَّةٍ مبتكرة، تعتمدُ على الترفيهِ الهادف، و التجربة العملية، و المشاركة الفعالة.
               </p>
             </div>
           </div>
@@ -231,7 +235,7 @@ export default function AboutPage() {
       {/* App Info Footer */}
       <div className="py-8 px-4 bg-base-100">
         <div className="max-w-4xl mx-auto text-center text-base-content/40">
-          <p className="mb-2">منظمة قدوة - الإصدار 1.0.0</p>
+          <p className="mb-2">جمعية قدوة - الإصدار 1.0.0</p>
           <p>جميع الحقوق محفوظة © {new Date().getFullYear()}</p>
         </div>
       </div>

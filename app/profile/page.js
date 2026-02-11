@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
 import ImageEditorModal from '../components/ImageEditorModal';
+import { userTypeLabels, rankLabels, officeLabels } from '../utils/constants';
 
 export default function ProfilePage() {
   const { user, profile: contextProfile, updateProfile } = useProfile();
@@ -50,29 +51,6 @@ export default function ProfilePage() {
   const fileInputRef = useRef(null);
   const supabase = createClient();
   const router = useRouter();
-
-  const userTypeLabels = {
-    'parent': 'ولي أمر',
-    'member': 'عضو جمعية',
-    'volunteer': 'متطوع',
-    'donor': 'داعم/مانح'
-  };
-
-  const officeLabels = {
-    'activity': 'مكتب الأنشطة',
-    'media': 'المكتب الإعلامي',
-    'scientific': 'المكتب العلمي',
-    'logistic': 'المكتب اللوجستي'
-  };
-
-  const rankLabels = {
-    'president': 'رئيس الجمعية',
-    'vice_president': 'نائب رئيس الجمعية',
-    'office_manager': 'مدير مكتب',
-    'secretary': 'أمين سر',
-    'monetary_manager': 'مدير مالي',
-    'member': 'عضو'
-  };
 
   const hasChanges = 
     currentName !== originalName ||

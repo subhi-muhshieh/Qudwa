@@ -9,6 +9,7 @@ import {
   FaBuilding, FaSitemap, FaTimes
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import { memberRanks, offices } from '../utils/constants';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -38,22 +39,6 @@ export default function LoginPage() {
     { id: 'member', label: 'عضو جمعية', icon: <FaUsers />, desc: 'للكادر الإداري' },
     { id: 'volunteer', label: 'متطوع', icon: <FaHandsHelping />, desc: 'للانضمام للفريق' },
     { id: 'donor', label: 'داعم/مانح', icon: <FaHandHoldingHeart />, desc: 'لدعم الجمعية' },
-  ];
-
-  const offices = [
-    { id: 'activity', label: 'مكتب الأنشطة' },
-    { id: 'media', label: 'المكتب الإعلامي' },
-    { id: 'scientific', label: 'المكتب العلمي' },
-    { id: 'logistic', label: 'المكتب اللوجستي' },
-  ];
-
-  const memberRanks = [
-    { id: 'president', label: 'رئيس الجمعية', noOffice: true },
-    { id: 'vice_president', label: 'نائب رئيس الجمعية', noOffice: false },
-    { id: 'office_manager', label: 'مدير مكتب', noOffice: false },
-    { id: 'secretary', label: 'أمين سر', noOffice: false },
-    { id: 'monetary_manager', label: 'مدير مالي', noOffice: false },
-    { id: 'member', label: 'عضو', noOffice: false },
   ];
 
   const addRole = () => setMemberRoles([...memberRoles, { rank: '', office: '' }]);
@@ -146,7 +131,6 @@ export default function LoginPage() {
         
         if (error) throw error;
 
-        // FIX: Save profile data to the profiles table
         if (data.user) {
           const profileData = {
             id: data.user.id,
@@ -182,7 +166,7 @@ export default function LoginPage() {
           }
         } else {
           toast.success("تم تسجيل الدخول بنجاح", { id: toastId });
-          router.push('/');
+          router.push('/dashboard');
           router.refresh();
         }
       }

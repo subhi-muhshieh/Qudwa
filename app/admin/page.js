@@ -1,6 +1,9 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '../utils/supabase/client';
+import { useProfile } from '../context/ProfileContext';
+import { userTypeLabels, rankLabels, officeLabels } from '../utils/constants';
 import { 
   FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, 
   FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink, FaSync, 
@@ -42,7 +45,6 @@ export default function AdminDashboard() {
   // --- USERS STATE ---
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [showUsers, setShowUsers] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [userTypeFilter, setUserTypeFilter] = useState('all');
   const [expandedUser, setExpandedUser] = useState(null);
@@ -50,38 +52,22 @@ export default function AdminDashboard() {
   // --- REGISTRATIONS STATE ---
   const [registrations, setRegistrations] = useState([]);
   const [registrationsLoading, setRegistrationsLoading] = useState(false);
-  const [showRegistrations, setShowRegistrations] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState('');
   const [expandedRegistration, setExpandedRegistration] = useState(null);
 
   // --- ACTIVE TAB ---
-  const [activeTab, setActiveTab] = useState('activities'); // 'activities' | 'users' | 'registrations'
+  const [activeTab, setActiveTab] = useState('activities');
 
   const supabase = createClient();
+  const router = useRouter();
+  const { profile: userProfile } = useProfile();
 
-  // --- DATA LABELS ---
-  const userTypeLabels = {
-    'parent': 'ولي أمر',
-    'member': 'عضو جمعية',
-    'volunteer': 'متطوع',
-    'donor': 'داعم/مانح'
-  };
-
-  const rankLabels = {
-    'president': 'رئيس الجمعية',
-    'vice_president': 'نائب رئيس الجمعية',
-    'office_manager': 'مدير مكتب',
-    'secretary': 'أمين سر',
-    'monetary_manager': 'مدير مالي',
-    'member': 'عضو'
-  };
-
-  const officeLabels = {
-    'activity': 'مكتب الأنشطة',
-    'media': 'المكتب الإعلامي',
-    'scientific': 'المكتب العلمي',
-    'logistic': 'المكتب اللوجستي'
-  };
+  // --- ADMIN GUARD ---
+  useEffect(() => {
+    if (userProfile && userProfile.role !== 'admin') {
+      router.replace('/dashboard');
+    }
+  }, [userProfile, router]);
 
   // ==========================================
   //  INITIALIZATION
@@ -257,14 +243,12 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch users when tab is opened
   useEffect(() => {
     if (activeTab === 'users' && users.length === 0) {
       fetchUsers();
     }
   }, [activeTab]);
 
-  // Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       !userSearch || 
@@ -314,14 +298,12 @@ export default function AdminDashboard() {
     }
   };
 
-  // Fetch registrations when tab is opened or event changes
   useEffect(() => {
     if (activeTab === 'registrations' && selectedEventId) {
       fetchRegistrations(selectedEventId);
     }
   }, [activeTab, selectedEventId]);
 
-  // Auto-select first upcoming event
   useEffect(() => {
     if (activeTab === 'registrations' && !selectedEventId) {
       const upcomingActivities = activities.filter(a => a.is_upcoming);
@@ -336,7 +318,7 @@ export default function AdminDashboard() {
   // ==========================================
   //  RENDER
   // ==========================================
-  if (loading) {
+  if (loading || !userProfile || userProfile.role !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -432,7 +414,7 @@ export default function AdminDashboard() {
                       </div>
                       {formData.image_url && (
                         <div className="mt-2">
-                          <img src={formData.image_url} alt="Preview" className="w-full h-32 object-cover rounded-xl" />
+                          <img src={formData.image_url} alt="معاينة الصورة" className="w-full h-32 object-cover rounded-xl" />
                           <button type="button" onClick={() => setFormData({...formData, image_url: ''})} className="btn btn-xs btn-error btn-outline mt-2"><FaTimes /> إزالة الصورة</button>
                         </div>
                       )}
@@ -658,10 +640,9 @@ export default function AdminDashboard() {
                         className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors"
                         onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                       >
-                        {/* Avatar */}
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 shrink-0">
                           {user.avatar_url ? (
-                            <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                            <img src={user.avatar_url} alt={user.parent_name || 'صورة المستخدم'} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-primary/50">
                               <FaUserFriends />
@@ -669,7 +650,6 @@ export default function AdminDashboard() {
                           )}
                         </div>
 
-                        {/* Basic Info */}
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-base-content truncate">{user.parent_name || 'بدون اسم'}</div>
                           <div className="text-sm text-base-content/50 flex items-center gap-2">
@@ -678,7 +658,6 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        {/* Type Badge */}
                         <div className="shrink-0">
                           <span className={`badge badge-sm ${
                             user.user_type === 'parent' ? 'badge-primary' :
@@ -691,12 +670,10 @@ export default function AdminDashboard() {
                           </span>
                         </div>
 
-                        {/* Role Badge */}
                         {user.role === 'admin' && (
                           <span className="badge badge-error badge-sm">مدير</span>
                         )}
 
-                        {/* Expand Arrow */}
                         <div className="shrink-0 text-base-content/40">
                           {expandedUser === user.id ? <FaChevronUp /> : <FaChevronDown />}
                         </div>
@@ -706,12 +683,10 @@ export default function AdminDashboard() {
                       {expandedUser === user.id && (
                         <div className="px-4 pb-4 pt-2 bg-base-200/30 border-t border-base-200 space-y-4">
                           
-                          {/* ID */}
                           <div className="text-xs text-base-content/40 font-mono break-all">
                             ID: {user.id}
                           </div>
 
-                          {/* Children (for parents) */}
                           {user.user_type === 'parent' && user.children && user.children.length > 0 && (
                             <div>
                               <h4 className="font-bold text-primary text-sm mb-2 flex items-center gap-2">
@@ -728,7 +703,6 @@ export default function AdminDashboard() {
                             </div>
                           )}
 
-                          {/* Member Roles */}
                           {user.user_type === 'member' && user.member_roles && user.member_roles.length > 0 && (
                             <div>
                               <h4 className="font-bold text-secondary text-sm mb-2 flex items-center gap-2">
@@ -747,7 +721,6 @@ export default function AdminDashboard() {
                             </div>
                           )}
 
-                          {/* Donor Party */}
                           {user.user_type === 'donor' && user.donor_party && (
                             <div>
                               <h4 className="font-bold text-warning text-sm mb-2">الجهة المانحة</h4>
@@ -757,7 +730,6 @@ export default function AdminDashboard() {
                             </div>
                           )}
 
-                          {/* Created Date */}
                           {user.created_at && (
                             <div className="text-xs text-base-content/40">
                               تاريخ التسجيل: {new Date(user.created_at).toLocaleDateString('ar-SA')}
@@ -812,7 +784,6 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Also show past activities in a collapsible */}
               {activities.filter(a => !a.is_upcoming).length > 0 && (
                 <details className="mt-4">
                   <summary className="cursor-pointer text-sm text-base-content/50 hover:text-primary transition-colors">
@@ -869,20 +840,17 @@ export default function AdminDashboard() {
 
                       return (
                         <div key={reg.id} className="border border-base-200 rounded-2xl overflow-hidden">
-                          {/* Registration Row */}
                           <div 
                             className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors"
                             onClick={() => setExpandedRegistration(expandedRegistration === reg.id ? null : reg.id)}
                           >
-                            {/* Number */}
                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">
                               {index + 1}
                             </div>
 
-                            {/* Avatar */}
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 shrink-0">
                               {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                                <img src={profile.avatar_url} alt={profile.parent_name || 'صورة المسجل'} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-primary/50">
                                   <FaUserFriends className="text-sm" />
@@ -890,13 +858,11 @@ export default function AdminDashboard() {
                               )}
                             </div>
 
-                            {/* Name & Phone */}
                             <div className="flex-1 min-w-0">
                               <div className="font-bold text-base-content truncate">{profile.parent_name || 'بدون اسم'}</div>
                               <div className="text-xs text-base-content/50" dir="ltr">{profile.parent_phone || ''}</div>
                             </div>
 
-                            {/* Type Badge */}
                             <span className={`badge badge-sm shrink-0 ${
                               profile.user_type === 'parent' ? 'badge-primary' :
                               profile.user_type === 'member' ? 'badge-secondary' :
@@ -905,22 +871,18 @@ export default function AdminDashboard() {
                               {userTypeLabels[profile.user_type] || 'مستخدم'}
                             </span>
 
-                            {/* Registration Date */}
                             <div className="text-xs text-base-content/40 hidden sm:block shrink-0">
                               {new Date(reg.created_at).toLocaleDateString('ar-SA')}
                             </div>
 
-                            {/* Expand Arrow */}
                             <div className="shrink-0 text-base-content/40">
                               {expandedRegistration === reg.id ? <FaChevronUp /> : <FaChevronDown />}
                             </div>
                           </div>
 
-                          {/* Expanded Details */}
                           {expandedRegistration === reg.id && (
                             <div className="px-4 pb-4 pt-2 bg-base-200/30 border-t border-base-200 space-y-4">
                               
-                              {/* Contact Info */}
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="bg-base-100 p-3 rounded-xl flex items-center gap-3">
                                   <FaPhone className="text-primary shrink-0" />
@@ -938,7 +900,6 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
 
-                              {/* Children */}
                               {profile.children && profile.children.length > 0 && (
                                 <div>
                                   <h4 className="font-bold text-primary text-sm mb-2 flex items-center gap-2">
@@ -960,7 +921,6 @@ export default function AdminDashboard() {
                                 </div>
                               )}
 
-                              {/* Member Roles */}
                               {profile.user_type === 'member' && profile.member_roles && profile.member_roles.length > 0 && (
                                 <div>
                                   <h4 className="font-bold text-secondary text-sm mb-2 flex items-center gap-2">
@@ -977,7 +937,6 @@ export default function AdminDashboard() {
                                 </div>
                               )}
 
-                              {/* Donor */}
                               {profile.user_type === 'donor' && profile.donor_party && (
                                 <div className="bg-base-100 p-3 rounded-xl">
                                   <span className="text-sm text-base-content/50">الجهة المانحة: </span>
@@ -992,7 +951,6 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {/* Summary */}
                 {registrations.length > 0 && (
                   <div className="mt-6 p-4 bg-primary/5 rounded-2xl border border-primary/10">
                     <h4 className="font-bold text-primary text-sm mb-3">ملخص التسجيلات</h4>

@@ -186,6 +186,7 @@ export default function GalleryPage() {
                 <img
                   src={photo.image_url}
                   alt={photo.caption || `صورة ${index + 1}`}
+                  loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 
@@ -253,6 +254,7 @@ export default function GalleryPage() {
                     <img
                       src={activity.activity_photos[0]?.image_url || activity.image_url || '/placeholder.jpg'}
                       alt={activity.title}
+                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
@@ -271,7 +273,12 @@ export default function GalleryPage() {
                           className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white shadow-md"
                           style={{ zIndex: 4 - i }}
                         >
-                          <img src={photo.image_url} alt="" className="w-full h-full object-cover" />
+                          <img 
+                            src={photo.image_url} 
+                            alt="" 
+                            loading="lazy"
+                            className="w-full h-full object-cover" 
+                          />
                         </div>
                       ))}
                       {activity.activity_photos.length > 4 && (

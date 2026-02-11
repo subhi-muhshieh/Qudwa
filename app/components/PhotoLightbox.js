@@ -33,31 +33,23 @@ export default function PhotoLightbox({
     
     switch (e.key) {
       case 'ArrowLeft':
-        goToPrevious();
+        setCurrentIndex((prev) => (prev + 1) % photos.length);
+        setIsZoomed(false);
         break;
       case 'ArrowRight':
-        goToNext();
+        setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+        setIsZoomed(false);
         break;
       case 'Escape':
         onClose();
         break;
     }
-  }, [isOpen, currentIndex]);
+  }, [isOpen, photos.length, onClose]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
-
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % photos.length);
-    setIsZoomed(false);
-  };
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
-    setIsZoomed(false);
-  };
 
   const handleDownload = async () => {
     const photo = photos[currentIndex];
@@ -172,7 +164,8 @@ export default function PhotoLightbox({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                goToPrevious();
+                setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+                setIsZoomed(false);
               }}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all group"
             >
@@ -181,7 +174,8 @@ export default function PhotoLightbox({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                goToNext();
+                setCurrentIndex((prev) => (prev + 1) % photos.length);
+                setIsZoomed(false);
               }}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all group"
             >
