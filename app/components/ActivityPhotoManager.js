@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImageForGallery } from '../utils/imageUtils';
 
-// Debounce hook
 function useDebounce(callback, delay) {
   const timeoutRef = useRef(null);
 
@@ -27,12 +26,11 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, compressing: false });
-  const [savingCaptions, setSavingCaptions] = useState({}); // Track which photos are saving
+  const [savingCaptions, setSavingCaptions] = useState({});
   const fileInputRef = useRef(null);
   
   const supabase = createClient();
 
-  // Fetch photos on mount
   useEffect(() => {
     const fetchPhotos = async () => {
       const { data, error } = await supabase
@@ -75,14 +73,12 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         setUploadProgress({ current: i + 1, total: files.length, compressing: true });
         toast.loading(`جاري معالجة الصورة ${i + 1} من ${files.length}...`, { id: toastId });
 
-        // Validate file type
         if (!file.type.startsWith('image/')) {
           toast.error(`${file.name} ليس ملف صورة`);
           errorCount++;
           continue;
         }
 
-        // Check if HEIC and reject
         const isHeic = file.name.toLowerCase().endsWith('.heic') || 
                        file.name.toLowerCase().endsWith('.heif');
         if (isHeic) {
@@ -92,10 +88,8 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         }
 
         try {
-          // Compress image if needed
-          const originalSize = file.size / 1024 / 1024;
-
           if (file.size > 10 * 1024 * 1024) {
+            const originalSize = file.size / 1024 / 1024;
             toast.loading(`جاري ضغط ${file.name} (${originalSize.toFixed(1)}MB)...`, { id: toastId });
             
             try {
@@ -111,7 +105,6 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
           setUploadProgress({ current: i + 1, total: files.length, compressing: false });
           toast.loading(`جاري رفع الصورة ${i + 1} من ${files.length}...`, { id: toastId });
 
-          // Upload to storage
           const fileExt = file.name.split('.').pop() || 'jpg';
           const fileName = `${activityId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
@@ -129,12 +122,10 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
             continue;
           }
 
-          // Get public URL
           const { data: urlData } = supabase.storage
             .from('activity-images')
             .getPublicUrl(fileName);
 
-          // Insert into database
           const { data: photoData, error: insertError } = await supabase
             .from('activity_photos')
             .insert({
@@ -162,7 +153,6 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         }
       }
 
-      // Update state with new photos
       if (uploadedPhotos.length > 0) {
         setPhotos(prevPhotos => [...prevPhotos, ...uploadedPhotos]);
         toast.success(`تم رفع ${successCount} صورة بنجاح! 🎉`, { id: toastId });
@@ -188,7 +178,6 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
     const toastId = toast.loading('جاري حذف الصورة...');
 
     try {
-      // Delete from storage
       if (imageUrl && imageUrl.includes('activity-images')) {
         const path = imageUrl.split('/activity-images/')[1];
         if (path) {
@@ -196,7 +185,6 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         }
       }
 
-      // Delete from database
       const { error: deleteDbError } = await supabase
         .from('activity_photos')
         .delete()
@@ -216,7 +204,6 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
     }
   };
 
-  // Save caption to database (actual save)
   const saveCaptionToDatabase = async (photoId, caption) => {
     setSavingCaptions(prev => ({ ...prev, [photoId]: 'saving' }));
     
@@ -231,35 +218,26 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
       toast.error('فشل حفظ الوصف');
     } else {
       setSavingCaptions(prev => ({ ...prev, [photoId]: 'saved' }));
-      // Clear "saved" status after 2 seconds
       setTimeout(() => {
         setSavingCaptions(prev => ({ ...prev, [photoId]: null }));
       }, 2000);
     }
   };
 
-  // Debounced save - saves 1 second after user stops typing
   const debouncedSave = useDebounce(saveCaptionToDatabase, 1000);
 
-  // Update caption locally (instant) and trigger debounced save
   const handleCaptionChange = (photoId, caption) => {
-    // Update local state immediately for smooth typing
     setPhotos(prevPhotos => 
       prevPhotos.map(p => 
         p.id === photoId ? { ...p, caption } : p
       )
     );
     
-    // Mark as "typing" (will save soon)
     setSavingCaptions(prev => ({ ...prev, [photoId]: 'typing' }));
-    
-    // Trigger debounced save
     debouncedSave(photoId, caption);
   };
 
-  // Save immediately on blur (when user clicks away)
   const handleCaptionBlur = (photoId, caption) => {
-    // Cancel any pending debounced save
     saveCaptionToDatabase(photoId, caption);
   };
 
@@ -273,7 +251,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
       
       <motion.div
-        className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
+        className="bg-base-100 w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden relative z-10 max-h-[90vh] flex flex-col"
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.95, y: 20 }}
@@ -285,7 +263,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
               <FaImages />
               إدارة صور النشاط
             </h2>
-            <p className="text-neutral/60 mt-1">{activityTitle}</p>
+            <p className="text-base-content/60 mt-1">{activityTitle}</p>
           </div>
           <button
             onClick={onClose}
@@ -335,16 +313,14 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                   )}
                 </button>
                 
-                {/* Info Text */}
-                <div className="flex items-center justify-center gap-2 mt-3 text-neutral/50 text-sm">
+                <div className="flex items-center justify-center gap-2 mt-3 text-base-content/50 text-sm">
                   <FaCompress className="text-primary" />
                   <span>يمكنك رفع صور بأي حجم - سيتم ضغطها تلقائياً</span>
                 </div>
                 
-                {/* Progress Bar */}
                 {uploading && (
                   <div className="mt-4">
-                    <div className="flex justify-between text-sm text-neutral/60 mb-2">
+                    <div className="flex justify-between text-sm text-base-content/60 mb-2">
                       <span>
                         {uploadProgress.compressing ? 'جاري الضغط...' : 'جاري الرفع...'}
                       </span>
@@ -381,22 +357,18 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                           className="w-full h-full object-cover"
                         />
                         
-                        {/* Order Badge - Always visible */}
                         <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-lg font-bold z-10">
                           {index + 1}
                         </div>
 
-                        {/* Caption Badge - Shows if caption exists and not hovering */}
                         {photo.caption && (
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 group-hover:opacity-0 transition-opacity">
                             <p className="text-white text-xs truncate">{photo.caption}</p>
                           </div>
                         )}
                         
-                        {/* Hover Overlay with Controls */}
                         <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col p-3">
                           
-                          {/* Top: Delete Button */}
                           <div className="flex justify-end">
                             <button
                               onClick={() => handleDeletePhoto(photo.id, photo.image_url)}
@@ -407,15 +379,12 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                             </button>
                           </div>
                           
-                          {/* Middle: Spacer */}
                           <div className="flex-1"></div>
                           
-                          {/* Bottom: Caption Input */}
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <label className="text-white/70 text-xs">وصف الصورة (اختياري)</label>
                               
-                              {/* Save Status Indicator */}
                               {savingCaptions[photo.id] === 'saving' && (
                                 <span className="text-yellow-400 text-xs flex items-center gap-1">
                                   <FaSpinner className="animate-spin text-[10px]" />
@@ -440,7 +409,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                               value={photo.caption || ''}
                               onChange={(e) => handleCaptionChange(photo.id, e.target.value)}
                               onBlur={(e) => handleCaptionBlur(photo.id, e.target.value)}
-                              className="input input-sm w-full rounded-xl bg-white text-neutral placeholder:text-neutral/50"
+                              className="input input-sm w-full rounded-xl bg-base-100 text-base-content placeholder:text-base-content/50"
                               onClick={(e) => e.stopPropagation()}
                             />
                           </div>
@@ -450,12 +419,12 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                   </AnimatePresence>
                 </div>
               ) : (
-                <div className="text-center py-16 bg-base-100 rounded-3xl border-2 border-dashed border-base-300">
-                  <div className="w-20 h-20 bg-base-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="text-center py-16 bg-base-200 rounded-3xl border-2 border-dashed border-base-300">
+                  <div className="w-20 h-20 bg-base-300 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FaImages className="text-4xl text-base-content/30" />
                   </div>
-                  <p className="text-neutral/50 text-lg font-medium">لا توجد صور لهذا النشاط</p>
-                  <p className="text-neutral/40 text-sm mt-1">اضغط على "إضافة صور جديدة" للبدء</p>
+                  <p className="text-base-content/50 text-lg font-medium">لا توجد صور لهذا النشاط</p>
+                  <p className="text-base-content/40 text-sm mt-1">اضغط على "إضافة صور جديدة" للبدء</p>
                 </div>
               )}
             </>
@@ -463,10 +432,10 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-base-200 bg-base-100/80 backdrop-blur-sm">
+        <div className="p-6 border-t border-base-200 bg-base-200/50 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-neutral/60 font-medium">
+              <span className="text-base-content/60 font-medium">
                 {photos.length} صورة
               </span>
               {photos.length > 0 && (

@@ -19,7 +19,6 @@ import {
 
 export default function AboutPage() {
   
-  // DUMMY DATA - Edit these values as needed
   const stats = [
     { number: "500+", label: "طفل مستفيد", icon: <FaChild /> },
     { number: "50+", label: "نشاط منفذ", icon: <FaStar /> },
@@ -62,12 +61,10 @@ export default function AboutPage() {
       
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-primary to-accent text-white py-24 px-4 relative overflow-hidden">
-        {/* Background Decoration */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-48 -mt-48"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
         
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          {/* Back Button */}
           <Link 
             href="/settings" 
             className="btn btn-ghost btn-sm rounded-xl gap-2 mb-6 text-white/80 hover:text-white hover:bg-white/10"
@@ -91,9 +88,7 @@ export default function AboutPage() {
             قُدوَة
           </h1>
           
-          <p 
-            className="text-2xl md:text-3xl opacity-90 mb-6 font-slogan"
-          >
+          <p className="text-2xl md:text-3xl opacity-90 mb-6 font-slogan">
             جيلٌ يبني... أثرٌ يبقى
           </p>
           
@@ -104,7 +99,7 @@ export default function AboutPage() {
       </div>
 
       {/* Stats Section */}
-      <div className="py-16 px-4 bg-white">
+      <div className="py-16 px-4 bg-base-100">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
@@ -112,8 +107,8 @@ export default function AboutPage() {
                 <div className="text-primary text-3xl mb-2 flex justify-center">
                   {stat.icon}
                 </div>
-                <div className="text-4xl font-bold text-neutral mb-1">{stat.number}</div>
-                <div className="text-gray-500">{stat.label}</div>
+                <div className="text-4xl font-bold text-base-content mb-1">{stat.number}</div>
+                <div className="text-base-content/50">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -123,10 +118,10 @@ export default function AboutPage() {
       {/* About Section */}
       <div className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm">
+          <div className="bg-base-100 rounded-3xl p-8 md:p-12 shadow-sm">
             <h2 className="text-3xl font-bold text-primary mb-6 text-center">من نحن؟</h2>
             
-            <div className="space-y-4 text-gray-600 leading-relaxed text-lg">
+            <div className="space-y-4 text-base-content/70 leading-relaxed text-lg">
               <p>
                 منظمة قدوة هي منظمة مجتمعية غير ربحية تأسست عام 2021 بهدف الاستثمار في الأجيال الناشئة وتزويدهم بالمهارات والقيم اللازمة ليكونوا قادة المستقبل.
               </p>
@@ -142,19 +137,19 @@ export default function AboutPage() {
       </div>
 
       {/* Vision & Mission */}
-      <div className="py-16 px-4 bg-white">
+      <div className="py-16 px-4 bg-base-100">
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-gradient-to-br from-primary/5 to-primary/10 rounded-3xl p-8">
+            <div className="bg-primary/5 border border-primary/10 rounded-3xl p-8">
               <h3 className="text-2xl font-bold text-primary mb-4">رؤيتنا</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-base-content/70 leading-relaxed">
                 أن نكون المنظمة الرائدة في بناء جيل واعٍ ومسؤول، يتمتع بالقيم الإيجابية والمهارات اللازمة للمساهمة في تطوير مجتمعه وبناء مستقبل أفضل.
               </p>
             </div>
             
-            <div className="bg-gradient-to-br from-secondary/5 to-secondary/10 rounded-3xl p-8">
+            <div className="bg-secondary/5 border border-secondary/10 rounded-3xl p-8">
               <h3 className="text-2xl font-bold text-secondary mb-4">رسالتنا</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-base-content/70 leading-relaxed">
                 تقديم برامج تربوية وتعليمية متميزة تساهم في تنمية شخصية الطفل بشكل متكامل، وغرس القيم الإيجابية، وتطوير المهارات الحياتية في بيئة آمنة ومحفزة.
               </p>
             </div>
@@ -169,10 +164,10 @@ export default function AboutPage() {
           
           <div className="grid md:grid-cols-2 gap-6">
             {values.map((value, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 shadow-sm">
+              <div key={index} className="bg-base-100 rounded-2xl p-6 shadow-sm">
                 <div className="text-primary mb-4">{value.icon}</div>
-                <h3 className="text-xl font-bold text-neutral mb-2">{value.title}</h3>
-                <p className="text-gray-600">{value.description}</p>
+                <h3 className="text-xl font-bold text-base-content mb-2">{value.title}</h3>
+                <p className="text-base-content/60">{value.description}</p>
               </div>
             ))}
           </div>
@@ -180,7 +175,7 @@ export default function AboutPage() {
       </div>
 
       {/* Team Section */}
-      <div className="py-16 px-4 bg-white">
+      <div className="py-16 px-4 bg-base-100">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold text-primary mb-10 text-center">فريقنا</h2>
           
@@ -190,8 +185,8 @@ export default function AboutPage() {
                 <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FaUsers className="text-3xl text-primary/50" />
                 </div>
-                <h4 className="font-bold text-neutral">{member.name}</h4>
-                <p className="text-gray-500 text-sm">{member.role}</p>
+                <h4 className="font-bold text-base-content">{member.name}</h4>
+                <p className="text-base-content/50 text-sm">{member.role}</p>
               </div>
             ))}
           </div>
@@ -206,46 +201,19 @@ export default function AboutPage() {
             <p className="opacity-90 mb-8">نحن هنا للإجابة على استفساراتكم ومساعدتكم</p>
             
             <div className="flex flex-wrap gap-4 justify-center mb-8">
-              <a
-                href="https://www.instagram.com/QudwaAssoc"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30"
-              >
+              <a href="https://www.instagram.com/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30">
                 <FaInstagram className="text-xl" />
               </a>
-              
-              <a
-                href="https://www.facebook.com/QudwaAssoc"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30"
-              >
+              <a href="https://www.facebook.com/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30">
                 <FaFacebook className="text-xl" />
               </a>
-              
-              <a
-                href="https://t.me/QudwaAssoc"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30"
-              >
+              <a href="https://t.me/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30">
                 <FaTelegramPlane className="text-xl" />
               </a>
-              
-              <a
-                href="https://wa.me/963980931111"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30"
-              >
+              <a href="https://wa.me/963980931111" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30">
                 <FaWhatsapp className="text-xl" />
               </a>
-              
-              <a
-                href="mailto:qudwa.ltk@gmail.com"
-                className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30"
-              >
+              <a href="mailto:qudwa.ltk@gmail.com" className="btn btn-circle btn-lg bg-white/20 border-none hover:bg-white/30">
                 <FaEnvelope className="text-xl" />
               </a>
             </div>
@@ -261,8 +229,8 @@ export default function AboutPage() {
       </div>
 
       {/* App Info Footer */}
-      <div className="py-8 px-4 bg-white">
-        <div className="max-w-4xl mx-auto text-center text-gray-400">
+      <div className="py-8 px-4 bg-base-100">
+        <div className="max-w-4xl mx-auto text-center text-base-content/40">
           <p className="mb-2">منظمة قدوة - الإصدار 1.0.0</p>
           <p>جميع الحقوق محفوظة © {new Date().getFullYear()}</p>
         </div>

@@ -9,21 +9,12 @@ import { useProfile } from '../context/ProfileContext';
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const contextData = useProfile(); // Get the whole context object
+  const contextData = useProfile();
   const { user, profile } = contextData;
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   
-  // Debugging: See exactly what we are getting
-  useEffect(() => {
-    if (user) {
-        console.log("Navbar Context Data:", contextData);
-        console.log("User Role:", profile?.role);
-    }
-  }, [user, profile, contextData]);
-
-  // Safer Admin Check
   const isAdmin = profile && profile.role === 'admin';
 
   useEffect(() => {
@@ -93,7 +84,7 @@ export default function Navbar() {
               <>
                 <Link 
                   href="/activities" 
-                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
+                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all hover:pr-4"
                 >
                   <FaHistory className="text-secondary opacity-70" />
                   سجل النشاطات
@@ -101,7 +92,7 @@ export default function Navbar() {
 
                 <Link 
                   href="/contact"
-                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all"
+                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all"
                 >
                   <FaEnvelope className="text-secondary opacity-70" />
                   راسل الإدارة
@@ -109,7 +100,7 @@ export default function Navbar() {
 
                 <Link 
                   href="/gallery" 
-                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-neutral font-bold rounded-xl gap-2 transition-all hover:pr-4"
+                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all hover:pr-4"
                 >
                   <FaImages className="text-secondary opacity-70" />
                   معرض الصور
@@ -117,7 +108,6 @@ export default function Navbar() {
               </>
             )}
 
-            {/* ADMIN BUTTON */}
             {isAdmin && (
               <Link 
                 href="/admin" 
@@ -157,7 +147,7 @@ export default function Navbar() {
             
             <ul 
                 className={`
-                  absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-white rounded-2xl w-56 border border-gray-200 text-right z-50
+                  absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-base-100 rounded-2xl w-56 border border-base-200 text-right z-50
                   origin-top-left transition-all duration-200 ease-in-out
                   ${isDropdownOpen 
                     ? 'opacity-100 scale-100 visible translate-y-0' 
@@ -169,7 +159,7 @@ export default function Navbar() {
                    }
                 }}
             >
-              <li className="menu-title px-4 py-2 text-xs text-primary/70 border-b border-gray-100 mb-2">
+              <li className="menu-title px-4 py-2 text-xs text-primary/70 border-b border-base-200 mb-2">
                 {profile?.parent_name || user.email}
               </li>
               
@@ -198,9 +188,8 @@ export default function Navbar() {
                 </Link>
               </li>
               
-              {/* ADMIN LINK IN DROPDOWN (For Mobile) */}
               {isAdmin && (
-                <li className="border-t border-gray-100 mt-1 pt-1">
+                <li className="border-t border-base-200 mt-1 pt-1">
                   <Link href="/admin" className="py-2 text-primary font-bold">
                     <FaShieldAlt /> لوحة الإدارة
                   </Link>

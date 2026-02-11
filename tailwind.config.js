@@ -7,11 +7,9 @@ export default {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: ['class', '[data-theme="dark"]'], 
   theme: {
     extend: {
       fontFamily: {
-        // We added slogan before, now we add nastaliq back
         slogan: ['var(--font-slogan)'],
         nastaliq: ['var(--font-nastaliq)'], 
       },
@@ -35,21 +33,6 @@ export default {
           "base-100": "#f0f9ff",  
           "base-200": "#e0f2fe",  
           "base-300": "#bae6fd",  
-          "info": "#3abff8",
-          "success": "#36d399",
-          "warning": "#fbbd23",
-          "error": "#f87272",
-        },
-      },
-      {
-        dark: {
-          "primary": "#38bdf8",   
-          "secondary": "#0ea5e9", 
-          "accent": "#7dd3fc",    
-          "neutral": "#f0f9ff",   
-          "base-100": "#0f172a",  
-          "base-200": "#1e293b",  
-          "base-300": "#334155",  
           "info": "#3abff8",
           "success": "#36d399",
           "warning": "#fbbd23",

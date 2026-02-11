@@ -1,5 +1,3 @@
-// app/utils/imageUtils.js
-
 /**
  * Creates an image element from a URL
  */
@@ -113,7 +111,7 @@ export async function getCroppedImg(
 }
 
 /**
- * Compresses an image to be under maxSizeInMB
+ * Compresses an image to be under maxSizeInMB (for profile photos)
  */
 export async function compressImage(file, maxSizeInMB = 2) {
   const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
@@ -157,6 +155,74 @@ export async function compressImage(file, maxSizeInMB = 2) {
                   type: 'image/jpeg',
                   lastModified: Date.now(),
                 });
+                resolve(compressedFile);
+              } else {
+                tryCompress(quality - 0.1);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+
+        tryCompress(0.9);
+      };
+    };
+  });
+}
+
+/**
+ * Compresses an image for gallery upload (larger max size than profile photos)
+ * @param {File} file - The image file to compress
+ * @param {number} maxSizeInMB - Maximum file size in MB (default: 10)
+ * @returns {Promise<File>} - The compressed file
+ */
+export async function compressImageForGallery(file, maxSizeInMB = 10) {
+  const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
+
+  if (file.size <= maxSizeInBytes) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+
+        const maxDimension = 2048;
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = (height / width) * maxDimension;
+            width = maxDimension;
+          } else {
+            width = (width / height) * maxDimension;
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const tryCompress = (quality) => {
+          canvas.toBlob(
+            (blob) => {
+              if (blob.size <= maxSizeInBytes || quality <= 0.1) {
+                const compressedFile = new File(
+                  [blob],
+                  file.name.replace(/\.[^/.]+$/, '.jpg'),
+                  {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                  }
+                );
                 resolve(compressedFile);
               } else {
                 tryCompress(quality - 0.1);

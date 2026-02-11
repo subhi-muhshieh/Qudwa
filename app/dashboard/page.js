@@ -3,20 +3,17 @@ import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
 import { useRouter } from 'next/navigation';
-import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner, FaRegHeart } from 'react-icons/fa';
+import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner, FaRegHeart, FaExpand } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateActivityStatuses } from '../utils/activityHelpers'; 
 
-// --- SPECIALIZED LIKE BUTTON COMPONENT ---
-// This handles the animation, state, and database logic independently
 const LikeButton = ({ activityId, userId }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [animating, setAnimating] = useState(false);
   const supabase = createClient();
 
-  // 1. Check if user already liked this activity on load
   useEffect(() => {
     const checkLikeStatus = async () => {
       const { data } = await supabase
@@ -32,27 +29,23 @@ const LikeButton = ({ activityId, userId }) => {
     checkLikeStatus();
   }, [activityId, userId, supabase]);
 
-  // 2. Handle the toggle
   const toggleLike = async () => {
     if (loading) return;
     
-    // Optimistic UI: Switch state immediately for speed
     const previousState = isLiked;
     setIsLiked(!previousState);
-    setAnimating(true); // Trigger animation
+    setAnimating(true);
 
     if (!previousState) {
-      // ADD LIKE
       const { error } = await supabase
         .from('likes')
         .insert([{ user_id: userId, activity_id: activityId }]);
       
       if (error) {
-        setIsLiked(previousState); // Revert on error
+        setIsLiked(previousState);
         toast.error("حدث خطأ");
       }
     } else {
-      // REMOVE LIKE
       const { error } = await supabase
         .from('likes')
         .delete()
@@ -60,12 +53,11 @@ const LikeButton = ({ activityId, userId }) => {
         .eq('activity_id', activityId);
         
       if (error) {
-        setIsLiked(previousState); // Revert on error
+        setIsLiked(previousState);
         toast.error("حدث خطأ");
       }
     }
     
-    // Reset animation state after it plays
     setTimeout(() => setAnimating(false), 300);
   };
 
@@ -75,8 +67,8 @@ const LikeButton = ({ activityId, userId }) => {
       whileTap={{ scale: 0.8 }}
       className={`btn rounded-xl px-6 transition-all duration-300 gap-2 border-2 ${
         isLiked 
-          ? 'btn-error bg-red-50 text-red-500 border-red-200' // Liked Style
-          : 'btn-outline border-base-300 hover:border-red-300 hover:text-red-500' // Unliked Style
+          ? 'btn-error bg-error/10 text-error border-error/20' 
+          : 'btn-outline border-base-300 hover:border-error/30 hover:text-error'
       }`}
     >
       <motion.div
@@ -92,17 +84,16 @@ const LikeButton = ({ activityId, userId }) => {
   );
 };
 
-// --- MAIN DASHBOARD COMPONENT ---
 export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState(null);
   const [upcomingActivity, setUpcomingActivity] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Registration States
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [expandedImage, setExpandedImage] = useState(null);
   
   const supabase = createClient();
   const router = useRouter();
@@ -116,7 +107,6 @@ export default function Dashboard() {
 
       await updateActivityStatuses(supabase);
 
-      // Then fetch the updated data
       const { data: past } = await supabase
         .from('activities')
         .select('*')
@@ -140,7 +130,6 @@ export default function Dashboard() {
     checkUserAndFetchData();
   }, [router]);
 
-  // Check Registration Status
   useEffect(() => {
     const checkRegistrationStatus = async () => {
       if (!selectedActivity || !user) return;
@@ -167,6 +156,15 @@ export default function Dashboard() {
     }
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedActivity, user]);
+
+  // Lock scroll for image lightbox too
+  useEffect(() => {
+    if (expandedImage) {
+      document.body.style.overflow = 'hidden';
+    } else if (!selectedActivity) {
+      document.body.style.overflow = 'unset';
+    }
+  }, [expandedImage, selectedActivity]);
 
   const handleRegister = async () => {
     if (!user || !selectedActivity) return;
@@ -197,14 +195,6 @@ export default function Dashboard() {
     setRegistering(false);
   };
 
-  const scrollToContact = () => {
-    const element = document.getElementById('message-box');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      element.focus();
-    }
-  };
-
   const fadeInUp = { hidden: { opacity: 0, y: 60 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-ring loading-lg text-primary"></span></div>;
@@ -219,87 +209,90 @@ export default function Dashboard() {
         <div className="w-24 h-2 bg-gradient-to-r from-primary to-accent mx-auto mt-6 rounded-full opacity-50"></div>
       </motion.div>
 
-     {/* 1. UPCOMING ACTIVITY */}
-{upcomingActivity && (
-  <motion.div 
-    className="max-w-6xl mx-auto mb-20 relative group" 
-    initial="hidden" 
-    whileInView="visible" 
-    viewport={{ once: true, amount: 0.3 }} 
-    variants={fadeInUp}
-  >
-    {/* Glowing Background Effect */}
-    <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.6rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-    
-    <div className="card w-full bg-gradient-to-br from-primary via-secondary to-accent text-white shadow-2xl rounded-[2rem] md:rounded-[2.5rem] relative overflow-hidden">
-      
-      {/* Decorative circles */}
-      <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-black/10 blur-3xl"></div>
-
-      <div className="card-body p-5 sm:p-8 md:p-12 relative z-10">
-        
-        {/* Header Badge */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-3">
-           <div className="badge bg-white/20 border-0 text-white backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 h-auto gap-2 text-xs sm:text-sm font-bold shadow-sm">
-              <FaCalendarAlt className="animate-pulse" />
-              <span>النشاط القادم</span>
-           </div>
-           {upcomingActivity.activity_date && (
-              <div className="text-blue-100 font-medium bg-black/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-sm">
-                {upcomingActivity.activity_date}
-              </div>
-           )}
-        </div>
-
-        {/* Content Split: Text vs Image */}
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-14 items-center">
+      {/* UPCOMING ACTIVITY */}
+      {upcomingActivity && (
+        <motion.div 
+          className="max-w-6xl mx-auto mb-20 relative group" 
+          initial="hidden" 
+          whileInView="visible" 
+          viewport={{ once: true, amount: 0.3 }} 
+          variants={fadeInUp}
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.6rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
           
-          {/* Right Side: Text */}
-          <div className="w-full lg:w-1/2 text-right space-y-4 md:space-y-6 order-2 lg:order-1">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black leading-tight drop-shadow-md">
-              {upcomingActivity.title}
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-blue-50 opacity-90 leading-relaxed font-light">
-              {upcomingActivity.short_description}
-            </p>
+          <div className="card w-full bg-gradient-to-br from-primary via-secondary to-accent text-white shadow-2xl rounded-[2rem] md:rounded-[2.5rem] relative overflow-hidden">
             
-            <div className="pt-2 md:pt-4">
-              <button 
-                onClick={() => setSelectedActivity(upcomingActivity)} 
-                className="btn btn-md sm:btn-lg bg-white text-primary hover:bg-blue-50 border-none rounded-xl sm:rounded-2xl px-6 sm:px-10 shadow-xl w-full sm:w-auto text-sm sm:text-base"
-              >
-                  التفاصيل والتسجيل <FaArrowLeft className="mr-1" />
-              </button>
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-black/10 blur-3xl"></div>
+
+            <div className="card-body p-5 sm:p-8 md:p-12 relative z-10">
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-3">
+                 <div className="badge bg-white/20 border-0 text-white backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 h-auto gap-2 text-xs sm:text-sm font-bold shadow-sm">
+                    <FaCalendarAlt className="animate-pulse" />
+                    <span>النشاط القادم</span>
+                 </div>
+                 {upcomingActivity.activity_date && (
+                    <div className="text-blue-100 font-medium bg-black/10 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl text-sm">
+                      {upcomingActivity.activity_date}
+                    </div>
+                 )}
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-6 lg:gap-14 items-center">
+                
+                {/* Right Side: Text */}
+                <div className="w-full lg:w-1/2 text-right space-y-4 md:space-y-6 order-2 lg:order-1 min-w-0">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black leading-tight drop-shadow-md break-words">
+                    {upcomingActivity.title}
+                  </h2>
+                  <p className="text-base sm:text-lg md:text-xl text-blue-50 opacity-90 leading-relaxed font-light line-clamp-4 break-words">
+                    {upcomingActivity.short_description}
+                  </p>
+                  
+                  <div className="pt-2 md:pt-4">
+                    <button 
+                      onClick={() => setSelectedActivity(upcomingActivity)} 
+                      className="btn btn-md sm:btn-lg bg-white text-primary hover:bg-blue-50 border-none rounded-xl sm:rounded-2xl px-6 sm:px-10 shadow-xl w-full sm:w-auto text-sm sm:text-base"
+                    >
+                        التفاصيل والتسجيل <FaArrowLeft className="mr-1" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Left Side: Image */}
+                <div className="w-full lg:w-1/2 order-1 lg:order-2 flex justify-center lg:justify-end shrink-0">
+                   {upcomingActivity.image_url ? (
+                      <div 
+                        className="relative w-full max-w-md h-48 sm:h-64 md:h-80 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 transform rotate-1 sm:rotate-2 hover:rotate-0 transition-all duration-500 cursor-pointer group/img"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedImage(upcomingActivity.image_url);
+                        }}
+                      >
+                        <img 
+                          src={upcomingActivity.image_url} 
+                          alt="Upcoming Activity" 
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-all duration-300 flex items-center justify-center">
+                          <FaExpand className="text-white text-3xl drop-shadow-lg opacity-0 group-hover/img:opacity-100 transition-opacity duration-300" />
+                        </div>
+                      </div>
+                   ) : (
+                      <div className="hidden lg:flex justify-center opacity-80">
+                         <FaCalendarAlt className="text-[10rem] text-white/20" />
+                      </div>
+                   )}
+                </div>
+
+              </div>
             </div>
           </div>
-          
-          {/* Left Side: Image */}
-          <div className="w-full lg:w-1/2 order-1 lg:order-2 flex justify-center lg:justify-end">
-             {upcomingActivity.image_url ? (
-                <div className="relative w-full max-w-md h-48 sm:h-64 md:h-80 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 transform rotate-1 sm:rotate-2 hover:rotate-0 transition-all duration-500">
-                  <img 
-                    src={upcomingActivity.image_url} 
-                    alt="Upcoming Activity" 
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Shine Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
-                </div>
-             ) : (
-                <div className="hidden lg:flex justify-center opacity-80">
-                   <FaCalendarAlt className="text-[10rem] text-white/20" />
-                </div>
-             )}
-          </div>
+        </motion.div>
+      )}
 
-        </div>
-      </div>
-    </div>
-  </motion.div>
-)}
-
-      {/* 2. RECENT ACTIVITY */}
+      {/* RECENT ACTIVITY */}
       <motion.div 
         className="max-w-6xl mx-auto mb-24" 
         initial="hidden" 
@@ -309,15 +302,17 @@ export default function Dashboard() {
       >
         <div className="flex items-center gap-3 mb-6 px-4">
            <div className="w-2 h-8 bg-secondary rounded-full"></div>
-           <h3 className="text-2xl font-bold text-neutral">أحدث ما قمنا به</h3>
+           <h3 className="text-2xl font-bold text-base-content">أحدث ما قمنا به</h3>
         </div>
 
-        <div className="glass-panel bg-white/70 backdrop-blur-xl border border-white/50 rounded-[2.5rem] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500">
+        <div className="glass-panel bg-base-100/70 backdrop-blur-xl border border-base-content/10 rounded-[2.5rem] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500">
           <div className="flex flex-col lg:flex-row-reverse">
             
-            {/* Image Section */}
             {recentActivity?.image_url ? (
-              <div className="w-full lg:w-5/12 h-[300px] lg:h-auto relative group overflow-hidden">
+              <div 
+                className="w-full lg:w-5/12 h-[300px] lg:h-auto relative group overflow-hidden cursor-pointer"
+                onClick={() => setExpandedImage(recentActivity.image_url)}
+              >
                   <img 
                     src={recentActivity.image_url} 
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
@@ -327,6 +322,10 @@ export default function Dashboard() {
                   <div className="absolute bottom-4 right-4 lg:top-4 lg:right-4 badge badge-secondary shadow-lg border-none">
                      <FaStar className="mr-1 text-xs" /> تم إنجازه
                   </div>
+                  {/* Expand hint */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20">
+                    <FaExpand className="text-white text-3xl drop-shadow-lg" />
+                  </div>
               </div>
             ) : (
               <div className="w-full lg:w-5/12 bg-base-200 flex items-center justify-center min-h-[300px]">
@@ -334,28 +333,25 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Content Section */}
             {recentActivity ? (
               <div className="w-full lg:w-7/12 p-8 md:p-12 text-right flex flex-col justify-center">
-                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-neutral">{recentActivity.title}</h2>
-                <p className="text-lg text-neutral/70 leading-relaxed mb-8">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 text-base-content break-words">{recentActivity.title}</h2>
+                <p className="text-lg text-base-content/70 leading-relaxed mb-8 line-clamp-4 break-words">
                   {recentActivity.short_description}
                 </p>
                 
                 <div className="flex flex-wrap gap-3 mt-auto">
                     
-                    {/* NEW ANIMATED LIKE BUTTON */}
                     <LikeButton activityId={recentActivity.id} userId={user.id} />
                     
                     <button 
                       onClick={() => setSelectedActivity(recentActivity)} 
-                      className="btn btn-ghost text-neutral/60 hover:text-primary rounded-xl"
+                      className="btn btn-ghost text-base-content/60 hover:text-primary rounded-xl"
                     >
                       قراءة المزيد...
                     </button>
                     <div className="flex-grow"></div>
                     
-                    {/* UPDATED: Changed from Button(scrollTo) to Link(/contact) */}
                     <Link 
                       href="/contact"
                       className="btn btn-sm btn-ghost text-secondary opacity-70 hover:opacity-100 gap-2"
@@ -365,13 +361,13 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="p-12 text-center w-full text-neutral/50">جاري تحميل النشاطات...</div>
+              <div className="p-12 text-center w-full text-base-content/50">جاري تحميل النشاطات...</div>
             )}
           </div>
         </div>
       </motion.div>
 
-      {/* MODAL */}
+      {/* ACTIVITY DETAIL MODAL */}
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
@@ -380,7 +376,7 @@ export default function Dashboard() {
           >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedActivity(null)}></div>
             <motion.div 
-              className="bg-base-100 w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto scrollbar-hide"
+              className="bg-base-100 w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto overflow-x-hidden scrollbar-hide"
               initial={{ scale: 0.95, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 30 }}
             >
               <button 
@@ -391,34 +387,48 @@ export default function Dashboard() {
               </button>
 
               {selectedActivity.image_url && (
-                <div className="w-full h-64 md:h-80 relative">
+                <div 
+                  className="w-full h-64 md:h-80 relative cursor-pointer group"
+                  onClick={() => setExpandedImage(selectedActivity.image_url)}
+                >
                   <img src={selectedActivity.image_url} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-base-100 via-transparent to-transparent"></div>
-                  <div className="absolute bottom-0 right-0 p-8 w-full">
-                    <h3 className="text-3xl md:text-4xl font-bold text-neutral drop-shadow-sm">{selectedActivity.title}</h3>
+                  <div className="absolute bottom-0 right-0 left-0 p-6 md:p-8">
+                    <h3 className="text-2xl md:text-4xl font-bold text-base-content drop-shadow-sm line-clamp-2 break-words">{selectedActivity.title}</h3>
+                  </div>
+                  {/* Expand hint */}
+                  <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FaExpand className="text-white" />
                   </div>
                 </div>
               )}
 
-              <div className="p-8 md:p-10 text-right space-y-8">
-                {!selectedActivity.image_url && <h3 className="text-3xl md:text-4xl font-bold text-primary mb-6">{selectedActivity.title}</h3>}
+              <div className="p-6 md:p-10 text-right space-y-8">
+                {!selectedActivity.image_url && <h3 className="text-2xl md:text-4xl font-bold text-primary mb-6 break-words">{selectedActivity.title}</h3>}
+
+                {/* Short Description */}
+                {selectedActivity.short_description && (
+                  <p className="text-base-content/70 text-lg leading-relaxed break-words">
+                    {selectedActivity.short_description}
+                  </p>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedActivity.activity_date && (
                         <div className="flex items-center gap-4 bg-base-200/50 p-4 rounded-2xl">
-                            <div className="w-10 h-10 bg-blue-100 text-primary rounded-full flex items-center justify-center"><FaCalendarAlt /></div>
-                            <div>
-                                <div className="text-xs text-neutral/50">التاريخ</div>
-                                <div className="font-bold text-neutral">{selectedActivity.activity_date}</div>
+                            <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0"><FaCalendarAlt /></div>
+                            <div className="min-w-0">
+                                <div className="text-xs text-base-content/50">التاريخ</div>
+                                <div className="font-bold text-base-content">{selectedActivity.activity_date}</div>
                             </div>
                         </div>
                     )}
                     {selectedActivity.start_time && (
                         <div className="flex items-center gap-4 bg-base-200/50 p-4 rounded-2xl">
-                            <div className="w-10 h-10 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center"><FaClock /></div>
-                            <div>
-                                <div className="text-xs text-neutral/50">الوقت</div>
-                                <div className="font-bold text-neutral">
+                            <div className="w-10 h-10 bg-warning/10 text-warning rounded-full flex items-center justify-center shrink-0"><FaClock /></div>
+                            <div className="min-w-0">
+                                <div className="text-xs text-base-content/50">الوقت</div>
+                                <div className="font-bold text-base-content">
                                   {selectedActivity.start_time.slice(0,5)} 
                                   {selectedActivity.end_time ? ` - ${selectedActivity.end_time.slice(0,5)}` : ''}
                                 </div>
@@ -427,19 +437,21 @@ export default function Dashboard() {
                     )}
                 </div>
 
-                <div className="prose prose-lg max-w-none text-neutral/80">
+                <div>
                     <h4 className="font-bold text-xl text-primary mb-4 flex items-center gap-2">
-                        <FaInfoCircle className="text-lg" /> التفاصيل
+                        <FaInfoCircle className="text-lg shrink-0" /> التفاصيل
                     </h4>
-                    <p className="whitespace-pre-wrap leading-loose text-base">{selectedActivity.full_report}</p>
+                    <p className="text-base-content/80 whitespace-pre-wrap leading-loose text-base break-words overflow-wrap-anywhere">
+                      {selectedActivity.full_report}
+                    </p>
                 </div>
 
                 {selectedActivity.notable_notes && (
                     <div className="bg-warning/10 border border-warning/20 p-6 rounded-2xl flex gap-4 items-start">
                         <FaStar className="text-warning text-xl mt-1 shrink-0" />
-                        <div>
-                            <h5 className="font-bold text-warning-content mb-1">ملاحظات هامة</h5>
-                            <p className="text-neutral/70 text-sm whitespace-pre-wrap">{selectedActivity.notable_notes}</p>
+                        <div className="min-w-0">
+                            <h5 className="font-bold text-base-content mb-1">ملاحظات هامة</h5>
+                            <p className="text-base-content/70 text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">{selectedActivity.notable_notes}</p>
                         </div>
                     </div>
                 )}
@@ -470,6 +482,41 @@ export default function Dashboard() {
                 </div>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* IMAGE LIGHTBOX */}
+      <AnimatePresence>
+        {expandedImage && (
+          <motion.div 
+            className="fixed inset-0 z-[200] flex items-center justify-center"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            onClick={() => setExpandedImage(null)}
+          >
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
+            
+            {/* Close Button */}
+            <button 
+              onClick={() => setExpandedImage(null)} 
+              className="absolute top-6 left-6 z-30 w-12 h-12 rounded-full bg-white/10 hover:bg-red-500 flex items-center justify-center text-white transition-all duration-200"
+            >
+              <FaTimes className="text-xl" />
+            </button>
+
+            {/* Image */}
+            <motion.img 
+              src={expandedImage} 
+              alt="صورة مكبرة"
+              className="relative z-20 max-w-[95vw] max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+              initial={{ scale: 0.8, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+            />
           </motion.div>
         )}
       </AnimatePresence>

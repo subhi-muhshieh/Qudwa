@@ -18,7 +18,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // --- STATE FOR ORIGINAL DATA (To detect changes) ---
   const [originalName, setOriginalName] = useState('');
   const [originalPhone, setOriginalPhone] = useState('');
   const [originalAvatarUrl, setOriginalAvatarUrl] = useState('');
@@ -27,7 +26,6 @@ export default function ProfilePage() {
   const [originalMemberRoles, setOriginalMemberRoles] = useState([]);
   const [originalDonorParty, setOriginalDonorParty] = useState('');
   
-  // --- STATE FOR CURRENT EDITS ---
   const [currentName, setCurrentName] = useState('');
   const [currentPhone, setCurrentPhone] = useState('');
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState('');
@@ -39,7 +37,6 @@ export default function ProfilePage() {
   const [pendingAvatarFile, setPendingAvatarFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   
-  // --- UI TOGGLES ---
   const [editingName, setEditingName] = useState(false);
   const [editingPhone, setEditingPhone] = useState(false);
   const [editingUserType, setEditingUserType] = useState(false);
@@ -54,7 +51,6 @@ export default function ProfilePage() {
   const supabase = createClient();
   const router = useRouter();
 
-  // --- DATA LISTS ---
   const userTypeLabels = {
     'parent': 'ولي أمر',
     'member': 'عضو جمعية',
@@ -78,7 +74,6 @@ export default function ProfilePage() {
     'member': 'عضو'
   };
 
-  // --- CHANGE DETECTION ---
   const hasChanges = 
     currentName !== originalName ||
     currentPhone !== originalPhone ||
@@ -88,7 +83,6 @@ export default function ProfilePage() {
     JSON.stringify(currentMemberRoles) !== JSON.stringify(originalMemberRoles) ||
     pendingAvatarFile !== null;
 
-  // --- INITIALIZATION ---
   useEffect(() => {
     if (!user) { router.push('/login'); return; }
 
@@ -113,7 +107,6 @@ export default function ProfilePage() {
     }
   }, [user, contextProfile, router]);
 
-  // --- AVATAR HANDLERS ---
   const handleImageSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -132,10 +125,8 @@ export default function ProfilePage() {
     toast.success('تم تعديل الصورة - اضغط حفظ لتأكيد التغييرات');
   };
 
-  // --- GENERAL HANDLERS ---
   const handlePhoneChange = (value) => setCurrentPhone(value.replace(/[^0-9+]/g, ''));
 
-  // --- MEMBER ROLE HANDLERS ---
   const addRole = () => setCurrentMemberRoles([...currentMemberRoles, { rank: '', office: '' }]);
   const removeRole = (index) => {
     if (currentMemberRoles.length > 1) setCurrentMemberRoles(currentMemberRoles.filter((_, i) => i !== index));
@@ -148,27 +139,22 @@ export default function ProfilePage() {
     setCurrentMemberRoles(newRoles);
   };
 
-  // --- CHILDREN HANDLERS ---
   const addChild = () => setCurrentChildren([...currentChildren, { name: '', age: '' }]);
-  
   const removeChild = (index) => {
     if (currentChildren.length > 1) setCurrentChildren(currentChildren.filter((_, i) => i !== index));
     else toast.error('يجب أن يكون لديك طفل واحد على الأقل');
   };
-  
   const updateChild = (index, field, value) => {
     const newChildren = [...currentChildren];
     newChildren[index][field] = field === 'age' ? value.replace(/[^0-9]/g, '') : value;
     setCurrentChildren(newChildren);
   };
 
-  // *** FIXED: RE-ADDED THIS FUNCTION ***
   const cancelChildrenEdit = () => {
     setCurrentChildren([...originalChildren]);
     setEditingChildren(false);
   };
 
-  // --- SAVE LOGIC ---
   const handleSaveChanges = async () => {
     if (!hasChanges) return;
 
@@ -279,7 +265,7 @@ export default function ProfilePage() {
           <FaArrowRight /> العودة للرئيسية
         </Link>
         
-        <div className="bg-white rounded-[2.5rem] shadow-xl overflow-hidden">
+        <div className="bg-base-100 rounded-[2.5rem] shadow-xl overflow-hidden">
           
           <div className="h-32 bg-gradient-to-r from-primary to-accent"></div>
           
@@ -288,7 +274,7 @@ export default function ProfilePage() {
             {/* AVATAR */}
             <div className="flex justify-center -mt-16 mb-6">
               <div className="relative">
-                <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-base-200">
+                <div className="w-32 h-32 rounded-full border-4 border-base-100 shadow-lg overflow-hidden bg-base-200">
                   {displayAvatarUrl ? (
                     <img src={displayAvatarUrl} alt="Profile" className="w-full h-full object-cover"/>
                   ) : (
@@ -310,7 +296,6 @@ export default function ProfilePage() {
             {/* HEADER */}
             <div className="text-center mb-8">
               
-              {/* Name Edit */}
               <div className="flex items-center justify-center gap-2 mb-1">
                  {editingName ? (
                      <div className="flex gap-2 items-center">
@@ -324,16 +309,15 @@ export default function ProfilePage() {
                         <button onClick={() => setEditingName(false)} className="btn btn-xs btn-circle btn-ghost"><FaTimes /></button>
                      </div>
                  ) : (
-                     <h1 className="text-2xl font-bold text-neutral flex items-center gap-2">
+                     <h1 className="text-2xl font-bold text-base-content flex items-center gap-2">
                         {currentName}
-                        <button onClick={() => setEditingName(true)} className="text-gray-400 text-sm hover:text-primary"><FaEdit /></button>
+                        <button onClick={() => setEditingName(true)} className="text-base-content/40 text-sm hover:text-primary"><FaEdit /></button>
                      </h1>
                  )}
               </div>
               
-              <p className="text-gray-500 text-sm" dir="ltr">{user?.email}</p>
+              <p className="text-base-content/50 text-sm" dir="ltr">{user?.email}</p>
 
-              {/* User Type Edit */}
               <div className="mt-3 flex justify-center items-center gap-2">
                  {editingUserType ? (
                     <div className="flex gap-2 items-center">
@@ -365,7 +349,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* --- 1. MEMBER INFO --- */}
+            {/* MEMBER INFO */}
             {currentUserType === 'member' && (
               <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 mb-6">
                  <div className="flex items-center justify-between mb-4">
@@ -375,14 +359,14 @@ export default function ProfilePage() {
                     {!editingMemberRoles ? (
                         <button onClick={() => setEditingMemberRoles(true)} className="btn btn-ghost btn-sm text-primary"><FaEdit /> تعديل</button>
                     ) : (
-                        <button onClick={() => setEditingMemberRoles(false)} className="btn btn-ghost btn-sm text-gray-500"><FaTimes /> إغلاق</button>
+                        <button onClick={() => setEditingMemberRoles(false)} className="btn btn-ghost btn-sm text-base-content/50"><FaTimes /> إغلاق</button>
                     )}
                  </div>
 
                  <div className="space-y-3">
                     {currentMemberRoles.length > 0 ? (
                         currentMemberRoles.map((role, idx) => (
-                            <div key={idx} className="bg-white p-3 rounded-xl shadow-sm flex flex-col gap-2 border border-gray-100 relative">
+                            <div key={idx} className="bg-base-100 p-3 rounded-xl shadow-sm flex flex-col gap-2 border border-base-200 relative">
                                 {editingMemberRoles ? (
                                     <div className="space-y-2 pt-1">
                                         {currentMemberRoles.length > 1 && (
@@ -403,58 +387,58 @@ export default function ProfilePage() {
                                     <div className="flex items-center gap-3">
                                         <div className="bg-primary/10 w-10 h-10 rounded-full flex items-center justify-center text-primary"><FaSitemap /></div>
                                         <div>
-                                            <div className="font-bold text-neutral">{rankLabels[role.rank] || role.rank}</div>
-                                            {role.office && <div className="text-xs text-gray-500">{officeLabels[role.office] || role.office}</div>}
+                                            <div className="font-bold text-base-content">{rankLabels[role.rank] || role.rank}</div>
+                                            {role.office && <div className="text-xs text-base-content/50">{officeLabels[role.office] || role.office}</div>}
                                         </div>
                                     </div>
                                 )}
                             </div>
                         ))
                     ) : (
-                        <p className="text-gray-400 text-sm">لا توجد مناصب مسجلة</p>
+                        <p className="text-base-content/40 text-sm">لا توجد مناصب مسجلة</p>
                     )}
                     {editingMemberRoles && <button onClick={addRole} className="btn btn-outline btn-primary btn-sm w-full rounded-xl gap-2 border-dashed mt-2"><FaPlus /> إضافة منصب</button>}
                  </div>
               </div>
             )}
 
-            {/* --- 2. DONOR INFO --- */}
+            {/* DONOR INFO */}
             {currentUserType === 'donor' && (
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6 mb-6">
+              <div className="bg-warning/5 border border-warning/10 rounded-2xl p-6 mb-6">
                  <div className="flex items-center justify-between mb-4">
-                     <h3 className="font-bold text-orange-600 flex items-center gap-2"><FaBuilding /> معلومات الجهة المانحة</h3>
+                     <h3 className="font-bold text-warning flex items-center gap-2"><FaBuilding /> معلومات الجهة المانحة</h3>
                      {!editingDonorParty ? (
-                        <button onClick={() => setEditingDonorParty(true)} className="btn btn-ghost btn-sm text-orange-600"><FaEdit /> تعديل</button>
+                        <button onClick={() => setEditingDonorParty(true)} className="btn btn-ghost btn-sm text-warning"><FaEdit /> تعديل</button>
                      ) : (
-                        <button onClick={() => setEditingDonorParty(false)} className="btn btn-ghost btn-sm text-gray-500"><FaTimes /> إغلاق</button>
+                        <button onClick={() => setEditingDonorParty(false)} className="btn btn-ghost btn-sm text-base-content/50"><FaTimes /> إغلاق</button>
                      )}
                  </div>
                  {editingDonorParty ? (
                      <div className="space-y-1">
-                        <input type="text" value={currentDonorParty} onChange={(e) => setCurrentDonorParty(e.target.value)} className="input input-bordered w-full bg-white" placeholder="اسم الجهة (اختياري)" />
-                        <p className="text-[10px] text-gray-400">اتركه فارغاً إذا كنت داعماً بصفة شخصية</p>
+                        <input type="text" value={currentDonorParty} onChange={(e) => setCurrentDonorParty(e.target.value)} className="input input-bordered w-full bg-base-100" placeholder="اسم الجهة (اختياري)" />
+                        <p className="text-[10px] text-base-content/40">اتركه فارغاً إذا كنت داعماً بصفة شخصية</p>
                      </div>
                  ) : (
-                    <p className="text-lg text-neutral">{currentDonorParty || 'داعم بصفة شخصية'}</p>
+                    <p className="text-lg text-base-content">{currentDonorParty || 'داعم بصفة شخصية'}</p>
                  )}
               </div>
             )}
 
-            {/* --- 3. CHILDREN (Parent Only) --- */}
+            {/* CHILDREN */}
             {currentUserType === 'parent' && (
-              <div className="bg-base-100 rounded-2xl p-6 mb-6">
+              <div className="bg-base-200/50 rounded-2xl p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-primary flex items-center gap-2"><FaChild /> الأبناء المسجلين</h3>
                   {!editingChildren ? (
                     <button onClick={() => setEditingChildren(true)} className="btn btn-ghost btn-sm text-primary"><FaEdit /> تعديل</button>
                   ) : (
-                    <button onClick={cancelChildrenEdit} className="btn btn-ghost btn-sm text-gray-500"><FaTimes /> إغلاق</button>
+                    <button onClick={cancelChildrenEdit} className="btn btn-ghost btn-sm text-base-content/50"><FaTimes /> إغلاق</button>
                   )}
                 </div>
                 {currentChildren.length > 0 || editingChildren ? (
                   <div className="space-y-3">
                     {currentChildren.map((child, index) => (
-                      <div key={index} className={`p-4 rounded-xl ${editingChildren ? 'bg-base-200' : 'bg-base-200/50'}`}>
+                      <div key={index} className={`p-4 rounded-xl ${editingChildren ? 'bg-base-200' : 'bg-base-100'}`}>
                         {editingChildren ? (
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -468,7 +452,7 @@ export default function ProfilePage() {
                           </div>
                         ) : (
                           <div className="flex items-center justify-between">
-                            <span className="font-medium">{child.name}</span>
+                            <span className="font-medium text-base-content">{child.name}</span>
                             <span className="badge badge-primary">{child.age} سنة</span>
                           </div>
                         )}
@@ -477,13 +461,13 @@ export default function ProfilePage() {
                     {editingChildren && <button onClick={addChild} className="btn btn-outline btn-primary btn-sm w-full rounded-xl gap-2"><FaPlus /> إضافة طفل آخر</button>}
                   </div>
                 ) : (
-                   <p className="text-gray-500 text-center">لم يتم إضافة أبناء</p>
+                   <p className="text-base-content/50 text-center">لم يتم إضافة أبناء</p>
                 )}
               </div>
             )}
 
-            {/* --- 4. PHONE NUMBER --- */}
-            <div className="bg-base-100 rounded-2xl p-6 mb-6">
+            {/* PHONE */}
+            <div className="bg-base-200/50 rounded-2xl p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-primary flex items-center gap-2"><FaPhone /> رقم الهاتف</h3>
                 {!editingPhone && <button onClick={() => setEditingPhone(true)} className="btn btn-ghost btn-sm text-primary"><FaEdit /> تعديل</button>}
@@ -491,26 +475,32 @@ export default function ProfilePage() {
               {editingPhone ? (
                 <div className="relative"><input type="tel" value={currentPhone} onChange={(e) => handlePhoneChange(e.target.value)} dir="ltr" className="input input-bordered w-full text-left" placeholder="رقم الهاتف" /></div>
               ) : (
-                <p className="text-lg" dir="ltr">{currentPhone || 'لم يتم إضافة رقم'}</p>
+                <p className="text-lg text-base-content" dir="ltr">{currentPhone || 'لم يتم إضافة رقم'}</p>
               )}
             </div>
 
             {/* ACTIONS */}
             <div className="flex gap-3 mb-6">
-              <button onClick={handleSaveChanges} disabled={!hasChanges || saving} className={`btn flex-1 rounded-xl gap-2 text-white ${hasChanges ? 'btn-primary shadow-lg' : 'btn-disabled bg-gray-300'}`}>
+              <button onClick={handleSaveChanges} disabled={!hasChanges || saving} className={`btn flex-1 rounded-xl gap-2 text-white ${hasChanges ? 'btn-primary shadow-lg' : 'btn-disabled bg-base-300'}`}>
                 {saving ? <span className="loading loading-spinner"></span> : <><FaSave /> حفظ التغييرات</>}
               </button>
               {hasChanges && <button onClick={handleDiscardChanges} className="btn btn-ghost rounded-xl">إلغاء</button>}
             </div>
 
+            {hasChanges && (
+              <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 mb-6 text-center">
+                <p className="text-warning text-sm font-medium">لديك تغييرات غير محفوظة</p>
+              </div>
+            )}
+
             {/* SOCIAL */}
-            <div className="bg-base-100 rounded-2xl p-6">
+            <div className="bg-base-200/50 rounded-2xl p-6">
               <h3 className="font-bold text-primary mb-4">تواصل معنا</h3>
               <div className="flex flex-wrap gap-4 justify-center text-2xl text-secondary">
-                <a href="https://www.instagram.com/QudwaAssoc" target="_blank"><FaInstagram className="hover:text-primary transition-colors" /></a>
-                <a href="https://www.facebook.com/QudwaAssoc" target="_blank"><FaFacebook className="hover:text-primary transition-colors" /></a>
-                <a href="https://t.me/QudwaAssoc" target="_blank"><FaTelegramPlane className="hover:text-primary transition-colors" /></a>
-                <a href="https://wa.me/963980931111" target="_blank"><FaWhatsapp className="hover:text-primary transition-colors" /></a>
+                <a href="https://www.instagram.com/QudwaAssoc" target="_blank" rel="noopener noreferrer"><FaInstagram className="hover:text-primary transition-colors" /></a>
+                <a href="https://www.facebook.com/QudwaAssoc" target="_blank" rel="noopener noreferrer"><FaFacebook className="hover:text-primary transition-colors" /></a>
+                <a href="https://t.me/QudwaAssoc" target="_blank" rel="noopener noreferrer"><FaTelegramPlane className="hover:text-primary transition-colors" /></a>
+                <a href="https://wa.me/963980931111" target="_blank" rel="noopener noreferrer"><FaWhatsapp className="hover:text-primary transition-colors" /></a>
                 <a href="mailto:qudwa.ltk@gmail.com"><FaEnvelope className="hover:text-primary transition-colors" /></a>
               </div>
             </div>

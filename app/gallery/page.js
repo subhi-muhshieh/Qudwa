@@ -10,7 +10,7 @@ export default function GalleryPage() {
   const [activities, setActivities] = useState([]);
   const [allPhotos, setAllPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedActivity, setSelectedActivity] = useState(null); // null means show all
+  const [selectedActivity, setSelectedActivity] = useState(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxPhotos, setLightboxPhotos] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -21,14 +21,12 @@ export default function GalleryPage() {
 
   useEffect(() => {
     const fetchGalleryData = async () => {
-      // Check auth
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
         return;
       }
 
-      // Fetch past activities with their photos
       const { data: activitiesData } = await supabase
         .from('activities')
         .select(`
@@ -48,13 +46,11 @@ export default function GalleryPage() {
         .order('activity_date', { ascending: false });
 
       if (activitiesData) {
-        // Filter activities that have photos
         const activitiesWithPhotos = activitiesData.filter(
           activity => activity.activity_photos && activity.activity_photos.length > 0
         );
         setActivities(activitiesWithPhotos);
 
-        // Flatten all photos for "all photos" view
         const photos = activitiesWithPhotos.flatMap(activity => 
           activity.activity_photos.map(photo => ({
             ...photo,
@@ -116,7 +112,7 @@ export default function GalleryPage() {
           <h1 className="text-4xl md:text-5xl font-black text-primary mb-4 font-slogan">
             معرض الصور
           </h1>
-          <p className="text-neutral/60 text-lg max-w-2xl mx-auto">
+          <p className="text-base-content/60 text-lg max-w-2xl mx-auto">
             لحظات مميزة من أنشطتنا وفعالياتنا
           </p>
         </motion.div>
@@ -134,7 +130,7 @@ export default function GalleryPage() {
               className={`px-6 py-3 rounded-2xl font-bold transition-all duration-300 ${
                 selectedActivity === null
                   ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
-                  : 'bg-white text-neutral hover:bg-primary/10'
+                  : 'bg-base-100 text-base-content hover:bg-primary/10'
               }`}
             >
               <span className="flex items-center gap-2">
@@ -151,7 +147,7 @@ export default function GalleryPage() {
                 className={`px-6 py-3 rounded-2xl font-bold transition-all duration-300 ${
                   selectedActivity === activity.id
                     ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
-                    : 'bg-white text-neutral hover:bg-primary/10'
+                    : 'bg-base-100 text-base-content hover:bg-primary/10'
                 }`}
               >
                 <span className="flex items-center gap-2">
@@ -166,8 +162,8 @@ export default function GalleryPage() {
         {/* Current Section Title */}
         <div className="flex items-center gap-3 mb-6 px-2">
           <div className="w-2 h-8 bg-gradient-to-b from-primary to-secondary rounded-full"></div>
-          <h2 className="text-2xl font-bold text-neutral">{getActivityTitle()}</h2>
-          <span className="text-neutral/50">({getPhotosToDisplay().length} صورة)</span>
+          <h2 className="text-2xl font-bold text-base-content">{getActivityTitle()}</h2>
+          <span className="text-base-content/50">({getPhotosToDisplay().length} صورة)</span>
         </div>
 
         {/* Photo Grid */}
@@ -193,7 +189,6 @@ export default function GalleryPage() {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 
-                {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute bottom-0 left-0 right-0 p-3">
                     {photo.caption && (
@@ -208,7 +203,6 @@ export default function GalleryPage() {
                     )}
                   </div>
                   
-                  {/* Expand Icon */}
                   <div className="absolute top-3 left-3">
                     <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                       <FaExpand className="text-white text-sm" />
@@ -227,12 +221,12 @@ export default function GalleryPage() {
             <div className="w-24 h-24 bg-base-300 rounded-full flex items-center justify-center mx-auto mb-6">
               <FaImages className="text-4xl text-base-content/30" />
             </div>
-            <h3 className="text-xl font-bold text-neutral/50 mb-2">لا توجد صور بعد</h3>
-            <p className="text-neutral/40">سيتم إضافة الصور قريباً</p>
+            <h3 className="text-xl font-bold text-base-content/50 mb-2">لا توجد صور بعد</h3>
+            <p className="text-base-content/40">سيتم إضافة الصور قريباً</p>
           </motion.div>
         )}
 
-        {/* Activity Cards View (Alternative) */}
+        {/* Activity Cards View */}
         {selectedActivity === null && activities.length > 0 && (
           <motion.div 
             className="mt-16"
@@ -242,7 +236,7 @@ export default function GalleryPage() {
           >
             <div className="flex items-center gap-3 mb-6 px-2">
               <div className="w-2 h-8 bg-gradient-to-b from-secondary to-accent rounded-full"></div>
-              <h2 className="text-2xl font-bold text-neutral">تصفح حسب النشاط</h2>
+              <h2 className="text-2xl font-bold text-base-content">تصفح حسب النشاط</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -252,10 +246,9 @@ export default function GalleryPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index }}
-                  className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                  className="group bg-base-100 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
                   onClick={() => setSelectedActivity(activity.id)}
                 >
-                  {/* Cover Image (first photo or activity image) */}
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src={activity.activity_photos[0]?.image_url || activity.image_url || '/placeholder.jpg'}
@@ -264,7 +257,6 @@ export default function GalleryPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     
-                    {/* Photo Count Badge */}
                     <div className="absolute top-4 left-4 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full">
                       <span className="text-white text-sm font-bold flex items-center gap-2">
                         <FaImages />
@@ -272,7 +264,6 @@ export default function GalleryPage() {
                       </span>
                     </div>
 
-                    {/* Preview Thumbnails */}
                     <div className="absolute bottom-4 right-4 flex -space-x-2 space-x-reverse">
                       {activity.activity_photos.slice(0, 4).map((photo, i) => (
                         <div
@@ -280,11 +271,7 @@ export default function GalleryPage() {
                           className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white shadow-md"
                           style={{ zIndex: 4 - i }}
                         >
-                          <img
-                            src={photo.image_url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={photo.image_url} alt="" className="w-full h-full object-cover" />
                         </div>
                       ))}
                       {activity.activity_photos.length > 4 && (
@@ -297,13 +284,12 @@ export default function GalleryPage() {
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="p-5">
-                    <h3 className="text-xl font-bold text-neutral mb-2 group-hover:text-primary transition-colors">
+                    <h3 className="text-xl font-bold text-base-content mb-2 group-hover:text-primary transition-colors">
                       {activity.title}
                     </h3>
                     {activity.activity_date && (
-                      <p className="text-neutral/50 text-sm flex items-center gap-2">
+                      <p className="text-base-content/50 text-sm flex items-center gap-2">
                         <FaCalendarAlt className="text-primary" />
                         {activity.activity_date}
                       </p>
@@ -324,7 +310,6 @@ export default function GalleryPage() {
 
       </div>
 
-      {/* Lightbox */}
       <PhotoLightbox
         photos={lightboxPhotos}
         initialIndex={lightboxIndex}

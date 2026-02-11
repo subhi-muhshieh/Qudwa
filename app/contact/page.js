@@ -10,7 +10,6 @@ export default function ContactPage() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
 
-  // --- SOCIAL MEDIA LINKS ---
   const socialLinks = [
     {
       name: 'WhatsApp',
@@ -44,7 +43,7 @@ export default function ContactPage() {
         name: 'البريد الإلكتروني',
          icon: <FaEnvelope className="text-2xl sm:text-3xl" />,
          url: 'mailto:qudwa.ltk@gmail.com?subject=استفسار من موقع قدوة',
-         color: 'bg-gray-600 hover:bg-gray-700',
+         color: 'bg-base-content/70 hover:bg-base-content/80',
          textColor: 'text-white'
     }
   ];
@@ -101,7 +100,7 @@ export default function ContactPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary mb-4 font-slogan">تواصل مع الإدارة</h1>
-          <p className="text-gray-500 text-base sm:text-lg">نحن هنا للإجابة على استفساراتكم ومقترحاتكم</p>
+          <p className="text-base-content/50 text-base sm:text-lg">نحن هنا للإجابة على استفساراتكم ومقترحاتكم</p>
         </div>
 
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 sm:gap-8 items-start">
@@ -109,12 +108,12 @@ export default function ContactPage() {
           {/* Right Side: Message Form */}
           <motion.div 
             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-lg border border-base-300 w-full relative z-10"
+            className="bg-base-100 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-lg border border-base-200 w-full relative z-10"
           >
             <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6 flex items-center gap-2">
               <FaEnvelope /> أرسل رسالة مباشرة
             </h2>
-            <p className="text-gray-400 text-xs sm:text-sm mb-4 sm:mb-6">
+            <p className="text-base-content/40 text-xs sm:text-sm mb-4 sm:mb-6">
               سيتم إرسال هذه الرسالة مباشرة إلى تلغرام الإدارة مع معلومات ملفك الشخصي.
             </p>
             
@@ -145,8 +144,8 @@ export default function ContactPage() {
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }}
             className="space-y-4 sm:space-y-6 w-full relative z-10"
           >
-             <div className="bg-white/50 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-white/50 shadow-sm">
-                <h3 className="text-lg sm:text-xl font-bold text-neutral mb-4 sm:mb-6 text-center lg:text-right">قنوات التواصل المباشر</h3>
+             <div className="bg-base-100/50 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-base-content/10 shadow-sm">
+                <h3 className="text-lg sm:text-xl font-bold text-base-content mb-4 sm:mb-6 text-center lg:text-right">قنوات التواصل المباشر</h3>
                 <div className="grid gap-3 sm:gap-4">
                   {socialLinks.map((link, idx) => (
                     <a 
@@ -168,7 +167,7 @@ export default function ContactPage() {
                 </div>
              </div>
 
-             <div className="alert alert-info bg-info/10 border-info/20 text-info-content rounded-xl sm:rounded-2xl shadow-sm text-sm sm:text-base">
+             <div className="alert bg-info/10 border-info/20 text-info rounded-xl sm:rounded-2xl shadow-sm text-sm sm:text-base">
                 <FaEnvelope className="shrink-0" />
                 <span>يتم الرد على جميع الرسائل خلال 24 ساعة كحد أقصى.</span>
              </div>

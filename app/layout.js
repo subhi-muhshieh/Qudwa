@@ -18,7 +18,6 @@ const nastaliq = Noto_Nastaliq_Urdu({
   variable: '--font-nastaliq'
 });
 
-// UPDATED: Pointing to FS_Future.ttf
 const sloganFont = localFont({
   src: './fonts/FS_Future.ttf', 
   variable: '--font-slogan',
