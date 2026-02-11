@@ -1,14 +1,32 @@
 'use client'
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { FaPaperPlane, FaWhatsapp, FaFacebookMessenger, FaInstagram, FaTelegram, FaEnvelope, FaSpinner } from 'react-icons/fa';
+import { FaPaperPlane, FaWhatsapp, FaFacebookMessenger, FaInstagram, FaTelegram, FaEnvelope, FaSpinner, FaClock } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
+
+const COOLDOWN_SECONDS = 60;
 
 export default function ContactPage() {
   const { user, profile } = useProfile();
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownRef = useRef(null);
+
+  const startCooldown = () => {
+    setCooldown(COOLDOWN_SECONDS);
+    cooldownRef.current = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current);
+          cooldownRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const socialLinks = [
     {
@@ -61,6 +79,16 @@ export default function ContactPage() {
       return;
     }
 
+    if (message.trim().length < 10) {
+      toast.error('الرسالة قصيرة جداً (10 أحرف على الأقل)');
+      return;
+    }
+
+    if (cooldown > 0) {
+      toast.error(`الرجاء الانتظار ${cooldown} ثانية قبل إرسال رسالة أخرى`);
+      return;
+    }
+
     setSending(true);
     const toastId = toast.loading('جاري الإرسال...');
     
@@ -82,6 +110,7 @@ export default function ContactPage() {
       if (res.ok && data.success) {
         toast.success('تم إرسال رسالتك للإدارة بنجاح!', { id: toastId });
         setMessage('');
+        startCooldown();
       } else {
         throw new Error(data.error || 'Failed');
       }
@@ -122,19 +151,29 @@ export default function ContactPage() {
                 <label className="label"><span className="label-text font-bold">الرسالة</span></label>
                 <textarea 
                   className="textarea textarea-bordered h-40 sm:h-48 text-base sm:text-lg rounded-xl sm:rounded-2xl" 
-                  placeholder="اكتب استفسارك أو اقتراحك هنا..."
+                  placeholder="اكتب استفسارك أو اقتراحك هنا... (10 أحرف على الأقل)"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   disabled={sending}
+                  minLength={10}
                 ></textarea>
+                <label className="label">
+                  <span className="label-text-alt text-base-content/40">{message.length} حرف</span>
+                </label>
               </div>
               
               <button 
                 type="submit" 
-                disabled={sending}
+                disabled={sending || cooldown > 0}
                 className="btn btn-primary btn-md sm:btn-lg w-full rounded-xl sm:rounded-2xl text-white shadow-lg shadow-primary/30 mt-2 sm:mt-4 gap-2"
               >
-                {sending ? <><FaSpinner className="animate-spin" /> جاري الإرسال...</> : <><FaPaperPlane /> إرسال للإدارة</>}
+                {sending ? (
+                  <><FaSpinner className="animate-spin" /> جاري الإرسال...</>
+                ) : cooldown > 0 ? (
+                  <><FaClock /> انتظر {cooldown} ثانية</>
+                ) : (
+                  <><FaPaperPlane /> إرسال للإدارة</>
+                )}
               </button>
             </form>
           </motion.div>

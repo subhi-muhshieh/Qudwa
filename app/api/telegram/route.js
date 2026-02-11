@@ -8,7 +8,6 @@ export async function POST(request) {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-    // Check if environment variables are set
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
       console.error('Missing Telegram environment variables');
       return NextResponse.json(
@@ -17,11 +16,42 @@ export async function POST(request) {
       );
     }
 
-    // Format children list
+    // --- Validation ---
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json(
+        { error: 'الرسالة مطلوبة' },
+        { status: 400 }
+      );
+    }
+
+    const trimmedMessage = message.trim();
+
+    if (trimmedMessage.length < 10) {
+      return NextResponse.json(
+        { error: 'الرسالة قصيرة جداً' },
+        { status: 400 }
+      );
+    }
+
+    if (trimmedMessage.length > 5000) {
+      return NextResponse.json(
+        { error: 'الرسالة طويلة جداً (الحد الأقصى 5000 حرف)' },
+        { status: 400 }
+      );
+    }
+
+    if (!userEmail || typeof userEmail !== 'string') {
+      return NextResponse.json(
+        { error: 'البريد الإلكتروني مطلوب' },
+        { status: 400 }
+      );
+    }
+
+    // --- Format message ---
     let childrenText = '';
-    if (children && children.length > 0) {
+    if (children && Array.isArray(children) && children.length > 0) {
       childrenText = children.map((child, index) => 
-        `   ${index + 1}. ${child.name} (${child.age} سنة)`
+        `   ${index + 1}. ${child.name || 'غير محدد'} (${child.age || '?'} سنة)`
       ).join('\n');
     } else {
       childrenText = '   لا توجد بيانات';
@@ -31,14 +61,14 @@ export async function POST(request) {
 📩 <b>رسالة جديدة من الموقع</b>
 
 👤 <b>ولي الأمر:</b> ${parentName || 'غير متوفر'}
-📧 <b>البريد:</b> ${userEmail || 'مستخدم غير مسجل'}
+📧 <b>البريد:</b> ${userEmail}
 📱 <b>رقم الهاتف:</b> ${parentPhone || 'غير متوفر'}
 
 👶 <b>الأبناء المسجلين:</b>
 ${childrenText}
 
 💬 <b>الرسالة:</b>
-${message}
+${trimmedMessage}
 
 ⏰ <b>التوقيت:</b> ${new Date().toLocaleString('ar-SA')}
     `;

@@ -11,13 +11,13 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
-import ImageEditorModal from '../components/ImageEditorModal';
 import { userTypeLabels, rankLabels, officeLabels } from '../utils/constants';
+import ImageEditorModal from '../components/ImageEditorModal';
 
 export default function ProfilePage() {
-  const { user, profile: contextProfile, updateProfile } = useProfile();
-  const [loading, setLoading] = useState(true);
+  const { user, profile: contextProfile, loading: contextLoading, updateProfile } = useProfile();
   const [saving, setSaving] = useState(false);
+  const [profileReady, setProfileReady] = useState(false);
   
   const [originalName, setOriginalName] = useState('');
   const [originalPhone, setOriginalPhone] = useState('');
@@ -61,8 +61,14 @@ export default function ProfilePage() {
     JSON.stringify(currentMemberRoles) !== JSON.stringify(originalMemberRoles) ||
     pendingAvatarFile !== null;
 
+  // Wait for context to finish loading, then redirect or populate
   useEffect(() => {
-    if (!user) { router.push('/login'); return; }
+    if (contextLoading) return; // Still loading, do nothing
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
     if (contextProfile) {
       setOriginalName(contextProfile.parent_name || '');
@@ -81,9 +87,9 @@ export default function ProfilePage() {
       setCurrentMemberRoles(contextProfile.member_roles || []);
       setCurrentDonorParty(contextProfile.donor_party || '');
       
-      setLoading(false);
+      setProfileReady(true);
     }
-  }, [user, contextProfile, router]);
+  }, [user, contextProfile, contextLoading, router]);
 
   const handleImageSelect = async (e) => {
     const file = e.target.files[0];
@@ -233,7 +239,14 @@ export default function ProfilePage() {
 
   const displayAvatarUrl = previewUrl || currentAvatarUrl;
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-spinner loading-lg text-primary"></span></div>;
+  // Show loading while context is loading OR profile isn't ready yet
+  if (contextLoading || !profileReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-base-200 py-24 px-4">
@@ -254,7 +267,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full border-4 border-base-100 shadow-lg overflow-hidden bg-base-200">
                   {displayAvatarUrl ? (
-                    <img src={displayAvatarUrl} alt="Profile" className="w-full h-full object-cover"/>
+                    <img src={displayAvatarUrl} alt="صورة الملف الشخصي" className="w-full h-full object-cover"/>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/10">
                       <FaUser className="text-4xl text-primary/50" />
