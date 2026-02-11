@@ -1,5 +1,5 @@
 'use client'
-import { createClient } from '../utils/supabase/client'; // FIXED: Only one ../
+import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaCalendarAlt, FaClock, FaInfoCircle, FaTimes, FaSearch, FaArrowLeft } from 'react-icons/fa';
@@ -28,20 +28,16 @@ export default function ActivitiesArchive() {
         .from('activities')
         .select('*')
         .eq('is_upcoming', false) // Only past activities
-        .order('activity_date', { ascending: false }); // CHANGED: Order by activity_date instead of created_at
+        .order('activity_date', { ascending: false });
       
       if (data) {
         // OPTIONAL: Secondary sort for activities with same date or null dates
         const sortedData = data.sort((a, b) => {
-          // First sort by activity_date (if both have dates)
           if (a.activity_date && b.activity_date) {
             return new Date(b.activity_date) - new Date(a.activity_date);
           }
-          // If one has no date, put it at the end
           if (!a.activity_date) return 1;
           if (!b.activity_date) return -1;
-          
-          // If dates are equal or both null, sort by created_at as fallback
           return new Date(b.created_at) - new Date(a.created_at);
         });
         
@@ -128,7 +124,7 @@ export default function ActivitiesArchive() {
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedActivity(null)}></div>
             
             <motion.div 
-              className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto"
+              className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto scrollbar-hide"
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
             >
               <button onClick={() => setSelectedActivity(null)} className="absolute top-4 left-4 btn btn-circle btn-sm btn-ghost bg-black/10 z-20 hover:bg-red-500 hover:text-white transition-colors">
@@ -177,6 +173,17 @@ export default function ActivitiesArchive() {
                         <p className="text-yellow-800 text-sm whitespace-pre-wrap">{selectedActivity.notable_notes}</p>
                     </div>
                 )}
+
+                {/* ADDED: Bottom Close Button */}
+                <div className="pt-4 mt-auto">
+                  <button 
+                    onClick={() => setSelectedActivity(null)} 
+                    className="btn btn-ghost w-full rounded-xl border border-base-200 hover:bg-base-200 hover:border-base-300 transition-all"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+
               </div>
             </motion.div>
           </motion.div>
