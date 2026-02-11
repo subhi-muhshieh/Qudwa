@@ -157,7 +157,6 @@ export default function Dashboard() {
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedActivity, user]);
 
-  // Lock scroll for image lightbox too
   useEffect(() => {
     if (expandedImage) {
       document.body.style.overflow = 'hidden';
@@ -260,7 +259,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
-                {/* Left Side: Image */}
+                {/* Left Side: Image — NOT lazy loaded (above the fold) */}
                 <div className="w-full lg:w-1/2 order-1 lg:order-2 flex justify-center lg:justify-end shrink-0">
                    {upcomingActivity.image_url ? (
                       <div 
@@ -272,7 +271,7 @@ export default function Dashboard() {
                       >
                         <img 
                           src={upcomingActivity.image_url} 
-                          alt="Upcoming Activity" 
+                          alt={upcomingActivity.title}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-all duration-300 flex items-center justify-center">
@@ -315,14 +314,14 @@ export default function Dashboard() {
               >
                   <img 
                     src={recentActivity.image_url} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                     alt={recentActivity.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent lg:bg-gradient-to-r lg:from-black/20 lg:to-transparent"></div>
                   <div className="absolute bottom-4 right-4 lg:top-4 lg:right-4 badge badge-secondary shadow-lg border-none">
                      <FaStar className="mr-1 text-xs" /> تم إنجازه
                   </div>
-                  {/* Expand hint */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20">
                     <FaExpand className="text-white text-3xl drop-shadow-lg" />
                   </div>
@@ -391,12 +390,16 @@ export default function Dashboard() {
                   className="w-full h-64 md:h-80 relative cursor-pointer group"
                   onClick={() => setExpandedImage(selectedActivity.image_url)}
                 >
-                  <img src={selectedActivity.image_url} className="w-full h-full object-cover" />
+                  <img 
+                    src={selectedActivity.image_url} 
+                    alt={selectedActivity.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover" 
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-base-100 via-transparent to-transparent"></div>
                   <div className="absolute bottom-0 right-0 left-0 p-6 md:p-8">
                     <h3 className="text-2xl md:text-4xl font-bold text-base-content drop-shadow-sm line-clamp-2 break-words">{selectedActivity.title}</h3>
                   </div>
-                  {/* Expand hint */}
                   <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <FaExpand className="text-white" />
                   </div>
@@ -406,7 +409,6 @@ export default function Dashboard() {
               <div className="p-6 md:p-10 text-right space-y-8">
                 {!selectedActivity.image_url && <h3 className="text-2xl md:text-4xl font-bold text-primary mb-6 break-words">{selectedActivity.title}</h3>}
 
-                {/* Short Description */}
                 {selectedActivity.short_description && (
                   <p className="text-base-content/70 text-lg leading-relaxed break-words">
                     {selectedActivity.short_description}
@@ -498,7 +500,6 @@ export default function Dashboard() {
           >
             <div className="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
             
-            {/* Close Button */}
             <button 
               onClick={() => setExpandedImage(null)} 
               className="absolute top-6 left-6 z-30 w-12 h-12 rounded-full bg-white/10 hover:bg-red-500 flex items-center justify-center text-white transition-all duration-200"
@@ -506,7 +507,6 @@ export default function Dashboard() {
               <FaTimes className="text-xl" />
             </button>
 
-            {/* Image */}
             <motion.img 
               src={expandedImage} 
               alt="صورة مكبرة"

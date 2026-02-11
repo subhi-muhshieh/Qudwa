@@ -1,14 +1,22 @@
-// app/utils/activityHelpers.js
-
 export const updateActivityStatuses = async (supabase) => {
   try {
-    // Fetch only upcoming activities to check if they should be marked as past
+    // Throttle: only run once every 5 minutes per session
+    if (typeof window !== 'undefined') {
+      const THROTTLE_KEY = 'activity_status_last_check';
+      const THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+      
+      const lastCheck = sessionStorage.getItem(THROTTLE_KEY);
+      if (lastCheck && Date.now() - parseInt(lastCheck) < THROTTLE_MS) {
+        return 0;
+      }
+    }
+
     const { data: activities, error } = await supabase
       .from('activities')
       .select('id, activity_date, start_time, end_time, is_upcoming')
       .eq('is_upcoming', true);
     
-    if (error || !activities) return;
+    if (error || !activities) return 0;
     
     const now = new Date();
     const idsToUpdate = [];
@@ -17,28 +25,22 @@ export const updateActivityStatuses = async (supabase) => {
       if (activity.activity_date) {
         const activityDate = new Date(activity.activity_date);
         
-        // Determine when the activity ends
         if (activity.end_time) {
-          // Use end_time if available
           const [hours, minutes] = activity.end_time.split(':');
           activityDate.setHours(parseInt(hours), parseInt(minutes));
         } else if (activity.start_time) {
-          // If only start_time, assume 2 hour duration
           const [hours, minutes] = activity.start_time.split(':');
           activityDate.setHours(parseInt(hours) + 2, parseInt(minutes));
         } else {
-          // If no time specified, use end of day (23:59)
           activityDate.setHours(23, 59, 59);
         }
         
-        // If the activity has passed, add to update list
         if (activityDate < now) {
           idsToUpdate.push(activity.id);
         }
       }
     });
     
-    // Batch update all expired activities
     if (idsToUpdate.length > 0) {
       const { error: updateError } = await supabase
         .from('activities')
@@ -48,6 +50,11 @@ export const updateActivityStatuses = async (supabase) => {
       if (!updateError) {
         console.log(`✅ Auto-updated ${idsToUpdate.length} activities to past status`);
       }
+    }
+
+    // Save timestamp after successful check
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('activity_status_last_check', Date.now().toString());
     }
     
     return idsToUpdate.length;

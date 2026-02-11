@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react';
 import Link from 'next/link';
-import { FaQuestionCircle, FaChevronDown, FaChevronUp, FaArrowRight } from 'react-icons/fa';
+import { FaQuestionCircle, FaChevronDown, FaArrowRight } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState(null);
@@ -82,20 +83,32 @@ export default function FAQPage() {
                 className="w-full p-6 flex items-center justify-between text-right hover:bg-base-200 transition-colors"
               >
                 <span className="font-bold text-lg text-base-content">{faq.question}</span>
-                {openIndex === index ? (
-                  <FaChevronUp className="text-primary flex-shrink-0 mr-4" />
-                ) : (
-                  <FaChevronDown className="text-base-content/40 flex-shrink-0 mr-4" />
-                )}
+                <motion.div
+                  animate={{ rotate: openIndex === index ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex-shrink-0 mr-4"
+                >
+                  <FaChevronDown className={openIndex === index ? 'text-primary' : 'text-base-content/40'} />
+                </motion.div>
               </button>
               
-              {openIndex === index && (
-                <div className="px-6 pb-6 pt-0">
-                  <div className="border-t border-base-200 pt-4">
-                    <p className="text-base-content/60 leading-relaxed">{faq.answer}</p>
-                  </div>
-                </div>
-              )}
+              <AnimatePresence initial={false}>
+                {openIndex === index && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-6 pb-6 pt-0">
+                      <div className="border-t border-base-200 pt-4">
+                        <p className="text-base-content/60 leading-relaxed">{faq.answer}</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>

@@ -8,15 +8,20 @@ import { compressImageForGallery } from '../utils/imageUtils';
 
 function useDebounce(callback, delay) {
   const timeoutRef = useRef(null);
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   const debouncedCallback = useCallback((...args) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     timeoutRef.current = setTimeout(() => {
-      callback(...args);
+      callbackRef.current(...args);
     }, delay);
-  }, [callback, delay]);
+  }, [delay]);
 
   return debouncedCallback;
 }
@@ -204,7 +209,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
     }
   };
 
-  const saveCaptionToDatabase = async (photoId, caption) => {
+  const saveCaptionToDatabase = useCallback(async (photoId, caption) => {
     setSavingCaptions(prev => ({ ...prev, [photoId]: 'saving' }));
     
     const { error } = await supabase
@@ -222,7 +227,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
         setSavingCaptions(prev => ({ ...prev, [photoId]: null }));
       }, 2000);
     }
-  };
+  }, [supabase]);
 
   const debouncedSave = useDebounce(saveCaptionToDatabase, 1000);
 
@@ -354,6 +359,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                         <img
                           src={photo.image_url}
                           alt={photo.caption || `صورة ${index + 1}`}
+                          loading="lazy"
                           className="w-full h-full object-cover"
                         />
                         

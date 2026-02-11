@@ -82,7 +82,12 @@ export default function ActivitiesArchive() {
                     {/* Card Image */}
                     <div className="h-48 w-full overflow-hidden relative">
                         {act.image_url ? (
-                            <img src={act.image_url} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                            <img 
+                              src={act.image_url} 
+                              alt={act.title}
+                              loading="lazy"
+                              className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+                            />
                         ) : (
                             <div className="w-full h-full bg-base-200 flex items-center justify-center text-base-content/30 font-bold">بلا صورة</div>
                         )}
@@ -128,7 +133,12 @@ export default function ActivitiesArchive() {
 
               {selectedActivity.image_url && (
                 <div className="w-full h-48 md:h-64 relative">
-                  <img src={selectedActivity.image_url} className="w-full h-full object-cover" />
+                  <img 
+                    src={selectedActivity.image_url} 
+                    alt={selectedActivity.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover" 
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                   <h3 className="absolute bottom-6 right-6 text-3xl font-bold text-white drop-shadow-md">{selectedActivity.title}</h3>
                 </div>
