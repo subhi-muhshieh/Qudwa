@@ -1,8 +1,18 @@
 'use client'
 import Link from 'next/link';
+import { usePathname } from 'next/navigation'; // 1. Import hook
 import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaInstagram, FaHeart, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
 
 export default function Footer() {
+  const pathname = usePathname(); // 2. Get current path
+
+  // 3. Define pages where Footer should be HIDDEN
+  const hiddenPages = ['/', '/login', '/reset-password'];
+  
+  // 4. Return null if on those pages
+  if (hiddenPages.includes(pathname)) {
+    return null;
+  }
   
   const contactLinks = [
     {
@@ -29,12 +39,11 @@ export default function Footer() {
       url: 'https://ig.me/m/QudwaAssoc', 
       color: 'hover:text-[#E1306C]'
     },
-    // Added Email Option
     {
       name: 'البريد الإلكتروني',
       icon: <FaEnvelope className="text-xl" />,
       url: 'mailto:qudwa.ltk@gmail.com', 
-      color: 'hover:text-[#EA4335]' // Gmail Red
+      color: 'hover:text-[#EA4335]'
     }
   ];
 
@@ -78,7 +87,6 @@ export default function Footer() {
                   href={link.url}
                   target="_blank" 
                   rel="noopener noreferrer"
-                  // Logic: If it is the last item (index 4), make it span 2 columns
                   className={`btn btn-sm btn-outline border-white/20 text-white hover:bg-white hover:border-white transition-all gap-2 h-10 font-normal ${link.color} ${idx === 4 ? 'col-span-2' : ''}`}
                 >
                    {link.icon}
