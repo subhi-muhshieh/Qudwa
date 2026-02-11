@@ -174,7 +174,7 @@ export default function Navbar() {
                 </Link>
               </li>
               
-              <li className="md:hidden"><Link href="/activities" className="py-2"><FaHistory /> سجل الإنجازات</Link></li>
+              <li className="md:hidden"><Link href="/activities" className="py-2"><FaHistory /> سجل النشاطات</Link></li>
               
               <li className="md:hidden">
                 <Link href="/contact" className="w-full py-2">
