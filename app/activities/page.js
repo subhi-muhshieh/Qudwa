@@ -2,7 +2,7 @@
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaCalendarAlt, FaClock, FaInfoCircle, FaTimes, FaSearch, FaArrowLeft } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaInfoCircle, FaTimes, FaArrowLeft } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateActivityStatuses } from '../utils/activityHelpers';
 
@@ -17,41 +17,35 @@ export default function ActivitiesArchive() {
   useEffect(() => {
     const fetchAllActivities = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-
-// Only update statuses if logged in (requires write permission)
-if (user) {
-  await updateActivityStatuses(supabase);
-}
+      if (user) {
+        await updateActivityStatuses(supabase);
+      }
 
       const { data } = await supabase
         .from('activities')
         .select('*')
         .eq('is_upcoming', false)
-        .order('activity_date', { ascending: false });
+        .order('activity_date', { ascending: false, nullsFirst: false });
       
-      if (data) {
-        const sortedData = data.sort((a, b) => {
-          if (a.activity_date && b.activity_date) {
-            return new Date(b.activity_date) - new Date(a.activity_date);
-          }
-          if (!a.activity_date) return 1;
-          if (!b.activity_date) return -1;
-          return new Date(b.created_at) - new Date(a.created_at);
-        });
-        
-        setActivities(sortedData);
-      }
+      if (data) setActivities(data);
       setLoading(false);
     };
-
     fetchAllActivities();
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (selectedActivity) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedActivity]);
+  
+  useEffect(() => {
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') setSelectedActivity(null);
+  };
+  if (selectedActivity) document.addEventListener('keydown', handleEsc);
+  return () => document.removeEventListener('keydown', handleEsc);
+}, [selectedActivity]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><span className="loading loading-ring loading-lg text-primary"></span></div>;
 
@@ -99,7 +93,7 @@ if (user) {
                     {/* Card Content */}
                     <div className="p-6">
                         <h3 className="text-xl font-bold text-base-content mb-2 line-clamp-1">{act.title}</h3>
-                        <p className="text-sm text-base-content/60 line-clamp-2 mb-4 h-10">
+                        <p className="text-sm text-base-content/60 line-clamp-2 mb-4 min-h-[2.5rem]">
                             {act.short_description}
                         </p>
                         <div className="flex justify-between items-center border-t border-base-200 pt-4">
@@ -120,13 +114,16 @@ if (user) {
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
-            className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
+  className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="activity-modal-title"
+>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedActivity(null)}></div>
             
             <motion.div 
-              className="bg-base-100 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto scrollbar-hide"
+              className="bg-base-100 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto"
               initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
             >
               <button onClick={() => setSelectedActivity(null)} className="absolute top-4 left-4 btn btn-circle btn-sm btn-ghost bg-black/10 z-20 hover:bg-red-500 hover:text-white transition-colors">

@@ -61,7 +61,7 @@ export default function GalleryPage() {
     };
 
     fetchGalleryData();
-  }, [router]);
+  }, []);
 
   const openLightbox = (photos, index, title) => {
     setLightboxPhotos(photos);

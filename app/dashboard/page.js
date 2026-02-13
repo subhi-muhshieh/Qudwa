@@ -165,6 +165,19 @@ export default function Dashboard() {
     }
   }, [expandedImage, selectedActivity]);
 
+  useEffect(() => {
+  const handleEsc = (e) => {
+    if (e.key === 'Escape') {
+      if (expandedImage) setExpandedImage(null);
+      else if (selectedActivity) setSelectedActivity(null);
+    }
+  };
+  if (selectedActivity || expandedImage) {
+    document.addEventListener('keydown', handleEsc);
+  }
+  return () => document.removeEventListener('keydown', handleEsc);
+}, [selectedActivity, expandedImage]);
+
     const handleRegister = async () => {
     if (!user || !selectedActivity) return;
 
@@ -389,12 +402,14 @@ export default function Dashboard() {
       <AnimatePresence>
         {selectedActivity && (
           <motion.div 
-            className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          >
+  className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+  role="dialog"
+  aria-modal="true"
+>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setSelectedActivity(null)}></div>
             <motion.div 
-              className="bg-base-100 w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto overflow-x-hidden scrollbar-hide"
+              className="bg-base-100 w-full max-w-3xl rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto overflow-x-hidden"
               initial={{ scale: 0.95, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 30 }}
             >
               <button 

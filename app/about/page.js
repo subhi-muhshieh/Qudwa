@@ -40,12 +40,14 @@ export default function AboutPage() {
   const [managementTeam, setManagementTeam] = useState([]);
   const [regularTeam, setRegularTeam] = useState([]);
   const [teamLoading, setTeamLoading] = useState(true);
+  const [teamError, setTeamError] = useState(false);
 
   const supabase = createClient();
 
   useEffect(() => {
     const fetchTeam = async () => {
       try {
+        setTeamLoading(true);
         const { data, error } = await supabase
           .from('team_members')
           .select('*')
@@ -58,6 +60,7 @@ export default function AboutPage() {
         }
       } catch (err) {
         console.error('Team fetch error:', err);
+        setTeamError(true);
       } finally {
         setTeamLoading(false);
       }
@@ -141,12 +144,12 @@ export default function AboutPage() {
         
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <Link 
-            href="/settings" 
-            className="btn btn-ghost btn-sm rounded-xl gap-2 mb-6 md:mb-8 text-white/80 hover:text-white hover:bg-white/10"
-          >
-            <FaArrowRight />
-            العودة للإعدادات
-          </Link>
+  href="/" 
+  className="btn btn-ghost btn-sm rounded-xl gap-2 mb-6 md:mb-8 text-white/80 hover:text-white hover:bg-white/10"
+>
+  <FaArrowRight />
+  الرئيسية
+</Link>
 
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -414,15 +417,22 @@ export default function AboutPage() {
           </motion.div>
           
           {teamLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <span className="loading loading-spinner loading-lg text-primary"></span>
-            </div>
-          ) : totalTeam === 0 ? (
-            <div className="text-center py-16 text-base-content/40">
-              <FaUsers className="text-5xl mx-auto mb-4 text-base-content/20" />
-              <p className="text-lg">سيتم إضافة فريق العمل قريباً</p>
-            </div>
-          ) : (
+  <div className="flex items-center justify-center py-16">
+    <span className="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+) : teamError ? (
+  <div className="text-center py-12">
+    <p className="text-error font-medium">حدث خطأ في تحميل فريق العمل</p>
+    <button onClick={() => { setTeamError(false); /* re-fetch below */ }} className="btn btn-ghost btn-sm mt-3 text-primary">
+      إعادة المحاولة
+    </button>
+  </div>
+) : totalTeam === 0 ? (
+  <div className="text-center py-16 text-base-content/40">
+    <FaUsers className="text-5xl mx-auto mb-4 text-base-content/20" />
+    <p className="text-lg">سيتم إضافة فريق العمل قريباً</p>
+  </div>
+) : (
             <>
               {/* Management Team */}
               {managementTeam.length > 0 && (

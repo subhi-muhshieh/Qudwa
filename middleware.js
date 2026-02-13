@@ -70,15 +70,16 @@ export async function middleware(req) {
   }
 
   // --- 3. Redirect Authenticated Users from Login ---
-  if (pathname === '/login' && user) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
-  }
+  if ((pathname === '/login' || pathname === '/') && user) {
+  return NextResponse.redirect(new URL('/dashboard', req.url));
+}
 
   return res;
 }
 
 export const config = {
   matcher: [
+    '/',
     '/admin/:path*',
     '/dashboard/:path*',
     '/settings/:path*',

@@ -12,7 +12,7 @@ export default function NotFound() {
           عذراً، لا يمكننا العثور على الصفحة التي تبحث عنها
         </p>
         <Link 
-          href="/dashboard" 
+          href="/" 
           className="btn btn-primary rounded-full px-8 text-white"
         >
           العودة للرئيسية

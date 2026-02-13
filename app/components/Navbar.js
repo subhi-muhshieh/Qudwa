@@ -129,8 +129,7 @@ export default function Navbar() {
               الإدارة
             </Link>
           )}
-          {/* Notification Bell */}
-{user && <NotificationBell />}
+
         </div>
       </div>
 
