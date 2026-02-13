@@ -17,9 +17,11 @@ export default function ActivitiesArchive() {
   useEffect(() => {
     const fetchAllActivities = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.replace('/login'); return; }
 
-      await updateActivityStatuses(supabase);
+// Only update statuses if logged in (requires write permission)
+if (user) {
+  await updateActivityStatuses(supabase);
+}
 
       const { data } = await supabase
         .from('activities')
@@ -167,7 +169,7 @@ export default function ActivitiesArchive() {
 
                 <div>
                     <h4 className="font-bold text-lg text-primary mb-2 border-b border-base-200 pb-2">التفاصيل الكاملة</h4>
-                    <p className="text-base-content/80 leading-relaxed whitespace-pre-wrap">{selectedActivity.full_report}</p>
+                    <p className="text-base-content/80 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">{selectedActivity.full_report}</p>
                 </div>
 
                 {selectedActivity.notable_notes && (
@@ -175,7 +177,7 @@ export default function ActivitiesArchive() {
                         <div className="flex items-center gap-2 text-warning font-bold mb-2">
                             <FaInfoCircle /> ملاحظات هامة
                         </div>
-                        <p className="text-base-content/70 text-sm whitespace-pre-wrap">{selectedActivity.notable_notes}</p>
+                        <p className="text-base-content/70 text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">{selectedActivity.notable_notes}</p>
                     </div>
                 )}
 

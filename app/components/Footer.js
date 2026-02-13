@@ -1,58 +1,29 @@
 'use client'
 import Link from 'next/link';
-import { usePathname } from 'next/navigation'; // 1. Import hook
+import { usePathname } from 'next/navigation';
 import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaInstagram, FaHeart, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
 
 export default function Footer() {
-  const pathname = usePathname(); // 2. Get current path
+  const pathname = usePathname();
 
-  // 3. Define pages where Footer should be HIDDEN
-  const hiddenPages = ['/', '/login', '/reset-password'];
+  const hiddenPages = ['/login', '/reset-password'];
   
-  // 4. Return null if on those pages
   if (hiddenPages.includes(pathname)) {
     return null;
   }
   
   const contactLinks = [
-    {
-      name: 'WhatsApp',
-      icon: <FaWhatsapp className="text-xl" />,
-      url: 'https://wa.me/963980931111', 
-      color: 'hover:text-[#25D366]'
-    },
-    {
-      name: 'Telegram',
-      icon: <FaTelegram className="text-xl" />,
-      url: 'https://t.me/QudwaAssoc', 
-      color: 'hover:text-[#0088cc]'
-    },
-    {
-      name: 'Messenger',
-      icon: <FaFacebookMessenger className="text-xl" />,
-      url: 'https://m.me/QudwaAssoc', 
-      color: 'hover:text-[#0084FF]'
-    },
-    {
-      name: 'Instagram',
-      icon: <FaInstagram className="text-xl" />,
-      url: 'https://ig.me/m/QudwaAssoc', 
-      color: 'hover:text-[#E1306C]'
-    },
-    {
-      name: 'البريد الإلكتروني',
-      icon: <FaEnvelope className="text-xl" />,
-      url: 'mailto:qudwa.ltk@gmail.com', 
-      color: 'hover:text-[#EA4335]'
-    }
+    { name: 'WhatsApp', icon: <FaWhatsapp className="text-xl" />, url: 'https://wa.me/963980931111', color: 'hover:text-[#25D366]' },
+    { name: 'Telegram', icon: <FaTelegram className="text-xl" />, url: 'https://t.me/QudwaAssoc', color: 'hover:text-[#0088cc]' },
+    { name: 'Messenger', icon: <FaFacebookMessenger className="text-xl" />, url: 'https://m.me/QudwaAssoc', color: 'hover:text-[#0084FF]' },
+    { name: 'Instagram', icon: <FaInstagram className="text-xl" />, url: 'https://ig.me/m/QudwaAssoc', color: 'hover:text-[#E1306C]' },
+    { name: 'البريد الإلكتروني', icon: <FaEnvelope className="text-xl" />, url: 'mailto:qudwa.ltk@gmail.com', color: 'hover:text-[#EA4335]' }
   ];
 
   return (
     <footer className="bg-neutral text-neutral-content pt-10 pb-6 rounded-t-[2rem] mt-10">
-      
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* Column 1: Brand & Slogan */}
         <div className="space-y-3 text-center md:text-right">
           <div className="flex items-center justify-center md:justify-start gap-3">
             <img src="/logo.png" alt="Logo" className="w-14 h-14 object-contain bg-white rounded-full p-1" />
@@ -65,21 +36,19 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Column 2: Quick Links */}
         <div className="text-center">
           <h3 className="text-lg font-bold text-white mb-3">روابط سريعة</h3>
           <ul className="space-y-2 text-sm">
-            <li><Link href="/dashboard" className="link link-hover hover:text-primary transition-colors">الرئيسية</Link></li>
+            <li><Link href="/" className="link link-hover hover:text-primary transition-colors">الرئيسية</Link></li>
             <li><Link href="/activities" className="link link-hover hover:text-primary transition-colors">سجل النشاطات</Link></li>
+            <li><Link href="/gallery" className="link link-hover hover:text-primary transition-colors">معرض الصور</Link></li>
             <li><Link href="/contact" className="link link-hover hover:text-primary transition-colors">تواصل معنا</Link></li>
             <li><Link href="/about" className="link link-hover hover:text-primary transition-colors">عن الجمعية</Link></li>
           </ul>
         </div>
 
-        {/* Column 3: Direct Contact Buttons */}
         <div className="text-center md:text-left">
           <h3 className="text-lg font-bold text-white mb-3">تحدث معنا مباشرة</h3>
-          
           <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto md:mx-0 md:mr-auto">
              {contactLinks.map((link, idx) => (
                 <a 
@@ -94,17 +63,11 @@ export default function Footer() {
                 </a>
              ))}
           </div>
-
           <div className="mt-4 flex flex-col gap-1 text-xs text-gray-400 items-center md:items-start">
-             <div className="flex items-center gap-2">
-                <FaMapMarkerAlt /> <span>اللاذقية، سوريا</span>
-             </div>
-             <div className="flex items-center gap-2">
-                <FaPhone /> <span dir="ltr">+963 980 931 111</span>
-             </div>
+             <div className="flex items-center gap-2"><FaMapMarkerAlt /> <span>اللاذقية، سوريا</span></div>
+             <div className="flex items-center gap-2"><FaPhone /> <span dir="ltr">+963 980 931 111</span></div>
           </div>
         </div>
-
       </div>
 
       <div className="border-t border-white/10 mt-8 pt-6 text-center text-xs text-gray-500">

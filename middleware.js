@@ -46,26 +46,23 @@ export async function middleware(req) {
 
   // --- 1. Admin Page Protection ---
   if (pathname.startsWith('/admin')) {
-    // If not logged in, go to login
     if (!user) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
-    // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    // If not admin, redirect to dashboard
     if (profile?.role !== 'admin') {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
   }
 
-  // --- 2. Protected User Routes ---
-  const protectedPaths = ['/dashboard', '/activities', '/settings', '/profile', '/gallery'];
+  // --- 2. Protected User Routes (require login) ---
+  const protectedPaths = ['/dashboard', '/settings', '/profile'];
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
 
   if (isProtectedPath && !user) {
@@ -84,10 +81,8 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/dashboard/:path*',
-    '/activities/:path*',
     '/settings/:path*',
     '/profile/:path*',
-    '/gallery/:path*',
     '/login',
   ],
 };

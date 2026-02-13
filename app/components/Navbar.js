@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog, FaImages } from 'react-icons/fa';
+import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog, FaImages, FaBars, FaTimes, FaInfoCircle, FaSignInAlt } from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
 
 export default function Navbar() {
@@ -29,6 +29,11 @@ export default function Navbar() {
     };
   }, []);
 
+  // Close dropdown on route change
+  useEffect(() => {
+    setIsDropdownOpen(false);
+  }, [pathname]);
+
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
@@ -44,7 +49,7 @@ export default function Navbar() {
     router.refresh();      
   };
 
-  const hiddenPages = ['/login', '/reset-password', '/'];
+  const hiddenPages = ['/login', '/reset-password'];
   if (hiddenPages.includes(pathname)) {
     return null;
   }
@@ -54,6 +59,7 @@ export default function Navbar() {
       
       <div className="flex-1 flex items-center gap-6">
         
+        {/* Logo */}
         <Link 
           href={user ? "/dashboard" : "/"} 
           className="btn btn-ghost hover:bg-transparent normal-case gap-3 group px-0 flex items-center"
@@ -65,7 +71,6 @@ export default function Navbar() {
               className="w-full h-full object-contain drop-shadow-md rounded-full" 
             />
           </div>
-
           <div className="flex flex-col items-start justify-center h-12">
              <span 
                 className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none transition-all duration-300 group-hover:text-secondary group-hover:scale-105 origin-right font-nastaliq" 
@@ -75,60 +80,66 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {user && (
-          <div className="hidden md:block h-8 w-px bg-primary/10 rounded-full mx-1"></div>
-        )}
+        {/* Separator */}
+        <div className="hidden md:block h-8 w-px bg-primary/10 rounded-full mx-1"></div>
 
+        {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-3">
-            {user && (
-              <>
-                <Link 
-                  href="/activities" 
-                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all hover:pr-4"
-                >
-                  <FaHistory className="text-secondary opacity-70" />
-                  سجل النشاطات
-                </Link>
+          <Link 
+            href="/activities" 
+            className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/activities' ? 'bg-primary/10 text-primary' : ''}`}
+          >
+            <FaHistory className="text-secondary opacity-70" />
+            سجل النشاطات
+          </Link>
 
-                <Link 
-                  href="/contact"
-                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all"
-                >
-                  <FaEnvelope className="text-secondary opacity-70" />
-                  راسل الإدارة
-                </Link>
+          <Link 
+            href="/gallery" 
+            className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/gallery' ? 'bg-primary/10 text-primary' : ''}`}
+          >
+            <FaImages className="text-secondary opacity-70" />
+            معرض الصور
+          </Link>
 
-                <Link 
-                  href="/gallery" 
-                  className="btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all hover:pr-4"
-                >
-                  <FaImages className="text-secondary opacity-70" />
-                  معرض الصور
-                </Link>
-              </>
-            )}
+          {user && (
+            <Link 
+              href="/contact"
+              className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/contact' ? 'bg-primary/10 text-primary' : ''}`}
+            >
+              <FaEnvelope className="text-secondary opacity-70" />
+              راسل الإدارة
+            </Link>
+          )}
 
-            {isAdmin && (
-              <Link 
-                href="/admin" 
-                className="btn btn-sm btn-outline btn-primary rounded-xl gap-2 hover:shadow-md transition-all"
-              >
-                <FaShieldAlt /> 
-                الإدارة
-              </Link>
-            )}
+          <Link 
+            href="/about" 
+            className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/about' ? 'bg-primary/10 text-primary' : ''}`}
+          >
+            <FaInfoCircle className="text-secondary opacity-70" />
+            عن الجمعية
+          </Link>
+
+          {isAdmin && (
+            <Link 
+              href="/admin" 
+              className="btn btn-sm btn-outline btn-primary rounded-xl gap-2 hover:shadow-md transition-all"
+            >
+              <FaShieldAlt /> 
+              الإدارة
+            </Link>
+          )}
         </div>
-
       </div>
 
+      {/* Right Side */}
       <div className="flex-none gap-2 ml-2">
         {user ? (
+          /* ===== LOGGED-IN: Avatar Dropdown ===== */
           <div className="relative" ref={dropdownRef}>
-            
             <div 
-                role="button" 
-                onClick={toggleDropdown}
-                className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors cursor-pointer"
+              role="button" 
+              onClick={toggleDropdown}
+              className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors cursor-pointer"
             >
               <div className="bg-primary/10 text-primary rounded-full w-10 overflow-hidden">
                 {profile?.avatar_url ? (
@@ -146,18 +157,18 @@ export default function Navbar() {
             </div>
             
             <ul 
-                className={`
-                  absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-base-100 rounded-2xl w-56 border border-base-200 text-right z-50
-                  origin-top-left transition-all duration-200 ease-in-out
-                  ${isDropdownOpen 
-                    ? 'opacity-100 scale-100 visible translate-y-0' 
-                    : 'opacity-0 scale-95 invisible -translate-y-2 pointer-events-none'}
-                `}
-                onClick={(e) => {
-                   if(e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON') {
-                       closeDropdown();
-                   }
-                }}
+              className={`
+                absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-base-100 rounded-2xl w-56 border border-base-200 text-right z-50
+                origin-top-left transition-all duration-200 ease-in-out
+                ${isDropdownOpen 
+                  ? 'opacity-100 scale-100 visible translate-y-0' 
+                  : 'opacity-0 scale-95 invisible -translate-y-2 pointer-events-none'}
+              `}
+              onClick={(e) => {
+                if(e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON') {
+                  closeDropdown();
+                }
+              }}
             >
               <li className="menu-title px-4 py-2 text-xs text-primary/70 border-b border-base-200 mb-2">
                 {profile?.parent_name || user.email}
@@ -174,19 +185,11 @@ export default function Navbar() {
                 </Link>
               </li>
               
+              {/* Mobile-only links */}
               <li className="md:hidden"><Link href="/activities" className="py-2"><FaHistory /> سجل النشاطات</Link></li>
-              
-              <li className="md:hidden">
-                <Link href="/contact" className="w-full py-2">
-                  <FaEnvelope /> راسل الإدارة
-                </Link>
-              </li>
-
-              <li className="md:hidden">
-                <Link href="/gallery" className="py-2">
-                  <FaImages /> معرض الصور
-                </Link>
-              </li>
+              <li className="md:hidden"><Link href="/gallery" className="py-2"><FaImages /> معرض الصور</Link></li>
+              <li className="md:hidden"><Link href="/contact" className="py-2"><FaEnvelope /> راسل الإدارة</Link></li>
+              <li className="md:hidden"><Link href="/about" className="py-2"><FaInfoCircle /> عن الجمعية</Link></li>
               
               {isAdmin && (
                 <li className="border-t border-base-200 mt-1 pt-1">
@@ -201,9 +204,72 @@ export default function Navbar() {
             </ul>
           </div>
         ) : (
-          <Link href="/login" className="btn btn-primary rounded-2xl px-6 shadow-md hover:shadow-lg transition-all text-white">
-            دخول
-          </Link>
+          /* ===== GUEST: Login button + mobile hamburger ===== */
+          <div className="flex items-center gap-2">
+            {/* Desktop login button */}
+            <Link href="/login" className="hidden md:inline-flex btn btn-primary rounded-2xl px-6 shadow-md hover:shadow-lg transition-all text-white">
+              دخول
+            </Link>
+
+            {/* Mobile hamburger */}
+            <div className="relative md:hidden" ref={dropdownRef}>
+              <button 
+                onClick={toggleDropdown}
+                className="btn btn-ghost btn-circle border-2 border-primary/20 hover:border-primary transition-colors"
+              >
+                {isDropdownOpen ? (
+                  <FaTimes className="text-lg text-primary" />
+                ) : (
+                  <FaBars className="text-lg text-primary" />
+                )}
+              </button>
+
+              <ul 
+                className={`
+                  absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-base-100 rounded-2xl w-56 border border-base-200 text-right z-50
+                  origin-top-left transition-all duration-200 ease-in-out
+                  ${isDropdownOpen 
+                    ? 'opacity-100 scale-100 visible translate-y-0' 
+                    : 'opacity-0 scale-95 invisible -translate-y-2 pointer-events-none'}
+                `}
+                onClick={(e) => {
+                  if(e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON') {
+                    closeDropdown();
+                  }
+                }}
+              >
+                <li className="menu-title px-4 py-2 text-xs text-primary/70 border-b border-base-200 mb-2">
+                  تصفح الموقع
+                </li>
+                <li>
+                  <Link href="/activities" className="gap-2 py-2">
+                    <FaHistory className="text-primary" /> سجل النشاطات
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/gallery" className="gap-2 py-2">
+                    <FaImages className="text-primary" /> معرض الصور
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about" className="gap-2 py-2">
+                    <FaInfoCircle className="text-primary" /> عن الجمعية
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="gap-2 py-2">
+                    <FaEnvelope className="text-primary" /> تواصل معنا
+                  </Link>
+                </li>
+                <div className="divider my-1 opacity-50"></div>
+                <li>
+                  <Link href="/login" className="gap-2 py-2 text-primary font-bold">
+                    <FaSignInAlt /> تسجيل الدخول
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
         )}
       </div>
     </div>

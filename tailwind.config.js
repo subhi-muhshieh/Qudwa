@@ -10,9 +10,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        slogan: ['var(--font-slogan)'],
-        nastaliq: ['var(--font-nastaliq)'], 
-      },
+  sans: ['var(--font-tajawal)', 'sans-serif'],
+  slogan: ['var(--font-slogan)'],
+  nastaliq: ['var(--font-nastaliq)'], 
+},
       backgroundImage: {
         'leaf-pattern': "url('/leaf-pattern.svg')", 
       },

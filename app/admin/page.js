@@ -8,11 +8,13 @@ import {
   FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, 
   FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink, FaSync, 
   FaImages, FaUserFriends, FaChild, FaPhone, FaEnvelope, FaChevronDown, 
-  FaChevronUp, FaSearch, FaUserTag, FaClipboardList, FaEye
+  FaChevronUp, FaSearch, FaUserTag, FaClipboardList, FaCrown, FaUser,
+  FaSortNumericDown, FaClipboardCheck
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { updateActivityStatuses } from '../utils/activityHelpers'; 
 import ActivityPhotoManager from '../components/ActivityPhotoManager';
+import AttendanceManager from '../components/AttendanceManager';
 
 export default function AdminDashboard() {
   // --- ACTIVITIES STATE ---
@@ -55,6 +57,24 @@ export default function AdminDashboard() {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [expandedRegistration, setExpandedRegistration] = useState(null);
 
+  // --- TEAM STATE ---
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [isAddingTeamMember, setIsAddingTeamMember] = useState(false);
+  const [editingTeamMemberId, setEditingTeamMemberId] = useState(null);
+  const [teamUploading, setTeamUploading] = useState(false);
+  const [teamItemToDelete, setTeamItemToDelete] = useState(null);
+  const [isDeletingTeam, setIsDeletingTeam] = useState(false);
+  const teamFileInputRef = useRef(null);
+  const [teamFormData, setTeamFormData] = useState({
+    name: '',
+    role_title: '',
+    office: '',
+    photo_url: '',
+    display_order: 0,
+    is_management: false
+  });
+
   // --- ACTIVE TAB ---
   const [activeTab, setActiveTab] = useState('activities');
 
@@ -90,14 +110,10 @@ export default function AdminDashboard() {
         .from('activities')
         .select('*')
         .order('activity_date', { ascending: false });
-      
       if (error) throw error;
-      
       if (data) {
         const sortedData = data.sort((a, b) => {
-          if (a.activity_date && b.activity_date) {
-            return new Date(b.activity_date) - new Date(a.activity_date);
-          }
+          if (a.activity_date && b.activity_date) return new Date(b.activity_date) - new Date(a.activity_date);
           if (!a.activity_date) return 1;
           if (!b.activity_date) return -1;
           return new Date(b.created_at) - new Date(a.created_at);
@@ -118,11 +134,7 @@ export default function AdminDashboard() {
     try {
       const updatedCount = await updateActivityStatuses(supabase);
       await fetchActivities();
-      if (updatedCount > 0) {
-        toast.success(`تم تحديث ${updatedCount} نشاط تلقائياً`, { id: toastId });
-      } else {
-        toast.success('جميع النشاطات محدثة بالفعل', { id: toastId });
-      }
+      toast.success(updatedCount > 0 ? `تم تحديث ${updatedCount} نشاط تلقائياً` : 'جميع النشاطات محدثة بالفعل', { id: toastId });
     } catch (error) {
       toast.error('حدث خطأ أثناء التحديث', { id: toastId });
     } finally {
@@ -131,11 +143,7 @@ export default function AdminDashboard() {
   };
 
   const fetchMessages = async () => {
-    const { data } = await supabase
-      .from('contact_messages')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const { data } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(10);
     if (data) setMessages(data);
   };
 
@@ -144,7 +152,6 @@ export default function AdminDashboard() {
     if (!file) return;
     if (!file.type.startsWith('image/')) { toast.error('الرجاء اختيار صورة صالحة'); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error('حجم الصورة يجب أن يكون أقل من 5 ميغابايت'); return; }
-
     setUploading(true);
     const toastId = toast.loading('جاري رفع الصورة...');
     try {
@@ -156,7 +163,6 @@ export default function AdminDashboard() {
       setFormData({ ...formData, image_url: urlData.publicUrl });
       toast.success('تم رفع الصورة بنجاح!', { id: toastId });
     } catch (error) {
-      console.error('Upload error:', error);
       toast.error('فشل رفع الصورة', { id: toastId });
     } finally {
       setUploading(false);
@@ -180,7 +186,6 @@ export default function AdminDashboard() {
       resetForm();
       fetchActivities();
     } catch (error) {
-      console.error(error);
       toast.error('حدث خطأ أثناء الحفظ', { id: toastId });
     }
   };
@@ -228,15 +233,10 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
+      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       if (data) setUsers(data);
     } catch (error) {
-      console.error('Error fetching users:', error);
       toast.error('فشل تحميل المستخدمين');
     } finally {
       setUsersLoading(false);
@@ -244,20 +244,15 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (activeTab === 'users' && users.length === 0) {
-      fetchUsers();
-    }
+    if (activeTab === 'users' && users.length === 0) fetchUsers();
   }, [activeTab]);
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      !userSearch || 
+    const matchesSearch = !userSearch || 
       (user.parent_name && user.parent_name.toLowerCase().includes(userSearch.toLowerCase())) ||
       (user.parent_phone && user.parent_phone.includes(userSearch)) ||
       (user.id && user.id.includes(userSearch));
-    
     const matchesType = userTypeFilter === 'all' || user.user_type === userTypeFilter;
-    
     return matchesSearch && matchesType;
   });
 
@@ -269,29 +264,12 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('activity_registrations')
-        .select(`
-          id,
-          created_at,
-          user_id,
-          activity_id,
-          profiles (
-            id,
-            parent_name,
-            parent_phone,
-            avatar_url,
-            user_type,
-            children,
-            member_roles,
-            donor_party
-          )
-        `)
+        .select(`id, created_at, user_id, activity_id, profiles (id, parent_name, parent_phone, avatar_url, user_type, children, member_roles, donor_party)`)
         .eq('activity_id', activityId)
         .order('created_at', { ascending: false });
-      
       if (error) throw error;
       if (data) setRegistrations(data);
     } catch (error) {
-      console.error('Error fetching registrations:', error);
       toast.error('فشل تحميل التسجيلات');
     } finally {
       setRegistrationsLoading(false);
@@ -299,21 +277,141 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (activeTab === 'registrations' && selectedEventId) {
-      fetchRegistrations(selectedEventId);
-    }
+    if (activeTab === 'registrations' && selectedEventId) fetchRegistrations(selectedEventId);
   }, [activeTab, selectedEventId]);
 
   useEffect(() => {
     if (activeTab === 'registrations' && !selectedEventId) {
-      const upcomingActivities = activities.filter(a => a.is_upcoming);
-      if (upcomingActivities.length > 0) {
-        setSelectedEventId(upcomingActivities[0].id);
-      }
+      const upcoming = activities.filter(a => a.is_upcoming);
+      if (upcoming.length > 0) setSelectedEventId(upcoming[0].id);
     }
   }, [activeTab, activities]);
 
   const upcomingActivities = activities.filter(a => a.is_upcoming);
+
+  // ==========================================
+  //  TEAM FUNCTIONS
+  // ==========================================
+  const fetchTeamMembers = async () => {
+    setTeamLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .order('is_management', { ascending: false })
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      if (data) setTeamMembers(data);
+    } catch (error) {
+      console.error('Error fetching team:', error);
+      toast.error('فشل تحميل فريق العمل');
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'team' && teamMembers.length === 0) fetchTeamMembers();
+  }, [activeTab]);
+
+  const handleTeamImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('الرجاء اختيار صورة صالحة'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('حجم الصورة يجب أن يكون أقل من 5 ميغابايت'); return; }
+    setTeamUploading(true);
+    const toastId = toast.loading('جاري رفع الصورة...');
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `team/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('activity-images').upload(fileName, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('activity-images').getPublicUrl(fileName);
+      setTeamFormData({ ...teamFormData, photo_url: urlData.publicUrl });
+      toast.success('تم رفع الصورة!', { id: toastId });
+    } catch (error) {
+      toast.error('فشل رفع الصورة', { id: toastId });
+    } finally {
+      setTeamUploading(false);
+    }
+  };
+
+  const handleTeamSubmit = async (e) => {
+    e.preventDefault();
+    if (!teamFormData.name.trim() || !teamFormData.role_title.trim()) {
+      toast.error('الاسم والمنصب مطلوبان');
+      return;
+    }
+    const toastId = toast.loading(editingTeamMemberId ? 'جاري التحديث...' : 'جاري الإضافة...');
+    try {
+      const cleanData = {
+        name: teamFormData.name.trim(),
+        role_title: teamFormData.role_title.trim(),
+        office: teamFormData.office || null,
+        photo_url: teamFormData.photo_url || null,
+        display_order: teamFormData.display_order || 0,
+        is_management: teamFormData.is_management
+      };
+      if (editingTeamMemberId) {
+        const { error } = await supabase.from('team_members').update(cleanData).eq('id', editingTeamMemberId);
+        if (error) throw error;
+        toast.success('تم التحديث بنجاح!', { id: toastId });
+      } else {
+        const { error } = await supabase.from('team_members').insert([cleanData]);
+        if (error) throw error;
+        toast.success('تم الإضافة بنجاح!', { id: toastId });
+      }
+      resetTeamForm();
+      fetchTeamMembers();
+    } catch (error) {
+      console.error(error);
+      toast.error('حدث خطأ أثناء الحفظ', { id: toastId });
+    }
+  };
+
+  const handleTeamEdit = (member) => {
+    setTeamFormData({
+      name: member.name,
+      role_title: member.role_title,
+      office: member.office || '',
+      photo_url: member.photo_url || '',
+      display_order: member.display_order || 0,
+      is_management: member.is_management || false
+    });
+    setEditingTeamMemberId(member.id);
+    setIsAddingTeamMember(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const promptTeamDelete = (id, photoUrl) => setTeamItemToDelete({ id, photoUrl });
+
+  const executeTeamDelete = async () => {
+    if (!teamItemToDelete) return;
+    setIsDeletingTeam(true);
+    const toastId = toast.loading('جاري الحذف...');
+    try {
+      if (teamItemToDelete.photoUrl && teamItemToDelete.photoUrl.includes('activity-images')) {
+        const path = teamItemToDelete.photoUrl.split('/activity-images/')[1];
+        if (path) await supabase.storage.from('activity-images').remove([path]);
+      }
+      const { error } = await supabase.from('team_members').delete().eq('id', teamItemToDelete.id);
+      if (error) throw error;
+      toast.success('تم الحذف!', { id: toastId });
+      fetchTeamMembers();
+      setTeamItemToDelete(null);
+    } catch (error) {
+      toast.error('فشل الحذف!', { id: toastId });
+    } finally {
+      setIsDeletingTeam(false);
+    }
+  };
+
+  const resetTeamForm = () => {
+    setTeamFormData({ name: '', role_title: '', office: '', photo_url: '', display_order: 0, is_management: false });
+    setEditingTeamMemberId(null);
+    setIsAddingTeamMember(false);
+    if (teamFileInputRef.current) teamFileInputRef.current.value = '';
+  };
 
   // ==========================================
   //  RENDER
@@ -330,32 +428,29 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-base-200 pt-32 pb-20 px-4">
       <div className="max-w-7xl mx-auto">
         
-        {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">لوحة التحكم الإدارية</h1>
-          <p className="text-base-content/60">إدارة النشاطات والمستخدمين والتسجيلات</p>
+          <p className="text-base-content/60">إدارة النشاطات والمستخدمين والتسجيلات وفريق العمل</p>
         </div>
 
         {/* Tab Navigation */}
         <div className="flex flex-wrap gap-2 justify-center mb-8">
-          <button
-            onClick={() => setActiveTab('activities')}
-            className={`btn rounded-2xl gap-2 ${activeTab === 'activities' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}
-          >
+          <button onClick={() => setActiveTab('activities')} className={`btn rounded-2xl gap-2 ${activeTab === 'activities' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
             <FaStar /> النشاطات
           </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`btn rounded-2xl gap-2 ${activeTab === 'users' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}
-          >
+          <button onClick={() => setActiveTab('users')} className={`btn rounded-2xl gap-2 ${activeTab === 'users' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
             <FaUsers /> المستخدمون
             {users.length > 0 && <span className="badge badge-sm">{users.length}</span>}
           </button>
-          <button
-            onClick={() => setActiveTab('registrations')}
-            className={`btn rounded-2xl gap-2 ${activeTab === 'registrations' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}
-          >
+          <button onClick={() => setActiveTab('registrations')} className={`btn rounded-2xl gap-2 ${activeTab === 'registrations' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
             <FaClipboardList /> تسجيلات الفعاليات
+          </button>
+          <button onClick={() => setActiveTab('attendance')} className={`btn rounded-2xl gap-2 ${activeTab === 'attendance' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
+  <FaClipboardCheck /> سجل الحضور
+</button>
+          <button onClick={() => setActiveTab('team')} className={`btn rounded-2xl gap-2 ${activeTab === 'team' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
+            <FaUserFriends /> فريق العمل
+            {teamMembers.length > 0 && <span className="badge badge-sm">{teamMembers.length}</span>}
           </button>
         </div>
 
@@ -364,16 +459,10 @@ export default function AdminDashboard() {
         ========================================== */}
         {activeTab === 'activities' && (
           <>
-            <button 
-              onClick={handleSyncStatuses}
-              disabled={syncing}
-              className="btn btn-ghost btn-sm gap-2 text-secondary mb-4"
-            >
-              <FaSync className={syncing ? 'animate-spin' : ''} />
-              تحديث تلقائي للحالات
+            <button onClick={handleSyncStatuses} disabled={syncing} className="btn btn-ghost btn-sm gap-2 text-secondary mb-4">
+              <FaSync className={syncing ? 'animate-spin' : ''} /> تحديث تلقائي للحالات
             </button>
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
               <div className="stat bg-base-100 rounded-2xl shadow-sm">
                 <div className="stat-figure text-primary"><FaStar className="text-3xl" /></div>
@@ -392,20 +481,15 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Add/Edit Form */}
             {isAddingNew && (
               <div className="bg-base-100 rounded-3xl p-6 md:p-8 mb-8 shadow-sm">
-                <h2 className="text-2xl font-bold mb-6 text-primary">
-                  {editingId ? 'تعديل النشاط' : 'إضافة نشاط جديد'}
-                </h2>
-                
+                <h2 className="text-2xl font-bold mb-6 text-primary">{editingId ? 'تعديل النشاط' : 'إضافة نشاط جديد'}</h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="form-control">
                       <label className="label"><span className="label-text font-bold">عنوان النشاط</span></label>
                       <input type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="input input-bordered rounded-xl" required />
                     </div>
-
                     <div className="form-control">
                       <label className="label"><span className="label-text font-bold">صورة النشاط</span></label>
                       <div className="flex gap-2">
@@ -415,34 +499,26 @@ export default function AdminDashboard() {
                       {formData.image_url && (
                         <div className="mt-2">
                           <img src={formData.image_url} alt="معاينة الصورة" className="w-full h-32 object-cover rounded-xl" />
-                          <button type="button" onClick={() => setFormData({...formData, image_url: ''})} className="btn btn-xs btn-error btn-outline mt-2"><FaTimes /> إزالة الصورة</button>
+                          <button type="button" onClick={() => setFormData({...formData, image_url: ''})} className="btn btn-xs btn-error btn-outline mt-2"><FaTimes /> إزالة</button>
                         </div>
                       )}
                     </div>
-
                     <div className="form-control md:col-span-2">
                       <label className="label"><span className="label-text font-bold">الوصف المختصر</span></label>
                       <textarea value={formData.short_description} onChange={(e) => setFormData({...formData, short_description: e.target.value})} className="textarea textarea-bordered rounded-xl h-24" required />
                     </div>
-
                     <div className="form-control md:col-span-2">
                       <label className="label"><span className="label-text font-bold">التقرير الكامل</span></label>
                       <textarea value={formData.full_report} onChange={(e) => setFormData({...formData, full_report: e.target.value})} className="textarea textarea-bordered rounded-xl h-32" required />
                     </div>
-
                     <div className="form-control">
                       <label className="label"><span className="label-text font-bold">تاريخ النشاط</span></label>
                       <input type="date" value={formData.activity_date} onChange={(e) => setFormData({...formData, activity_date: e.target.value})} className="input input-bordered rounded-xl" />
                     </div>
-
                     <div className="form-control">
                       <label className="label"><span className="label-text font-bold text-secondary">العدد الأقصى للمشاركين</span></label>
-                      <div className="relative">
-                        <FaUsers className="absolute top-3 right-3 text-base-content/40" />
-                        <input type="number" min="1" value={formData.capacity} onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value)})} className="input input-bordered rounded-xl w-full pr-10" placeholder="مثال: 20" />
-                      </div>
+                      <input type="number" min="1" value={formData.capacity} onChange={(e) => setFormData({...formData, capacity: parseInt(e.target.value)})} className="input input-bordered rounded-xl w-full" placeholder="مثال: 20" />
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div className="form-control">
                         <label className="label"><span className="label-text font-bold">وقت البداية</span></label>
@@ -453,21 +529,15 @@ export default function AdminDashboard() {
                         <input type="time" value={formData.end_time} onChange={(e) => setFormData({...formData, end_time: e.target.value})} className="input input-bordered rounded-xl" />
                       </div>
                     </div>
-
                     <div className="form-control md:col-span-2">
                       <label className="label"><span className="label-text font-bold">ملاحظات مهمة</span></label>
                       <textarea value={formData.notable_notes} onChange={(e) => setFormData({...formData, notable_notes: e.target.value})} className="textarea textarea-bordered rounded-xl" placeholder="اختياري..." />
                     </div>
-
                     <div className="form-control md:col-span-2">
                       <label className="label"><span className="label-text font-bold text-info">رابط استمارة التسجيل</span></label>
-                      <div className="relative">
-                        <FaLink className="absolute top-3.5 right-3 text-info/30" />
-                        <input type="url" value={formData.registration_form_url} onChange={(e) => setFormData({...formData, registration_form_url: e.target.value})} className="input input-bordered input-primary w-full rounded-xl pr-10 text-left" placeholder="https://docs.google.com/forms/..." dir="ltr" />
-                      </div>
+                      <input type="url" value={formData.registration_form_url} onChange={(e) => setFormData({...formData, registration_form_url: e.target.value})} className="input input-bordered input-primary w-full rounded-xl text-left" placeholder="https://docs.google.com/forms/..." dir="ltr" />
                       <label className="label"><span className="label-text-alt text-base-content/40">اتركه فارغاً إذا لم يكن هناك تسجيل</span></label>
                     </div>
-
                     <div className="form-control md:col-span-2">
                       <label className="label cursor-pointer justify-start gap-4">
                         <input type="checkbox" checked={formData.is_upcoming} onChange={(e) => setFormData({...formData, is_upcoming: e.target.checked})} className="checkbox checkbox-primary" />
@@ -475,7 +545,6 @@ export default function AdminDashboard() {
                       </label>
                     </div>
                   </div>
-
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <button type="submit" className="btn btn-primary text-white flex-1" disabled={uploading}>{editingId ? 'حفظ التعديلات' : 'إضافة النشاط'}</button>
                     <button type="button" onClick={resetForm} className="btn btn-ghost flex-1">إلغاء</button>
@@ -484,52 +553,25 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Add New Button */}
             {!isAddingNew && (
               <div className="text-center mb-8">
-                <button onClick={() => setIsAddingNew(true)} className="btn btn-primary btn-lg rounded-full text-white gap-2 shadow-lg">
-                  <FaPlus /> إضافة نشاط جديد
-                </button>
+                <button onClick={() => setIsAddingNew(true)} className="btn btn-primary btn-lg rounded-full text-white gap-2 shadow-lg"><FaPlus /> إضافة نشاط جديد</button>
               </div>
             )}
 
-            {/* Activities Table */}
             <div className="bg-base-100 rounded-3xl p-6 shadow-sm overflow-hidden">
               <h2 className="text-2xl font-bold mb-6 text-primary">النشاطات الحالية</h2>
               <div className="overflow-x-auto">
                 <table className="table table-zebra w-full whitespace-nowrap">
-                  <thead>
-                    <tr>
-                      <th>الصورة</th>
-                      <th>العنوان</th>
-                      <th>التاريخ</th>
-                      <th>الرابط</th>
-                      <th>الحالة</th>
-                      <th>الإجراءات</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>الصورة</th><th>العنوان</th><th>التاريخ</th><th>الرابط</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
                   <tbody>
                     {activities.map((activity) => (
                       <tr key={activity.id}>
-                        <td>
-                          {activity.image_url ? (
-                            <img src={activity.image_url} alt={activity.title} className="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg" />
-                          ) : (
-                            <div className="w-12 h-12 md:w-16 md:h-16 bg-base-200 rounded-lg flex items-center justify-center"><FaImage className="text-base-content/40" /></div>
-                          )}
-                        </td>
+                        <td>{activity.image_url ? <img src={activity.image_url} alt={activity.title} className="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg" /> : <div className="w-12 h-12 md:w-16 md:h-16 bg-base-200 rounded-lg flex items-center justify-center"><FaImage className="text-base-content/40" /></div>}</td>
                         <td className="font-bold">{activity.title}</td>
                         <td>{activity.activity_date || 'غير محدد'}</td>
-                        <td>
-                          {activity.registration_form_url ? (
-                            <a href={activity.registration_form_url} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-link">رابط</a>
-                          ) : '-'}
-                        </td>
-                        <td>
-                          <span className={`badge ${activity.is_upcoming ? 'badge-primary' : 'badge-ghost'}`}>
-                            {activity.is_upcoming ? 'قادم' : 'منتهي'}
-                          </span>
-                        </td>
+                        <td>{activity.registration_form_url ? <a href={activity.registration_form_url} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-link">رابط</a> : '-'}</td>
+                        <td><span className={`badge ${activity.is_upcoming ? 'badge-primary' : 'badge-ghost'}`}>{activity.is_upcoming ? 'قادم' : 'منتهي'}</span></td>
                         <td>
                           <div className="flex gap-2">
                             <button onClick={() => handleEdit(activity)} className="btn btn-sm btn-square btn-ghost text-primary"><FaEdit /></button>
@@ -544,7 +586,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Messages */}
             {messages.length > 0 && (
               <div className="bg-base-100 rounded-3xl p-6 md:p-8 shadow-sm mt-8">
                 <h2 className="text-2xl font-bold mb-6 text-primary">آخر الرسائل</h2>
@@ -567,174 +608,69 @@ export default function AdminDashboard() {
         ========================================== */}
         {activeTab === 'users' && (
           <div className="space-y-6">
-            
-            {/* Users Header & Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm">
-                <div className="text-3xl font-bold text-primary">{users.length}</div>
-                <div className="text-base-content/50 text-sm">إجمالي المستخدمين</div>
-              </div>
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm">
-                <div className="text-3xl font-bold text-secondary">{users.filter(u => u.user_type === 'parent').length}</div>
-                <div className="text-base-content/50 text-sm">أولياء أمور</div>
-              </div>
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm">
-                <div className="text-3xl font-bold text-accent">{users.filter(u => u.user_type === 'member').length}</div>
-                <div className="text-base-content/50 text-sm">أعضاء</div>
-              </div>
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm">
-                <div className="text-3xl font-bold text-warning">{users.filter(u => u.user_type === 'volunteer' || u.user_type === 'donor').length}</div>
-                <div className="text-base-content/50 text-sm">متطوعون وداعمون</div>
-              </div>
+              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-primary">{users.length}</div><div className="text-base-content/50 text-sm">إجمالي المستخدمين</div></div>
+              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-secondary">{users.filter(u => u.user_type === 'parent').length}</div><div className="text-base-content/50 text-sm">أولياء أمور</div></div>
+              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-accent">{users.filter(u => u.user_type === 'member').length}</div><div className="text-base-content/50 text-sm">أعضاء</div></div>
+              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-warning">{users.filter(u => u.user_type === 'volunteer' || u.user_type === 'donor').length}</div><div className="text-base-content/50 text-sm">متطوعون وداعمون</div></div>
             </div>
 
-            {/* Search & Filter */}
             <div className="bg-base-100 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
                 <FaSearch className="absolute top-3.5 right-3 text-base-content/40" />
-                <input
-                  type="text"
-                  placeholder="بحث بالاسم أو رقم الهاتف..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  className="input input-bordered rounded-xl w-full pr-10"
-                />
+                <input type="text" placeholder="بحث بالاسم أو رقم الهاتف..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="input input-bordered rounded-xl w-full pr-10" />
               </div>
-              <select
-                value={userTypeFilter}
-                onChange={(e) => setUserTypeFilter(e.target.value)}
-                className="select select-bordered rounded-xl"
-              >
+              <select value={userTypeFilter} onChange={(e) => setUserTypeFilter(e.target.value)} className="select select-bordered rounded-xl">
                 <option value="all">جميع الأنواع</option>
                 <option value="parent">أولياء أمور</option>
                 <option value="member">أعضاء</option>
                 <option value="volunteer">متطوعون</option>
                 <option value="donor">داعمون</option>
               </select>
-              <button onClick={fetchUsers} className="btn btn-ghost btn-sm gap-2">
-                <FaSync /> تحديث
-              </button>
+              <button onClick={fetchUsers} className="btn btn-ghost btn-sm gap-2"><FaSync /> تحديث</button>
             </div>
 
-            {/* Users List */}
             <div className="bg-base-100 rounded-3xl p-6 shadow-sm">
-              <h2 className="text-2xl font-bold mb-6 text-primary flex items-center gap-3">
-                <FaUsers /> المستخدمون المسجلون
-                <span className="badge badge-primary">{filteredUsers.length}</span>
-              </h2>
-
+              <h2 className="text-2xl font-bold mb-6 text-primary flex items-center gap-3"><FaUsers /> المستخدمون المسجلون <span className="badge badge-primary">{filteredUsers.length}</span></h2>
               {usersLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <span className="loading loading-spinner loading-lg text-primary"></span>
-                </div>
+                <div className="flex items-center justify-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></div>
               ) : filteredUsers.length === 0 ? (
-                <div className="text-center py-12 text-base-content/50">
-                  {userSearch || userTypeFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا يوجد مستخدمون مسجلون'}
-                </div>
+                <div className="text-center py-12 text-base-content/50">{userSearch || userTypeFilter !== 'all' ? 'لا توجد نتائج مطابقة' : 'لا يوجد مستخدمون مسجلون'}</div>
               ) : (
                 <div className="space-y-3">
                   {filteredUsers.map((user) => (
                     <div key={user.id} className="border border-base-200 rounded-2xl overflow-hidden">
-                      {/* User Row */}
-                      <div 
-                        className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors"
-                        onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
-                      >
+                      <div className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors" onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}>
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 shrink-0">
-                          {user.avatar_url ? (
-                            <img src={user.avatar_url} alt={user.parent_name || 'صورة المستخدم'} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-primary/50">
-                              <FaUserFriends />
-                            </div>
-                          )}
+                          {user.avatar_url ? <img src={user.avatar_url} alt={user.parent_name || 'صورة'} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary/50"><FaUserFriends /></div>}
                         </div>
-
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-base-content truncate">{user.parent_name || 'بدون اسم'}</div>
-                          <div className="text-sm text-base-content/50 flex items-center gap-2">
-                            <FaPhone className="text-xs" />
-                            <span dir="ltr">{user.parent_phone || 'لا يوجد'}</span>
-                          </div>
+                          <div className="text-sm text-base-content/50 flex items-center gap-2"><FaPhone className="text-xs" /><span dir="ltr">{user.parent_phone || 'لا يوجد'}</span></div>
                         </div>
-
-                        <div className="shrink-0">
-                          <span className={`badge badge-sm ${
-                            user.user_type === 'parent' ? 'badge-primary' :
-                            user.user_type === 'member' ? 'badge-secondary' :
-                            user.user_type === 'volunteer' ? 'badge-accent' :
-                            user.user_type === 'donor' ? 'badge-warning' :
-                            'badge-ghost'
-                          }`}>
-                            {userTypeLabels[user.user_type] || 'مستخدم'}
-                          </span>
-                        </div>
-
-                        {user.role === 'admin' && (
-                          <span className="badge badge-error badge-sm">مدير</span>
-                        )}
-
-                        <div className="shrink-0 text-base-content/40">
-                          {expandedUser === user.id ? <FaChevronUp /> : <FaChevronDown />}
-                        </div>
+                        <span className={`badge badge-sm shrink-0 ${user.user_type === 'parent' ? 'badge-primary' : user.user_type === 'member' ? 'badge-secondary' : user.user_type === 'volunteer' ? 'badge-accent' : user.user_type === 'donor' ? 'badge-warning' : 'badge-ghost'}`}>{userTypeLabels[user.user_type] || 'مستخدم'}</span>
+                        {user.role === 'admin' && <span className="badge badge-error badge-sm">مدير</span>}
+                        <div className="shrink-0 text-base-content/40">{expandedUser === user.id ? <FaChevronUp /> : <FaChevronDown />}</div>
                       </div>
-
-                      {/* Expanded Details */}
                       {expandedUser === user.id && (
                         <div className="px-4 pb-4 pt-2 bg-base-200/30 border-t border-base-200 space-y-4">
-                          
-                          <div className="text-xs text-base-content/40 font-mono break-all">
-                            ID: {user.id}
-                          </div>
-
+                          <div className="text-xs text-base-content/40 font-mono break-all">ID: {user.id}</div>
                           {user.user_type === 'parent' && user.children && user.children.length > 0 && (
                             <div>
-                              <h4 className="font-bold text-primary text-sm mb-2 flex items-center gap-2">
-                                <FaChild /> الأبناء ({user.children.length})
-                              </h4>
+                              <h4 className="font-bold text-primary text-sm mb-2 flex items-center gap-2"><FaChild /> الأبناء ({user.children.length})</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {user.children.map((child, idx) => (
-                                  <div key={idx} className="bg-base-100 p-3 rounded-xl flex items-center justify-between">
-                                    <span className="font-medium text-base-content">{child.name}</span>
-                                    <span className="badge badge-primary badge-outline badge-sm">{child.age} سنة</span>
-                                  </div>
-                                ))}
+                                {user.children.map((child, idx) => (<div key={idx} className="bg-base-100 p-3 rounded-xl flex items-center justify-between"><span className="font-medium">{child.name}</span><span className="badge badge-primary badge-outline badge-sm">{child.age} سنة</span></div>))}
                               </div>
                             </div>
                           )}
-
                           {user.user_type === 'member' && user.member_roles && user.member_roles.length > 0 && (
                             <div>
-                              <h4 className="font-bold text-secondary text-sm mb-2 flex items-center gap-2">
-                                <FaUserTag /> المناصب
-                              </h4>
-                              <div className="space-y-2">
-                                {user.member_roles.map((role, idx) => (
-                                  <div key={idx} className="bg-base-100 p-3 rounded-xl">
-                                    <span className="font-bold text-base-content">{rankLabels[role.rank] || role.rank}</span>
-                                    {role.office && (
-                                      <span className="text-base-content/50 text-sm mr-2">• {officeLabels[role.office] || role.office}</span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
+                              <h4 className="font-bold text-secondary text-sm mb-2 flex items-center gap-2"><FaUserTag /> المناصب</h4>
+                              <div className="space-y-2">{user.member_roles.map((role, idx) => (<div key={idx} className="bg-base-100 p-3 rounded-xl"><span className="font-bold">{rankLabels[role.rank] || role.rank}</span>{role.office && <span className="text-base-content/50 text-sm mr-2">• {officeLabels[role.office] || role.office}</span>}</div>))}</div>
                             </div>
                           )}
-
-                          {user.user_type === 'donor' && user.donor_party && (
-                            <div>
-                              <h4 className="font-bold text-warning text-sm mb-2">الجهة المانحة</h4>
-                              <div className="bg-base-100 p-3 rounded-xl text-base-content">
-                                {user.donor_party}
-                              </div>
-                            </div>
-                          )}
-
-                          {user.created_at && (
-                            <div className="text-xs text-base-content/40">
-                              تاريخ التسجيل: {new Date(user.created_at).toLocaleDateString('ar-SA')}
-                            </div>
-                          )}
+                          {user.user_type === 'donor' && user.donor_party && (<div><h4 className="font-bold text-warning text-sm mb-2">الجهة المانحة</h4><div className="bg-base-100 p-3 rounded-xl">{user.donor_party}</div></div>)}
+                          {user.created_at && <div className="text-xs text-base-content/40">تاريخ التسجيل: {new Date(user.created_at).toLocaleDateString('ar-SA')}</div>}
                         </div>
                       )}
                     </div>
@@ -750,57 +686,28 @@ export default function AdminDashboard() {
         ========================================== */}
         {activeTab === 'registrations' && (
           <div className="space-y-6">
-
-            {/* Event Selector */}
             <div className="bg-base-100 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                <FaCalendarAlt /> اختر النشاط
-              </h2>
-              
+              <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2"><FaCalendarAlt /> اختر النشاط</h2>
               {upcomingActivities.length === 0 ? (
-                <div className="text-center py-8 text-base-content/50">
-                  <FaCalendarAlt className="text-4xl mx-auto mb-3 text-base-content/30" />
-                  <p>لا توجد نشاطات قادمة حالياً</p>
-                </div>
+                <div className="text-center py-8 text-base-content/50"><FaCalendarAlt className="text-4xl mx-auto mb-3 text-base-content/30" /><p>لا توجد نشاطات قادمة حالياً</p></div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {upcomingActivities.map((activity) => (
-                    <button
-                      key={activity.id}
-                      onClick={() => setSelectedEventId(activity.id)}
-                      className={`p-4 rounded-2xl border-2 text-right transition-all ${
-                        selectedEventId === activity.id
-                          ? 'border-primary bg-primary/5 shadow-md'
-                          : 'border-base-200 hover:border-primary/30 hover:bg-base-200/50'
-                      }`}
-                    >
+                    <button key={activity.id} onClick={() => setSelectedEventId(activity.id)} className={`p-4 rounded-2xl border-2 text-right transition-all ${selectedEventId === activity.id ? 'border-primary bg-primary/5 shadow-md' : 'border-base-200 hover:border-primary/30'}`}>
                       <div className="font-bold text-base-content truncate">{activity.title}</div>
                       <div className="text-sm text-base-content/50 mt-1">{activity.activity_date || 'تاريخ غير محدد'}</div>
-                      {activity.capacity && (
-                        <div className="text-xs text-primary mt-2">السعة: {activity.capacity} مشارك</div>
-                      )}
+                      {activity.capacity && <div className="text-xs text-primary mt-2">السعة: {activity.capacity} مشارك</div>}
                     </button>
                   ))}
                 </div>
               )}
-
               {activities.filter(a => !a.is_upcoming).length > 0 && (
                 <details className="mt-4">
-                  <summary className="cursor-pointer text-sm text-base-content/50 hover:text-primary transition-colors">
-                    عرض النشاطات السابقة ({activities.filter(a => !a.is_upcoming).length})
-                  </summary>
+                  <summary className="cursor-pointer text-sm text-base-content/50 hover:text-primary">عرض النشاطات السابقة ({activities.filter(a => !a.is_upcoming).length})</summary>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
                     {activities.filter(a => !a.is_upcoming).map((activity) => (
-                      <button
-                        key={activity.id}
-                        onClick={() => setSelectedEventId(activity.id)}
-                        className={`p-4 rounded-2xl border-2 text-right transition-all ${
-                          selectedEventId === activity.id
-                            ? 'border-primary bg-primary/5 shadow-md'
-                            : 'border-base-200 hover:border-primary/30 hover:bg-base-200/50'
-                        }`}
-                      >
-                        <div className="font-bold text-base-content truncate">{activity.title}</div>
+                      <button key={activity.id} onClick={() => setSelectedEventId(activity.id)} className={`p-4 rounded-2xl border-2 text-right transition-all ${selectedEventId === activity.id ? 'border-primary bg-primary/5 shadow-md' : 'border-base-200 hover:border-primary/30'}`}>
+                        <div className="font-bold truncate">{activity.title}</div>
                         <div className="text-sm text-base-content/50 mt-1">{activity.activity_date || 'تاريخ غير محدد'}</div>
                         <span className="badge badge-ghost badge-sm mt-2">منتهي</span>
                       </button>
@@ -810,139 +717,49 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Registrations List */}
             {selectedEventId && (
               <div className="bg-base-100 rounded-3xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-primary flex items-center gap-3">
-                    <FaClipboardList /> المسجلون
-                    <span className="badge badge-primary">{registrations.length}</span>
-                  </h2>
-                  <button onClick={() => fetchRegistrations(selectedEventId)} className="btn btn-ghost btn-sm gap-2">
-                    <FaSync /> تحديث
-                  </button>
+                  <h2 className="text-2xl font-bold text-primary flex items-center gap-3"><FaClipboardList /> المسجلون <span className="badge badge-primary">{registrations.length}</span></h2>
+                  <button onClick={() => fetchRegistrations(selectedEventId)} className="btn btn-ghost btn-sm gap-2"><FaSync /> تحديث</button>
                 </div>
-
                 {registrationsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <span className="loading loading-spinner loading-lg text-primary"></span>
-                  </div>
+                  <div className="flex items-center justify-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></div>
                 ) : registrations.length === 0 ? (
-                  <div className="text-center py-12 text-base-content/50">
-                    <FaClipboardList className="text-4xl mx-auto mb-3 text-base-content/30" />
-                    <p>لا يوجد مسجلون في هذا النشاط بعد</p>
-                  </div>
+                  <div className="text-center py-12 text-base-content/50"><FaClipboardList className="text-4xl mx-auto mb-3 text-base-content/30" /><p>لا يوجد مسجلون بعد</p></div>
                 ) : (
                   <div className="space-y-3">
                     {registrations.map((reg, index) => {
                       const profile = reg.profiles;
                       if (!profile) return null;
-
                       return (
                         <div key={reg.id} className="border border-base-200 rounded-2xl overflow-hidden">
-                          <div 
-                            className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors"
-                            onClick={() => setExpandedRegistration(expandedRegistration === reg.id ? null : reg.id)}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">
-                              {index + 1}
-                            </div>
-
+                          <div className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors" onClick={() => setExpandedRegistration(expandedRegistration === reg.id ? null : reg.id)}>
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">{index + 1}</div>
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 shrink-0">
-                              {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt={profile.parent_name || 'صورة المسجل'} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-primary/50">
-                                  <FaUserFriends className="text-sm" />
-                                </div>
-                              )}
+                              {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.parent_name || 'صورة'} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary/50"><FaUserFriends className="text-sm" /></div>}
                             </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="font-bold text-base-content truncate">{profile.parent_name || 'بدون اسم'}</div>
-                              <div className="text-xs text-base-content/50" dir="ltr">{profile.parent_phone || ''}</div>
-                            </div>
-
-                            <span className={`badge badge-sm shrink-0 ${
-                              profile.user_type === 'parent' ? 'badge-primary' :
-                              profile.user_type === 'member' ? 'badge-secondary' :
-                              'badge-ghost'
-                            }`}>
-                              {userTypeLabels[profile.user_type] || 'مستخدم'}
-                            </span>
-
-                            <div className="text-xs text-base-content/40 hidden sm:block shrink-0">
-                              {new Date(reg.created_at).toLocaleDateString('ar-SA')}
-                            </div>
-
-                            <div className="shrink-0 text-base-content/40">
-                              {expandedRegistration === reg.id ? <FaChevronUp /> : <FaChevronDown />}
-                            </div>
+                            <div className="flex-1 min-w-0"><div className="font-bold truncate">{profile.parent_name || 'بدون اسم'}</div><div className="text-xs text-base-content/50" dir="ltr">{profile.parent_phone || ''}</div></div>
+                            <span className={`badge badge-sm shrink-0 ${profile.user_type === 'parent' ? 'badge-primary' : profile.user_type === 'member' ? 'badge-secondary' : 'badge-ghost'}`}>{userTypeLabels[profile.user_type] || 'مستخدم'}</span>
+                            <div className="text-xs text-base-content/40 hidden sm:block shrink-0">{new Date(reg.created_at).toLocaleDateString('ar-SA')}</div>
+                            <div className="shrink-0 text-base-content/40">{expandedRegistration === reg.id ? <FaChevronUp /> : <FaChevronDown />}</div>
                           </div>
-
                           {expandedRegistration === reg.id && (
                             <div className="px-4 pb-4 pt-2 bg-base-200/30 border-t border-base-200 space-y-4">
-                              
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="bg-base-100 p-3 rounded-xl flex items-center gap-3">
-                                  <FaPhone className="text-primary shrink-0" />
-                                  <div>
-                                    <div className="text-xs text-base-content/50">الهاتف</div>
-                                    <div className="font-medium text-base-content" dir="ltr">{profile.parent_phone || 'غير متوفر'}</div>
-                                  </div>
-                                </div>
-                                <div className="bg-base-100 p-3 rounded-xl flex items-center gap-3">
-                                  <FaCalendarAlt className="text-primary shrink-0" />
-                                  <div>
-                                    <div className="text-xs text-base-content/50">تاريخ التسجيل</div>
-                                    <div className="font-medium text-base-content">{new Date(reg.created_at).toLocaleString('ar-SA')}</div>
-                                  </div>
-                                </div>
+                                <div className="bg-base-100 p-3 rounded-xl flex items-center gap-3"><FaPhone className="text-primary shrink-0" /><div><div className="text-xs text-base-content/50">الهاتف</div><div className="font-medium" dir="ltr">{profile.parent_phone || 'غير متوفر'}</div></div></div>
+                                <div className="bg-base-100 p-3 rounded-xl flex items-center gap-3"><FaCalendarAlt className="text-primary shrink-0" /><div><div className="text-xs text-base-content/50">تاريخ التسجيل</div><div className="font-medium">{new Date(reg.created_at).toLocaleString('ar-SA')}</div></div></div>
                               </div>
-
                               {profile.children && profile.children.length > 0 && (
                                 <div>
-                                  <h4 className="font-bold text-primary text-sm mb-2 flex items-center gap-2">
-                                    <FaChild /> الأبناء المسجلين ({profile.children.length})
-                                  </h4>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {profile.children.map((child, idx) => (
-                                      <div key={idx} className="bg-base-100 p-3 rounded-xl flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                            <FaChild className="text-xs" />
-                                          </div>
-                                          <span className="font-medium text-base-content">{child.name}</span>
-                                        </div>
-                                        <span className="badge badge-primary badge-outline badge-sm">{child.age} سنة</span>
-                                      </div>
-                                    ))}
-                                  </div>
+                                  <h4 className="font-bold text-primary text-sm mb-2 flex items-center gap-2"><FaChild /> الأبناء ({profile.children.length})</h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">{profile.children.map((child, idx) => (<div key={idx} className="bg-base-100 p-3 rounded-xl flex items-center justify-between"><div className="flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary"><FaChild className="text-xs" /></div><span className="font-medium">{child.name}</span></div><span className="badge badge-primary badge-outline badge-sm">{child.age} سنة</span></div>))}</div>
                                 </div>
                               )}
-
                               {profile.user_type === 'member' && profile.member_roles && profile.member_roles.length > 0 && (
-                                <div>
-                                  <h4 className="font-bold text-secondary text-sm mb-2 flex items-center gap-2">
-                                    <FaUserTag /> المناصب
-                                  </h4>
-                                  <div className="space-y-2">
-                                    {profile.member_roles.map((role, idx) => (
-                                      <div key={idx} className="bg-base-100 p-3 rounded-xl">
-                                        <span className="font-bold">{rankLabels[role.rank] || role.rank}</span>
-                                        {role.office && <span className="text-base-content/50 text-sm mr-2">• {officeLabels[role.office] || role.office}</span>}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
+                                <div><h4 className="font-bold text-secondary text-sm mb-2 flex items-center gap-2"><FaUserTag /> المناصب</h4><div className="space-y-2">{profile.member_roles.map((role, idx) => (<div key={idx} className="bg-base-100 p-3 rounded-xl"><span className="font-bold">{rankLabels[role.rank] || role.rank}</span>{role.office && <span className="text-base-content/50 text-sm mr-2">• {officeLabels[role.office] || role.office}</span>}</div>))}</div></div>
                               )}
-
-                              {profile.user_type === 'donor' && profile.donor_party && (
-                                <div className="bg-base-100 p-3 rounded-xl">
-                                  <span className="text-sm text-base-content/50">الجهة المانحة: </span>
-                                  <span className="font-bold text-base-content">{profile.donor_party}</span>
-                                </div>
-                              )}
+                              {profile.user_type === 'donor' && profile.donor_party && (<div className="bg-base-100 p-3 rounded-xl"><span className="text-sm text-base-content/50">الجهة المانحة: </span><span className="font-bold">{profile.donor_party}</span></div>)}
                             </div>
                           )}
                         </div>
@@ -950,33 +767,14 @@ export default function AdminDashboard() {
                     })}
                   </div>
                 )}
-
                 {registrations.length > 0 && (
                   <div className="mt-6 p-4 bg-primary/5 rounded-2xl border border-primary/10">
                     <h4 className="font-bold text-primary text-sm mb-3">ملخص التسجيلات</h4>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-primary">{registrations.length}</div>
-                        <div className="text-xs text-base-content/50">إجمالي المسجلين</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-secondary">
-                          {registrations.reduce((sum, reg) => sum + (reg.profiles?.children?.length || 0), 0)}
-                        </div>
-                        <div className="text-xs text-base-content/50">إجمالي الأطفال</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-accent">
-                          {registrations.filter(r => r.profiles?.user_type === 'parent').length}
-                        </div>
-                        <div className="text-xs text-base-content/50">أولياء أمور</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-warning">
-                          {registrations.filter(r => r.profiles?.user_type !== 'parent').length}
-                        </div>
-                        <div className="text-xs text-base-content/50">آخرون</div>
-                      </div>
+                      <div><div className="text-2xl font-bold text-primary">{registrations.length}</div><div className="text-xs text-base-content/50">إجمالي المسجلين</div></div>
+                      <div><div className="text-2xl font-bold text-secondary">{registrations.reduce((sum, reg) => sum + (reg.profiles?.children?.length || 0), 0)}</div><div className="text-xs text-base-content/50">إجمالي الأطفال</div></div>
+                      <div><div className="text-2xl font-bold text-accent">{registrations.filter(r => r.profiles?.user_type === 'parent').length}</div><div className="text-xs text-base-content/50">أولياء أمور</div></div>
+                      <div><div className="text-2xl font-bold text-warning">{registrations.filter(r => r.profiles?.user_type !== 'parent').length}</div><div className="text-xs text-base-content/50">آخرون</div></div>
                     </div>
                   </div>
                 )}
@@ -985,25 +783,212 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ==========================================
+            TAB 4: TEAM MANAGEMENT
+        ========================================== */}
+        {activeTab === 'team' && (
+          <div className="space-y-6">
+
+            {/* Team Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm">
+                <div className="text-3xl font-bold text-primary">{teamMembers.length}</div>
+                <div className="text-base-content/50 text-sm">إجمالي الفريق</div>
+              </div>
+              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm">
+                <div className="text-3xl font-bold text-warning">{teamMembers.filter(m => m.is_management).length}</div>
+                <div className="text-base-content/50 text-sm">إدارة</div>
+              </div>
+              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm">
+                <div className="text-3xl font-bold text-secondary">{teamMembers.filter(m => !m.is_management).length}</div>
+                <div className="text-base-content/50 text-sm">أعضاء</div>
+              </div>
+            </div>
+
+            {/* Add/Edit Team Form */}
+            {isAddingTeamMember && (
+              <div className="bg-base-100 rounded-3xl p-6 md:p-8 shadow-sm">
+                <h2 className="text-2xl font-bold mb-6 text-primary">
+                  {editingTeamMemberId ? 'تعديل عضو' : 'إضافة عضو جديد'}
+                </h2>
+                <form onSubmit={handleTeamSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="form-control">
+                      <label className="label"><span className="label-text font-bold">الاسم الكامل *</span></label>
+                      <input type="text" value={teamFormData.name} onChange={(e) => setTeamFormData({...teamFormData, name: e.target.value})} className="input input-bordered rounded-xl" placeholder="مثال: أحمد محمد" required />
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label"><span className="label-text font-bold">المنصب / الصفة *</span></label>
+                      <input type="text" value={teamFormData.role_title} onChange={(e) => setTeamFormData({...teamFormData, role_title: e.target.value})} className="input input-bordered rounded-xl" placeholder="مثال: رئيس الجمعية" required />
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label"><span className="label-text font-bold">المكتب (اختياري)</span></label>
+                      <select value={teamFormData.office} onChange={(e) => setTeamFormData({...teamFormData, office: e.target.value})} className="select select-bordered rounded-xl">
+                        <option value="">بدون مكتب</option>
+                        {Object.entries(officeLabels).map(([key, label]) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label"><span className="label-text font-bold">ترتيب العرض</span></label>
+                      <div className="relative">
+                        <FaSortNumericDown className="absolute top-3 right-3 text-base-content/40" />
+                        <input type="number" min="0" value={teamFormData.display_order} onChange={(e) => setTeamFormData({...teamFormData, display_order: parseInt(e.target.value) || 0})} className="input input-bordered rounded-xl w-full pr-10" />
+                      </div>
+                      <label className="label"><span className="label-text-alt text-base-content/40">رقم أصغر = يظهر أولاً</span></label>
+                    </div>
+
+                    <div className="form-control">
+                      <label className="label"><span className="label-text font-bold">صورة العضو</span></label>
+                      <div className="flex gap-2">
+                        <input ref={teamFileInputRef} type="file" accept="image/*" onChange={handleTeamImageUpload} className="file-input file-input-bordered file-input-primary rounded-xl flex-1 w-full" disabled={teamUploading} />
+                        {teamUploading && <button type="button" className="btn btn-square btn-primary" disabled><FaSpinner className="animate-spin" /></button>}
+                      </div>
+                      {teamFormData.photo_url && (
+                        <div className="mt-2 flex items-center gap-3">
+                          <img src={teamFormData.photo_url} alt="معاينة" className="w-16 h-16 rounded-full object-cover border-2 border-primary/20" />
+                          <button type="button" onClick={() => setTeamFormData({...teamFormData, photo_url: ''})} className="btn btn-xs btn-error btn-outline"><FaTimes /> إزالة</button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-control flex items-end">
+                      <label className="label cursor-pointer justify-start gap-4 bg-warning/5 border border-warning/10 rounded-xl p-4 w-full">
+                        <input type="checkbox" checked={teamFormData.is_management} onChange={(e) => setTeamFormData({...teamFormData, is_management: e.target.checked})} className="checkbox checkbox-warning" />
+                        <div>
+                          <span className="label-text font-bold flex items-center gap-2"><FaCrown className="text-warning" /> عضو إدارة</span>
+                          <p className="text-xs text-base-content/40 mt-1">يظهر في القسم البارز بصفحة "عن الجمعية"</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <button type="submit" className="btn btn-primary text-white flex-1" disabled={teamUploading}>{editingTeamMemberId ? 'حفظ التعديلات' : 'إضافة العضو'}</button>
+                    <button type="button" onClick={resetTeamForm} className="btn btn-ghost flex-1">إلغاء</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Add Button */}
+            {!isAddingTeamMember && (
+              <div className="text-center">
+                <button onClick={() => setIsAddingTeamMember(true)} className="btn btn-primary btn-lg rounded-full text-white gap-2 shadow-lg">
+                  <FaPlus /> إضافة عضو جديد
+                </button>
+              </div>
+            )}
+
+            {/* Team Members Grid */}
+            <div className="bg-base-100 rounded-3xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-primary flex items-center gap-3">
+                  <FaUserFriends /> أعضاء الفريق
+                  <span className="badge badge-primary">{teamMembers.length}</span>
+                </h2>
+                <button onClick={fetchTeamMembers} className="btn btn-ghost btn-sm gap-2"><FaSync /> تحديث</button>
+              </div>
+
+              {teamLoading ? (
+                <div className="flex items-center justify-center py-12"><span className="loading loading-spinner loading-lg text-primary"></span></div>
+              ) : teamMembers.length === 0 ? (
+                <div className="text-center py-12 text-base-content/50">
+                  <FaUserFriends className="text-4xl mx-auto mb-3 text-base-content/30" />
+                  <p>لم يتم إضافة أعضاء بعد</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {teamMembers.map((member) => (
+                    <div key={member.id} className={`rounded-2xl p-5 border-2 relative ${member.is_management ? 'border-warning/30 bg-warning/5' : 'border-base-200 bg-base-200/30'}`}>
+                      
+                      {/* Management Badge */}
+                      {member.is_management && (
+                        <div className="absolute top-3 left-3">
+                          <span className="badge badge-warning badge-sm gap-1"><FaCrown className="text-xs" /> إدارة</span>
+                        </div>
+                      )}
+
+                      {/* Order Badge */}
+                      <div className="absolute top-3 right-3">
+                        <span className="badge badge-ghost badge-sm">#{member.display_order}</span>
+                      </div>
+
+                      <div className="flex flex-col items-center text-center pt-4">
+                        {/* Photo */}
+                        <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/10 mb-3 border-2 border-primary/20">
+                          {member.photo_url ? (
+                            <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><FaUser className="text-2xl text-primary/40" /></div>
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <h3 className="font-bold text-base-content text-lg">{member.name}</h3>
+                        <p className="text-primary text-sm font-medium mt-1">{member.role_title}</p>
+                        {member.office && (
+                          <p className="text-xs text-base-content/50 mt-1">{officeLabels[member.office] || member.office}</p>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2 mt-4">
+                          <button onClick={() => handleTeamEdit(member)} className="btn btn-sm btn-ghost text-primary gap-1"><FaEdit /> تعديل</button>
+                          <button onClick={() => promptTeamDelete(member.id, member.photo_url)} className="btn btn-sm btn-ghost text-error gap-1"><FaTrash /> حذف</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ==========================================
+    TAB 5: ATTENDANCE
+========================================== */}
+{activeTab === 'attendance' && (
+  <AttendanceManager activities={activities} />
+)}
+
       </div>
 
-      {/* DELETE MODAL */}
+      {/* ACTIVITY DELETE MODAL */}
       {itemToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setItemToDelete(null)}></div>
           <div className="bg-base-100 rounded-2xl p-8 relative z-10 max-w-md w-full shadow-2xl">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FaExclamationTriangle className="text-3xl text-error" />
-              </div>
+              <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4"><FaExclamationTriangle className="text-3xl text-error" /></div>
               <h3 className="text-2xl font-bold text-error">حذف النشاط</h3>
-              <p className="text-base-content/50 mt-2">هل أنت متأكد من حذف هذا النشاط؟ لا يمكن التراجع.</p>
+              <p className="text-base-content/50 mt-2">هل أنت متأكد؟ لا يمكن التراجع.</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={executeDelete} disabled={isDeleting} className="btn btn-error flex-1 text-white">
-                {isDeleting ? <span className="loading loading-spinner"></span> : 'نعم، حذف'}
-              </button>
+              <button onClick={executeDelete} disabled={isDeleting} className="btn btn-error flex-1 text-white">{isDeleting ? <span className="loading loading-spinner"></span> : 'نعم، حذف'}</button>
               <button onClick={() => setItemToDelete(null)} className="btn btn-ghost flex-1" disabled={isDeleting}>إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TEAM DELETE MODAL */}
+      {teamItemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setTeamItemToDelete(null)}></div>
+          <div className="bg-base-100 rounded-2xl p-8 relative z-10 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4"><FaExclamationTriangle className="text-3xl text-error" /></div>
+              <h3 className="text-2xl font-bold text-error">حذف العضو</h3>
+              <p className="text-base-content/50 mt-2">هل أنت متأكد من حذف هذا العضو؟</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={executeTeamDelete} disabled={isDeletingTeam} className="btn btn-error flex-1 text-white">{isDeletingTeam ? <span className="loading loading-spinner"></span> : 'نعم، حذف'}</button>
+              <button onClick={() => setTeamItemToDelete(null)} className="btn btn-ghost flex-1" disabled={isDeletingTeam}>إلغاء</button>
             </div>
           </div>
         </div>
@@ -1011,11 +996,7 @@ export default function AdminDashboard() {
 
       {/* PHOTO MANAGER MODAL */}
       {photoManagerActivity && (
-        <ActivityPhotoManager
-          activityId={photoManagerActivity.id}
-          activityTitle={photoManagerActivity.title}
-          onClose={() => setPhotoManagerActivity(null)}
-        />
+        <ActivityPhotoManager activityId={photoManagerActivity.id} activityTitle={photoManagerActivity.title} onClose={() => setPhotoManagerActivity(null)} />
       )}
     </div>
   );

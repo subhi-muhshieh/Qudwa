@@ -90,7 +90,7 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="preload" href="/logo.png" as="image" />
       </head>
-      <body className={`${tajawal.className} ${nastaliq.variable} ${sloganFont.variable}`}>
+     <body className={`${tajawal.variable} ${nastaliq.variable} ${sloganFont.variable} font-sans`}>
         <ProfileProvider>
           <Navbar />
           {children}

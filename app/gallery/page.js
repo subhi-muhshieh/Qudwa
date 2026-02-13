@@ -21,11 +21,7 @@ export default function GalleryPage() {
 
   useEffect(() => {
     const fetchGalleryData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
-      }
+      // Gallery is publicly accessible — no auth redirect needed
 
       const { data: activitiesData } = await supabase
         .from('activities')
