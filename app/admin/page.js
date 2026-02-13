@@ -352,10 +352,13 @@ export default function AdminDashboard() {
     setRegistrationsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('activity_registrations')
-        .select(`id, created_at, user_id, activity_id, profiles (id, parent_name, parent_phone, avatar_url, user_type, children, member_roles, donor_party)`)
-        .eq('activity_id', activityId)
-        .order('created_at', { ascending: false });
+  .from('activity_registrations')
+  .select(`
+    id, created_at, user_id, activity_id,
+    profiles!activity_registrations_user_id_fkey (id, parent_name, parent_phone, avatar_url, user_type, children, member_roles, donor_party)
+  `)
+  .eq('activity_id', activityId)
+  .order('created_at', { ascending: false });
       if (error) throw error;
       if (data) setRegistrations(data);
     } catch (error) {
