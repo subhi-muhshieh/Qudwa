@@ -5,6 +5,7 @@ import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog, FaImages, FaBars, FaTimes, FaInfoCircle, FaSignInAlt } from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
+import NotificationBell from './NotificationBell'; // ADD THIS LINE
 
 export default function Navbar() {
   const router = useRouter();
@@ -128,12 +129,18 @@ export default function Navbar() {
               الإدارة
             </Link>
           )}
+          {/* Notification Bell */}
+{user && <NotificationBell />}
         </div>
       </div>
 
-      {/* Right Side */}
-      <div className="flex-none gap-2 ml-2">
+            {/* Right Side */}
+      <div className="flex-none flex items-center gap-2 ml-2">
+        {/* Notification Bell - Only show if logged in */}
+        {user && <NotificationBell />}
+        
         {user ? (
+          /* ===== LOGGED-IN: Avatar Dropdown ===== */
           /* ===== LOGGED-IN: Avatar Dropdown ===== */
           <div className="relative" ref={dropdownRef}>
             <div 

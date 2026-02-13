@@ -9,7 +9,7 @@ import {
   FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink, FaSync, 
   FaImages, FaUserFriends, FaChild, FaPhone, FaEnvelope, FaChevronDown, 
   FaChevronUp, FaSearch, FaUserTag, FaClipboardList, FaCrown, FaUser,
-  FaSortNumericDown, FaClipboardCheck
+  FaSortNumericDown, FaClipboardCheck, FaBell
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { updateActivityStatuses } from '../utils/activityHelpers'; 
@@ -77,6 +77,10 @@ export default function AdminDashboard() {
 
   // --- ACTIVE TAB ---
   const [activeTab, setActiveTab] = useState('activities');
+  // Notification state
+  const [recipientType, setRecipientType] = useState('all_parents');
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifMessage, setNotifMessage] = useState('');
 
   const supabase = createClient();
   const router = useRouter();
@@ -169,7 +173,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     const toastId = toast.loading(editingId ? 'جاري التحديث...' : 'جاري الإضافة...');
     try {
@@ -179,9 +183,37 @@ export default function AdminDashboard() {
         if (error) throw error;
         toast.success('تم التحديث بنجاح!', { id: toastId });
       } else {
-        const { error } = await supabase.from('activities').insert([cleanFormData]);
+        const { data: newActivity, error } = await supabase.from('activities').insert([cleanFormData]).select();
         if (error) throw error;
         toast.success('تم الإضافة بنجاح!', { id: toastId });
+
+        // ===== SEND NOTIFICATION TO ALL PARENTS =====
+        if (newActivity && newActivity[0]) {
+          const { data: parents } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_type', 'parent');
+
+          if (parents && parents.length > 0) {
+            try {
+              await fetch('/api/notifications/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userIds: parents.map(p => p.id),
+                  type: 'new_activity',
+                  title: 'نشاط جديد! 🎉',
+                  message: `تم إضافة نشاط جديد: ${cleanFormData.title}`,
+                  link: '/dashboard',
+                  activityId: newActivity[0].id
+                })
+              });
+            } catch (notifError) {
+              console.error('Notification error:', notifError);
+              // Don't fail the whole operation if notification fails
+            }
+          }
+        }
       }
       resetForm();
       fetchActivities();
@@ -189,7 +221,64 @@ export default function AdminDashboard() {
       toast.error('حدث خطأ أثناء الحفظ', { id: toastId });
     }
   };
+    const handleSendNotification = async (e) => {
+    e.preventDefault();
+    
+    if (!notifTitle.trim() || !notifMessage.trim()) {
+      toast.error('العنوان والرسالة مطلوبان');
+      return;
+    }
 
+    const toastId = toast.loading('جاري إرسال الإشعار...');
+    
+    try {
+      // Get target users based on recipient type
+      let query = supabase.from('profiles').select('id');
+      
+      if (recipientType === 'all_parents') {
+        query = query.eq('user_type', 'parent');
+      } else if (recipientType === 'all_members') {
+        query = query.eq('user_type', 'member');
+      }
+      // 'all_users' = no filter
+      
+      const { data: targetUsers, error: fetchError } = await query;
+      
+      if (fetchError) throw fetchError;
+      
+      if (!targetUsers || targetUsers.length === 0) {
+        toast.error('لا يوجد مستخدمون لإرسال الإشعار لهم', { id: toastId });
+        return;
+      }
+
+      const response = await fetch('/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds: targetUsers.map(u => u.id),
+          type: 'announcement',
+          title: notifTitle,
+          message: notifMessage,
+          link: '/dashboard'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || 'Failed to send');
+
+      toast.success(`تم إرسال الإشعار إلى ${targetUsers.length} مستخدم`, { id: toastId });
+      
+      // Reset form
+      setNotifTitle('');
+      setNotifMessage('');
+      setRecipientType('all_parents');
+      
+    } catch (error) {
+      console.error('Send notification error:', error);
+      toast.error('حدث خطأ أثناء الإرسال', { id: toastId });
+    }
+  };
   const promptDelete = (id, imageUrl) => setItemToDelete({ id, imageUrl });
 
   const executeDelete = async () => {
@@ -452,6 +541,10 @@ export default function AdminDashboard() {
             <FaUserFriends /> فريق العمل
             {teamMembers.length > 0 && <span className="badge badge-sm">{teamMembers.length}</span>}
           </button>
+          <button onClick={() => setActiveTab('notifications')} className={`btn rounded-2xl gap-2 ${activeTab === 'notifications' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
+  <FaBell /> إرسال إشعار
+</button>
+
         </div>
 
         {/* ==========================================
@@ -955,6 +1048,106 @@ export default function AdminDashboard() {
 {activeTab === 'attendance' && (
   <AttendanceManager activities={activities} />
 )}
+            {/* ==========================================
+            TAB 6: SEND NOTIFICATIONS
+        ========================================== */}
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <div className="bg-base-100 rounded-3xl p-6 shadow-sm">
+              <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-3">
+                <FaBell /> إرسال إشعار للمستخدمين
+              </h2>
+              
+              <form onSubmit={handleSendNotification} className="space-y-6">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-bold">المستلمون</span>
+                  </label>
+                  <select 
+                    className="select select-bordered rounded-xl"
+                    value={recipientType}
+                    onChange={(e) => setRecipientType(e.target.value)}
+                  >
+                    <option value="all_parents">جميع أولياء الأمور</option>
+                    <option value="all_members">جميع الأعضاء</option>
+                    <option value="all_users">جميع المستخدمين</option>
+                  </select>
+                  <label className="label">
+                    <span className="label-text-alt text-base-content/50">اختر الفئة المستهدفة</span>
+                  </label>
+                </div>
+                
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-bold">عنوان الإشعار</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    className="input input-bordered rounded-xl" 
+                    value={notifTitle} 
+                    onChange={(e) => setNotifTitle(e.target.value)} 
+                    placeholder="مثال: إعلان هام"
+                    required 
+                  />
+                </div>
+                
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-bold">نص الرسالة</span>
+                  </label>
+                  <textarea 
+                    className="textarea textarea-bordered rounded-xl h-32" 
+                    value={notifMessage} 
+                    onChange={(e) => setNotifMessage(e.target.value)} 
+                    placeholder="اكتب رسالتك هنا..."
+                    required 
+                  />
+                  <label className="label">
+                    <span className="label-text-alt text-base-content/50">
+                      {notifMessage.length} حرف
+                    </span>
+                  </label>
+                </div>
+
+                <div className="alert bg-info/10 border-info/20">
+                  <FaBell className="text-info" />
+                  <span className="text-sm">سيتم إرسال هذا الإشعار فوراً لجميع المستخدمين المحددين</span>
+                </div>
+                
+                <button 
+                  type="submit" 
+                  className="btn btn-primary w-full rounded-xl text-white shadow-lg gap-2"
+                  disabled={!notifTitle.trim() || !notifMessage.trim()}
+                >
+                  <FaBell /> إرسال الإشعار الآن
+                </button>
+              </form>
+            </div>
+
+            {/* Preview */}
+            {(notifTitle || notifMessage) && (
+              <div className="bg-base-100 rounded-3xl p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-primary mb-4">معاينة الإشعار</h3>
+                <div className="bg-base-200 rounded-2xl p-4 border-r-4 border-primary">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
+                      <FaBell />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-base-content mb-1">
+                        {notifTitle || 'عنوان الإشعار'}
+                      </h4>
+                      <p className="text-sm text-base-content/70">
+                        {notifMessage || 'نص الرسالة سيظهر هنا'}
+                      </p>
+                      <p className="text-xs text-base-content/40 mt-2">منذ لحظات</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 

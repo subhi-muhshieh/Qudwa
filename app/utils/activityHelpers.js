@@ -47,8 +47,8 @@ export const updateActivityStatuses = async (supabase) => {
         .update({ is_upcoming: false })
         .in('id', idsToUpdate);
       
-      if (!updateError) {
-        console.log(`✅ Auto-updated ${idsToUpdate.length} activities to past status`);
+      if (updateError) {
+        console.error('Error updating activity statuses:', updateError);
       }
     }
 

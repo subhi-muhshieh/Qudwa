@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaInstagram, FaHeart, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
 
-export default function Footer() {
+function Footer() {
   const pathname = usePathname();
 
   const hiddenPages = ['/login', '/reset-password'];
@@ -79,3 +79,5 @@ export default function Footer() {
     </footer>
   );
 }
+
+export default Footer;

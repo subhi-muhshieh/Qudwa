@@ -165,7 +165,7 @@ export default function Dashboard() {
     }
   }, [expandedImage, selectedActivity]);
 
-  const handleRegister = async () => {
+    const handleRegister = async () => {
     if (!user || !selectedActivity) return;
 
     if (selectedActivity.registration_form_url) {
@@ -186,6 +186,25 @@ export default function Dashboard() {
         setIsRegistered(true);
         if(selectedActivity.registration_form_url) {
              toast.success("جاري فتح النموذج...", { duration: 2000 });
+        }
+
+        // ===== SEND CONFIRMATION NOTIFICATION =====
+        try {
+          await fetch('/api/notifications/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userIds: [user.id],
+              type: 'registration_confirmed',
+              title: 'تم تأكيد التسجيل ✅',
+              message: `تم تسجيلك بنجاح في نشاط: ${selectedActivity.title}`,
+              link: '/dashboard',
+              activityId: selectedActivity.id
+            })
+          });
+        } catch (notifError) {
+          console.error('Notification error:', notifError);
+          // Don't fail the registration if notification fails
         }
     } else {
         console.error(error);
