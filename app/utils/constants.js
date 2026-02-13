@@ -2,7 +2,8 @@ export const userTypeLabels = {
   'parent': 'ولي أمر',
   'member': 'عضو جمعية',
   'volunteer': 'متطوع',
-  'donor': 'داعم/مانح'
+  'donor': 'داعم/مانح',
+  'follower': 'متابع'
 };
 
 export const rankLabels = {
@@ -42,4 +43,5 @@ export const userTypes = [
   { id: 'member', label: 'عضو جمعية', desc: 'للكادر الإداري' },
   { id: 'volunteer', label: 'متطوع', desc: 'للانضمام للفريق' },
   { id: 'donor', label: 'داعم/مانح', desc: 'لدعم الجمعية' },
+  { id: 'follower', label: 'متابع', desc: 'للمتابعة والاطلاع' },
 ];

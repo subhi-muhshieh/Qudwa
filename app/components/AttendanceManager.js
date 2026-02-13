@@ -4,7 +4,7 @@ import { createClient } from '../utils/supabase/client';
 import { 
   FaCalendarAlt, FaChild, FaCheckCircle, FaUserPlus, FaTrash, 
   FaSync, FaClipboardCheck, FaUsers, FaPhone, FaPlus, FaTimes, 
-  FaSearch, FaCheckDouble, FaUserFriends, FaTimesCircle, FaCheck
+  FaSearch, FaCheckDouble, FaUserFriends, FaTimesCircle, FaCheck, FaCrown
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ export default function AttendanceManager({ activities }) {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toggling, setToggling] = useState({});
+  const [togglingHonor, setTogglingHonor] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   
   // Walk-in state
@@ -89,6 +90,71 @@ export default function AttendanceManager({ activities }) {
     );
   };
 
+  const isChildHonored = (parentId, childName) => {
+  const record = attendanceRecords.find(
+    r => r.parent_id === parentId && r.child_name === childName
+  );
+  return record?.is_honored || false;
+};
+
+const toggleHonor = async (parentId, childName) => {
+  const key = `honor-${parentId}-${childName}`;
+  if (togglingHonor[key]) return;
+
+  const record = getAttendanceRecord(parentId, childName);
+  if (!record) return;
+
+  setTogglingHonor(prev => ({ ...prev, [key]: true }));
+  const newValue = !record.is_honored;
+
+  try {
+    const { error } = await supabase
+      .from('attendance')
+      .update({ is_honored: newValue })
+      .eq('id', record.id);
+
+    if (error) throw error;
+
+    setAttendanceRecords(prev =>
+      prev.map(r => r.id === record.id ? { ...r, is_honored: newValue } : r)
+    );
+    toast.success(newValue ? 'تم منح وسام قدوة النشاط ⭐' : 'تم إزالة الوسام');
+  } catch (error) {
+    console.error('Honor toggle error:', error);
+    toast.error('حدث خطأ');
+  } finally {
+    setTogglingHonor(prev => ({ ...prev, [key]: false }));
+  }
+};
+
+const toggleWalkInHonor = async (recordId) => {
+  const key = `honor-walkin-${recordId}`;
+  if (togglingHonor[key]) return;
+
+  const record = attendanceRecords.find(r => r.id === recordId);
+  if (!record) return;
+
+  setTogglingHonor(prev => ({ ...prev, [key]: true }));
+  const newValue = !record.is_honored;
+
+  try {
+    const { error } = await supabase
+      .from('attendance')
+      .update({ is_honored: newValue })
+      .eq('id', recordId);
+
+    if (error) throw error;
+
+    setAttendanceRecords(prev =>
+      prev.map(r => r.id === recordId ? { ...r, is_honored: newValue } : r)
+    );
+    toast.success(newValue ? 'تم منح وسام قدوة النشاط ⭐' : 'تم إزالة الوسام');
+  } catch (error) {
+    toast.error('حدث خطأ');
+  } finally {
+    setTogglingHonor(prev => ({ ...prev, [key]: false }));
+  }
+};
   // Toggle single child attendance
   const toggleAttendance = async (parentId, parentName, childName, childAge) => {
     const key = `${parentId}-${childName}`;
@@ -375,7 +441,7 @@ export default function AttendanceManager({ activities }) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
                   <div className="bg-primary/5 rounded-xl p-3 md:p-4 text-center">
                     <div className="text-2xl md:text-3xl font-bold text-primary">{totalAttended}</div>
                     <div className="text-xs md:text-sm text-base-content/50">إجمالي الحاضرين</div>
@@ -392,6 +458,10 @@ export default function AttendanceManager({ activities }) {
                     <div className="text-2xl md:text-3xl font-bold text-success">{attendanceRate}%</div>
                     <div className="text-xs md:text-sm text-base-content/50">نسبة الحضور</div>
                   </div>
+                  <div className="bg-warning/5 rounded-xl p-3 md:p-4 text-center">
+  <div className="text-2xl md:text-3xl font-bold text-warning">{attendanceRecords.filter(r => r.is_honored).length}</div>
+  <div className="text-xs md:text-sm text-base-content/50">قدوة النشاط ⭐</div>
+</div>
                 </div>
 
                 {/* Progress bar */}
@@ -596,43 +666,77 @@ export default function AttendanceManager({ activities }) {
                                 const isToggling = toggling[key];
 
                                 return (
-                                  <button
-                                    key={idx}
-                                    onClick={() => toggleAttendance(profile.id, profile.parent_name, child.name, child.age)}
-                                    disabled={isToggling}
-                                    className={`w-full flex items-center gap-3 p-2.5 md:p-3 rounded-xl transition-all duration-200 text-right ${
-                                      attended
-                                        ? 'bg-success/10 hover:bg-success/20'
-                                        : 'bg-base-200/50 hover:bg-base-200'
-                                    } ${isToggling ? 'opacity-50' : ''}`}
-                                  >
-                                    {/* Checkbox */}
-                                    <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${
-                                      attended
-                                        ? 'bg-success border-success text-white'
-                                        : 'border-base-300 bg-base-100'
-                                    }`}>
-                                      {isToggling ? (
-                                        <span className="loading loading-spinner loading-xs"></span>
-                                      ) : attended ? (
-                                        <FaCheck className="text-xs" />
-                                      ) : null}
-                                    </div>
+                                  <div
+  key={idx}
+  className={`w-full flex items-center gap-3 p-2.5 md:p-3 rounded-xl transition-all duration-200 text-right ${
+    attended
+      ? isChildHonored(profile.id, child.name)
+        ? 'bg-warning/10 hover:bg-warning/15 ring-1 ring-warning/20'
+        : 'bg-success/10 hover:bg-success/20'
+      : 'bg-base-200/50 hover:bg-base-200'
+  } ${isToggling ? 'opacity-50' : ''}`}
+>
+  {/* Attendance toggle */}
+  <button
+    onClick={() => toggleAttendance(profile.id, profile.parent_name, child.name, child.age)}
+    disabled={isToggling}
+    className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all duration-200 cursor-pointer ${
+      attended
+        ? 'bg-success border-success text-white'
+        : 'border-base-300 bg-base-100'
+    }`}
+  >
+    {isToggling ? (
+      <span className="loading loading-spinner loading-xs"></span>
+    ) : attended ? (
+      <FaCheck className="text-xs" />
+    ) : null}
+  </button>
 
-                                    {/* Child info */}
-                                    <div className="flex-1 min-w-0">
-                                      <span className={`font-medium text-sm md:text-base ${attended ? 'text-success' : 'text-base-content'}`}>
-                                        {child.name}
-                                      </span>
-                                    </div>
+  {/* Child info */}
+  <div className="flex-1 min-w-0 flex items-center gap-2">
+    <span className={`font-medium text-sm md:text-base ${
+      isChildHonored(profile.id, child.name) ? 'text-warning' : attended ? 'text-success' : 'text-base-content'
+    }`}>
+      {child.name}
+    </span>
+    {isChildHonored(profile.id, child.name) && (
+      <span className="badge badge-warning badge-xs gap-0.5">
+        <FaCrown className="text-[8px]" /> قدوة
+      </span>
+    )}
+  </div>
 
-                                    {/* Age badge */}
-                                    {child.age && (
-                                      <span className={`badge badge-sm shrink-0 ${attended ? 'badge-success badge-outline' : 'badge-ghost'}`}>
-                                        {child.age} سنة
-                                      </span>
-                                    )}
-                                  </button>
+  {/* Age badge */}
+  {child.age && (
+    <span className={`badge badge-sm shrink-0 ${attended ? 'badge-success badge-outline' : 'badge-ghost'}`}>
+      {child.age} سنة
+    </span>
+  )}
+
+  {/* Honor toggle — only when attended */}
+  {attended && (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleHonor(profile.id, child.name);
+      }}
+      disabled={togglingHonor[`honor-${profile.id}-${child.name}`]}
+      className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
+        isChildHonored(profile.id, child.name)
+          ? 'bg-warning/20 text-warning hover:bg-warning/30'
+          : 'bg-base-200 text-base-content/20 hover:text-warning hover:bg-warning/10'
+      }`}
+      title={isChildHonored(profile.id, child.name) ? 'إزالة وسام قدوة النشاط' : 'منح وسام قدوة النشاط'}
+    >
+      {togglingHonor[`honor-${profile.id}-${child.name}`] ? (
+        <span className="loading loading-spinner loading-xs"></span>
+      ) : (
+        <FaCrown className="text-xs md:text-sm" />
+      )}
+    </button>
+  )}
+</div>
                                 );
                               })}
                             </div>
@@ -656,29 +760,58 @@ export default function AttendanceManager({ activities }) {
 
                   <div className="space-y-2">
                     {walkInRecords.map((record) => (
-                      <div
-                        key={record.id}
-                        className="flex items-center gap-3 p-3 bg-accent/5 border border-accent/10 rounded-xl"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent shrink-0">
-                          <FaChild className="text-sm" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-base-content text-sm truncate">{record.child_name}</div>
-                          <div className="text-xs text-base-content/50">
-                            {record.child_age && `${record.child_age} سنة`}
-                            {record.child_age && record.parent_name && ' • '}
-                            {record.parent_name && `ولي الأمر: ${record.parent_name}`}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => removeWalkIn(record.id)}
-                          className="btn btn-ghost btn-xs text-error hover:bg-error/10 shrink-0"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    ))}
+  <div
+    key={record.id}
+    className={`flex items-center gap-3 p-3 rounded-xl border ${
+      record.is_honored
+        ? 'bg-warning/10 border-warning/20'
+        : 'bg-accent/5 border-accent/10'
+    }`}
+  >
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+      record.is_honored ? 'bg-warning/20 text-warning' : 'bg-accent/20 text-accent'
+    }`}>
+      {record.is_honored ? <FaCrown className="text-sm" /> : <FaChild className="text-sm" />}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="font-bold text-base-content text-sm truncate flex items-center gap-2">
+        {record.child_name}
+        {record.is_honored && (
+          <span className="badge badge-warning badge-xs gap-0.5">
+            <FaCrown className="text-[8px]" /> قدوة
+          </span>
+        )}
+      </div>
+      <div className="text-xs text-base-content/50">
+        {record.child_age && `${record.child_age} سنة`}
+        {record.child_age && record.parent_name && ' • '}
+        {record.parent_name && `ولي الأمر: ${record.parent_name}`}
+      </div>
+    </div>
+    <button
+      onClick={() => toggleWalkInHonor(record.id)}
+      disabled={togglingHonor[`honor-walkin-${record.id}`]}
+      className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-all ${
+        record.is_honored
+          ? 'bg-warning/20 text-warning hover:bg-warning/30'
+          : 'bg-base-200 text-base-content/20 hover:text-warning hover:bg-warning/10'
+      }`}
+      title={record.is_honored ? 'إزالة الوسام' : 'منح وسام قدوة النشاط'}
+    >
+      {togglingHonor[`honor-walkin-${record.id}`] ? (
+        <span className="loading loading-spinner loading-xs"></span>
+      ) : (
+        <FaCrown className="text-xs" />
+      )}
+    </button>
+    <button
+      onClick={() => removeWalkIn(record.id)}
+      className="btn btn-ghost btn-xs text-error hover:bg-error/10 shrink-0"
+    >
+      <FaTrash />
+    </button>
+  </div>
+))}
                   </div>
                 </div>
               )}

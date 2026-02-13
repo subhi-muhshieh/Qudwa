@@ -236,10 +236,12 @@ export default function AdminDashboard() {
       let query = supabase.from('profiles').select('id');
       
       if (recipientType === 'all_parents') {
-        query = query.eq('user_type', 'parent');
-      } else if (recipientType === 'all_members') {
-        query = query.eq('user_type', 'member');
-      }
+  query = query.eq('user_type', 'parent');
+} else if (recipientType === 'all_members') {
+  query = query.eq('user_type', 'member');
+} else if (recipientType === 'all_followers') {
+  query = query.eq('user_type', 'follower');
+}
       // 'all_users' = no filter
       
       const { data: targetUsers, error: fetchError } = await query;
@@ -704,12 +706,13 @@ export default function AdminDashboard() {
         ========================================== */}
         {activeTab === 'users' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-primary">{users.length}</div><div className="text-base-content/50 text-sm">إجمالي المستخدمين</div></div>
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-secondary">{users.filter(u => u.user_type === 'parent').length}</div><div className="text-base-content/50 text-sm">أولياء أمور</div></div>
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-accent">{users.filter(u => u.user_type === 'member').length}</div><div className="text-base-content/50 text-sm">أعضاء</div></div>
-              <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-warning">{users.filter(u => u.user_type === 'volunteer' || u.user_type === 'donor').length}</div><div className="text-base-content/50 text-sm">متطوعون وداعمون</div></div>
-            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+  <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-primary">{users.length}</div><div className="text-base-content/50 text-sm">إجمالي المستخدمين</div></div>
+  <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-secondary">{users.filter(u => u.user_type === 'parent').length}</div><div className="text-base-content/50 text-sm">أولياء أمور</div></div>
+  <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-accent">{users.filter(u => u.user_type === 'member').length}</div><div className="text-base-content/50 text-sm">أعضاء</div></div>
+  <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm"><div className="text-3xl font-bold text-warning">{users.filter(u => u.user_type === 'volunteer' || u.user_type === 'donor').length}</div><div className="text-base-content/50 text-sm">متطوعون وداعمون</div></div>
+  <div className="bg-base-100 rounded-2xl p-4 text-center shadow-sm col-span-2 md:col-span-1"><div className="text-3xl font-bold text-info">{users.filter(u => u.user_type === 'follower').length}</div><div className="text-base-content/50 text-sm">متابعون</div></div>
+</div>
 
             <div className="bg-base-100 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
@@ -717,12 +720,13 @@ export default function AdminDashboard() {
                 <input type="text" placeholder="بحث بالاسم أو رقم الهاتف..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="input input-bordered rounded-xl w-full pr-10" />
               </div>
               <select value={userTypeFilter} onChange={(e) => setUserTypeFilter(e.target.value)} className="select select-bordered rounded-xl">
-                <option value="all">جميع الأنواع</option>
-                <option value="parent">أولياء أمور</option>
-                <option value="member">أعضاء</option>
-                <option value="volunteer">متطوعون</option>
-                <option value="donor">داعمون</option>
-              </select>
+  <option value="all">جميع الأنواع</option>
+  <option value="parent">أولياء أمور</option>
+  <option value="member">أعضاء</option>
+  <option value="volunteer">متطوعون</option>
+  <option value="donor">داعمون</option>
+  <option value="follower">متابعون</option>
+</select>
               <button onClick={fetchUsers} className="btn btn-ghost btn-sm gap-2"><FaSync /> تحديث</button>
             </div>
 
@@ -744,7 +748,7 @@ export default function AdminDashboard() {
                           <div className="font-bold text-base-content truncate">{user.parent_name || 'بدون اسم'}</div>
                           <div className="text-sm text-base-content/50 flex items-center gap-2"><FaPhone className="text-xs" /><span dir="ltr">{user.parent_phone || 'لا يوجد'}</span></div>
                         </div>
-                        <span className={`badge badge-sm shrink-0 ${user.user_type === 'parent' ? 'badge-primary' : user.user_type === 'member' ? 'badge-secondary' : user.user_type === 'volunteer' ? 'badge-accent' : user.user_type === 'donor' ? 'badge-warning' : 'badge-ghost'}`}>{userTypeLabels[user.user_type] || 'مستخدم'}</span>
+                        <span className={`badge badge-sm shrink-0 ${user.user_type === 'parent' ? 'badge-primary' : user.user_type === 'member' ? 'badge-secondary' : user.user_type === 'volunteer' ? 'badge-accent' : user.user_type === 'donor' ? 'badge-warning' : user.user_type === 'follower' ? 'badge-info' : 'badge-ghost'}`}>{userTypeLabels[user.user_type] || 'مستخدم'}</span>
                         {user.role === 'admin' && <span className="badge badge-error badge-sm">مدير</span>}
                         <div className="shrink-0 text-base-content/40">{expandedUser === user.id ? <FaChevronUp /> : <FaChevronDown />}</div>
                       </div>
@@ -836,7 +840,7 @@ export default function AdminDashboard() {
                               {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.parent_name || 'صورة'} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary/50"><FaUserFriends className="text-sm" /></div>}
                             </div>
                             <div className="flex-1 min-w-0"><div className="font-bold truncate">{profile.parent_name || 'بدون اسم'}</div><div className="text-xs text-base-content/50" dir="ltr">{profile.parent_phone || ''}</div></div>
-                            <span className={`badge badge-sm shrink-0 ${profile.user_type === 'parent' ? 'badge-primary' : profile.user_type === 'member' ? 'badge-secondary' : 'badge-ghost'}`}>{userTypeLabels[profile.user_type] || 'مستخدم'}</span>
+                            <span className={`badge badge-sm shrink-0 ${profile.user_type === 'parent' ? 'badge-primary' : profile.user_type === 'member' ? 'badge-secondary' : profile.user_type === 'follower' ? 'badge-info' : 'badge-ghost'}`}>{userTypeLabels[profile.user_type] || 'مستخدم'}</span>
                             <div className="text-xs text-base-content/40 hidden sm:block shrink-0">{new Date(reg.created_at).toLocaleDateString('ar-SA')}</div>
                             <div className="shrink-0 text-base-content/40">{expandedRegistration === reg.id ? <FaChevronUp /> : <FaChevronDown />}</div>
                           </div>
@@ -1067,14 +1071,15 @@ export default function AdminDashboard() {
                     <span className="label-text font-bold">المستلمون</span>
                   </label>
                   <select 
-                    className="select select-bordered rounded-xl"
-                    value={recipientType}
-                    onChange={(e) => setRecipientType(e.target.value)}
-                  >
-                    <option value="all_parents">جميع أولياء الأمور</option>
-                    <option value="all_members">جميع الأعضاء</option>
-                    <option value="all_users">جميع المستخدمين</option>
-                  </select>
+  className="select select-bordered rounded-xl"
+  value={recipientType}
+  onChange={(e) => setRecipientType(e.target.value)}
+>
+  <option value="all_parents">جميع أولياء الأمور</option>
+  <option value="all_members">جميع الأعضاء</option>
+  <option value="all_followers">جميع المتابعين</option>
+  <option value="all_users">جميع المستخدمين</option>
+</select>
                   <label className="label">
                     <span className="label-text-alt text-base-content/50">اختر الفئة المستهدفة</span>
                   </label>

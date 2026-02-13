@@ -1,8 +1,7 @@
 'use client'
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaInstagram, FaHeart, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
-
+import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaInstagram, FaHeart, FaMapMarkerAlt, FaEnvelope, FaPhone, FaQuestionCircle } from 'react-icons/fa';
 function Footer() {
   const pathname = usePathname();
 
@@ -39,12 +38,13 @@ function Footer() {
         <div className="text-center">
           <h3 className="text-lg font-bold text-white mb-3">روابط سريعة</h3>
           <ul className="space-y-2 text-sm">
-            <li><Link href="/" className="link link-hover hover:text-primary transition-colors">الرئيسية</Link></li>
-            <li><Link href="/activities" className="link link-hover hover:text-primary transition-colors">سجل النشاطات</Link></li>
-            <li><Link href="/gallery" className="link link-hover hover:text-primary transition-colors">معرض الصور</Link></li>
-            <li><Link href="/contact" className="link link-hover hover:text-primary transition-colors">تواصل معنا</Link></li>
-            <li><Link href="/about" className="link link-hover hover:text-primary transition-colors">عن الجمعية</Link></li>
-          </ul>
+  <li><Link href="/" className="link link-hover hover:text-primary transition-colors">الرئيسية</Link></li>
+  <li><Link href="/activities" className="link link-hover hover:text-primary transition-colors">سجل النشاطات</Link></li>
+  <li><Link href="/gallery" className="link link-hover hover:text-primary transition-colors">معرض الصور</Link></li>
+  <li><Link href="/contact" className="link link-hover hover:text-primary transition-colors">تواصل معنا</Link></li>
+  <li><Link href="/about" className="link link-hover hover:text-primary transition-colors">عن الجمعية</Link></li>
+  <li><Link href="/faq" className="link link-hover hover:text-primary transition-colors">الأسئلة الشائعة</Link></li>
+</ul>
         </div>
 
         <div className="text-center md:text-left">

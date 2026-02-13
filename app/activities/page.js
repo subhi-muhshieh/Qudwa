@@ -2,7 +2,7 @@
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaCalendarAlt, FaClock, FaInfoCircle, FaTimes, FaArrowLeft } from 'react-icons/fa';
+import { FaCalendarAlt, FaClock, FaInfoCircle, FaTimes, FaArrowLeft, FaUsers, FaChevronDown, FaCrown } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateActivityStatuses } from '../utils/activityHelpers';
 
@@ -10,6 +10,9 @@ export default function ActivitiesArchive() {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedActivity, setSelectedActivity] = useState(null); 
+  const [attendees, setAttendees] = useState([]);
+  const [attendeesLoading, setAttendeesLoading] = useState(false);
+  const [showAttendees, setShowAttendees] = useState(false);
   
   const supabase = createClient();
   const router = useRouter();
@@ -38,6 +41,34 @@ export default function ActivitiesArchive() {
     else document.body.style.overflow = 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [selectedActivity]);
+
+  useEffect(() => {
+  if (!selectedActivity) {
+    setAttendees([]);
+    setShowAttendees(false);
+    return;
+  }
+
+  const fetchAttendees = async () => {
+    setAttendeesLoading(true);
+    const { data } = await supabase
+      .from('attendance')
+      .select('id, child_name, child_age, parent_name, is_honored')
+      .eq('activity_id', selectedActivity.id)
+      .order('child_name');
+
+    if (data) {
+      const sorted = [
+        ...data.filter(a => a.is_honored),
+        ...data.filter(a => !a.is_honored)
+      ];
+      setAttendees(sorted);
+    }
+    setAttendeesLoading(false);
+  };
+
+  fetchAttendees();
+}, [selectedActivity]);
   
   useEffect(() => {
   const handleEsc = (e) => {
@@ -177,6 +208,76 @@ export default function ActivitiesArchive() {
                         <p className="text-base-content/70 text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">{selectedActivity.notable_notes}</p>
                     </div>
                 )}
+
+                {/* ATTENDEES SECTION */}
+{!attendeesLoading && attendees.length > 0 && (
+  <div className="border border-base-200 rounded-2xl overflow-hidden">
+    <button
+      onClick={() => setShowAttendees(!showAttendees)}
+      className="w-full flex items-center justify-between p-4 hover:bg-base-200/50 transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
+          <FaUsers />
+        </div>
+        <div className="text-right">
+          <h4 className="font-bold text-base-content">سجل الحضور</h4>
+          <p className="text-xs text-base-content/50">
+            {attendees.length} حاضر
+            {attendees.filter(a => a.is_honored).length > 0 && (
+              <span className="text-warning mr-2">
+                • {attendees.filter(a => a.is_honored).length} قدوة النشاط ⭐
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+      <FaChevronDown className={`text-base-content/40 transition-transform duration-300 ${showAttendees ? 'rotate-180' : ''}`} />
+    </button>
+    
+    <AnimatePresence>
+      {showAttendees && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden border-t border-base-200"
+        >
+          <div className="p-4 space-y-1.5 max-h-64 overflow-y-auto">
+            {attendees.map((a) => (
+              <div
+                key={a.id}
+                className={`flex items-center gap-3 p-2.5 rounded-xl ${
+                  a.is_honored ? 'bg-warning/10' : 'bg-base-200/30'
+                }`}
+              >
+                {a.is_honored ? (
+                  <FaCrown className="text-warning shrink-0 text-sm" />
+                ) : (
+                  <div className="w-1.5 h-1.5 bg-base-content/20 rounded-full shrink-0"></div>
+                )}
+                <span className={`font-medium text-sm flex-1 ${
+                  a.is_honored ? 'text-warning' : 'text-base-content/80'
+                }`}>
+                  {a.child_name}
+                </span>
+                {a.child_age && (
+                  <span className="text-xs text-base-content/40">{a.child_age} سنة</span>
+                )}
+                {a.is_honored && (
+                  <span className="badge badge-warning badge-xs gap-0.5 shrink-0">
+                    <FaCrown className="text-[7px]" /> قدوة النشاط
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+)}
 
                 <div className="pt-4 mt-auto">
                   <button 

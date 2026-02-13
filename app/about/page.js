@@ -30,6 +30,7 @@ import {
   FaComments,
   FaGamepad,
   FaEye,
+  FaQuestionCircle,
   FaPaperPlane,
   FaSeedling,
   FaUsersCog
@@ -580,19 +581,25 @@ export default function AboutPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center">
-                <Link 
-                  href="/login" 
-                  className="btn bg-white text-primary rounded-full px-8 hover:bg-white/90 border-none shadow-lg btn-sm md:btn-md"
-                >
-                  سجّل الآن
-                </Link>
-                <Link 
-                  href="/dashboard" 
-                  className="btn btn-outline border-white/30 text-white rounded-full px-8 hover:bg-white/10 hover:border-white/50 btn-sm md:btn-md"
-                >
-                  العودة للرئيسية
-                </Link>
-              </div>
+  <Link 
+    href="/login" 
+    className="btn bg-white text-primary rounded-full px-8 hover:bg-white/90 border-none shadow-lg btn-sm md:btn-md"
+  >
+    سجّل الآن
+  </Link>
+  <Link 
+    href="/faq" 
+    className="btn btn-outline border-white/30 text-white rounded-full px-8 hover:bg-white/10 hover:border-white/50 btn-sm md:btn-md gap-2"
+  >
+    <FaQuestionCircle /> الأسئلة الشائعة
+  </Link>
+  <Link 
+    href="/dashboard" 
+    className="btn btn-outline border-white/30 text-white rounded-full px-8 hover:bg-white/10 hover:border-white/50 btn-sm md:btn-md"
+  >
+    العودة للرئيسية
+  </Link>
+</div>
             </div>
           </motion.div>
         </div>

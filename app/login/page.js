@@ -35,11 +35,12 @@ export default function LoginPage() {
   const supabase = createClient();
 
   const userTypes = [
-    { id: 'parent', label: 'ولي أمر', icon: <FaUserFriends />, desc: 'لتسجيل أبنائك' },
-    { id: 'member', label: 'عضو جمعية', icon: <FaUsers />, desc: 'للكادر الإداري' },
-    { id: 'volunteer', label: 'متطوع', icon: <FaHandsHelping />, desc: 'للانضمام للفريق' },
-    { id: 'donor', label: 'داعم/مانح', icon: <FaHandHoldingHeart />, desc: 'لدعم الجمعية' },
-  ];
+  { id: 'parent', label: 'ولي أمر', icon: <FaUserFriends />, desc: 'لتسجيل أبنائك' },
+  { id: 'member', label: 'عضو جمعية', icon: <FaUsers />, desc: 'للكادر الإداري' },
+  { id: 'volunteer', label: 'متطوع', icon: <FaHandsHelping />, desc: 'للانضمام للفريق' },
+  { id: 'donor', label: 'داعم/مانح', icon: <FaHandHoldingHeart />, desc: 'لدعم الجمعية' },
+  { id: 'follower', label: 'متابع', icon: <FaUser />, desc: 'للمتابعة والاطلاع' },
+];
 
   const addRole = () => setMemberRoles([...memberRoles, { rank: '', office: '' }]);
   const removeRole = (index) => {
@@ -261,11 +262,12 @@ export default function LoginPage() {
             
             {isSignUp && (
               <div className="grid grid-cols-2 gap-3 mb-2">
-                {userTypes.map((type) => (
-                  <div 
-                    key={type.id}
-                    onClick={() => setUserType(type.id)}
-                    className={`cursor-pointer rounded-2xl p-3 border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 text-center relative
+  {userTypes.map((type, index) => (
+    <div 
+      key={type.id}
+      onClick={() => setUserType(type.id)}
+      className={`cursor-pointer rounded-2xl p-3 border-2 transition-all duration-200 flex flex-col items-center justify-center gap-2 text-center relative
+        ${index === userTypes.length - 1 && userTypes.length % 2 !== 0 ? 'col-span-2' : ''}
                       ${userType === type.id 
                         ? 'border-primary bg-primary/5 text-primary shadow-inner' 
                         : 'border-transparent bg-base-200 hover:bg-base-300 text-base-content/50'
