@@ -463,35 +463,56 @@ export default function Dashboard() {
   const additionalRecent = recentActivities.slice(1);
 
   return (
-    <main className="min-h-screen pt-24 pb-20 px-4 md:px-8 lg:px-10 overflow-hidden">
-
+<main className="min-h-screen pt-32 sm:pt-36 md:pt-40 pb-20 px-4 md:px-8 lg:px-10 overflow-hidden">
       {/* ======== WELCOME HEADER ======== */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto mb-8 md:mb-10"
+       <motion.header
+    initial={{ opacity: 0, y: -20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    className="max-w-6xl mx-auto mb-10 md:mb-14"
+  >
+    <div className="flex flex-col gap-6 md:gap-8">
+      {/* Top row: greeting + date */}
+      <div className="space-y-1.5">
+        <p className="text-[11px] md:text-xs text-base-content/40 font-medium tracking-wide">
+          {arabicDate()}
+        </p>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-base-content leading-tight">
+          {greeting.text}
+          {firstName && (
+            <>
+              {' '}
+              <span className="text-primary">{firstName}</span>
+            </>
+          )}
+          {' '}
+          <span className="inline-block">{greeting.emoji}</span>
+        </h1>
+        <p className="text-base-content/45 text-xs sm:text-sm mt-0.5">
+          إليك ملخّص آخر المستجدات في منصة قدوة
+        </p>
+      </div>
+
+      {/* Slogan — prominent */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.6 }}
+        className="relative"
       >
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
-          <div className="space-y-1 min-w-0">
-            <p className="text-[11px] md:text-xs text-base-content/40 font-medium tracking-wide">
-              {arabicDate()}
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 rounded-2xl blur-lg" />
+        <div className="relative bg-gradient-to-r from-primary/[0.08] via-secondary/[0.06] to-accent/[0.08] border border-primary/20 rounded-2xl px-6 py-4 sm:px-8 sm:py-5 backdrop-blur-sm">
+          <div className="flex items-center justify-center gap-3">
+            <div className="hidden sm:block w-12 h-[1px] bg-gradient-to-r from-transparent to-primary/40" />
+            <p className="text-lg sm:text-xl md:text-2xl text-primary font-slogan font-bold tracking-wide text-center">
+              ✦ جيلٌ يبني، أثرٌ يبقى ✦
             </p>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-base-content leading-tight">
-              {greeting.text}
-              {firstName && <>{' '}<span className="text-primary">{firstName}</span></>}
-              {' '}<span className="inline-block">{greeting.emoji}</span>
-            </h1>
-            <p className="text-base-content/45 text-xs sm:text-sm mt-0.5">
-              إليك ملخّص آخر المستجدات في منصة قدوة
-            </p>
-          </div>
-          <div className="bg-primary/[0.06] border border-primary/10 rounded-xl px-4 py-2 shrink-0 backdrop-blur-sm">
-            <p className="text-xs sm:text-sm md:text-base text-primary/70 font-slogan whitespace-nowrap">
-              جيلٌ يبني، أثرٌ يبقى
-            </p>
+            <div className="hidden sm:block w-12 h-[1px] bg-gradient-to-l from-transparent to-primary/40" />
           </div>
         </div>
-      </motion.header>
+      </motion.div>
+    </div>
+  </motion.header>
 
       {/* ======== QUICK STATS ======== */}
       <motion.section
