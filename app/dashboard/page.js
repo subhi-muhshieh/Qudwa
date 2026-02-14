@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link'; 
 import { useRouter } from 'next/navigation';
 import { FaHeart, FaPaperPlane, FaCalendarAlt, FaStar, FaArrowLeft, FaClock, FaInfoCircle, FaTimes, FaExternalLinkAlt, FaCheckCircle, FaSpinner, FaRegHeart, FaExpand, FaUsers, FaChevronDown, FaCrown } from 'react-icons/fa';
+import { getLevelDef } from '../utils/constants';
+import ChildProfileModal from '../components/ChildProfileModal';
+import { useProfile } from '../context/ProfileContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateActivityStatuses } from '../utils/activityHelpers'; 
@@ -97,9 +100,13 @@ export default function Dashboard() {
   const [attendees, setAttendees] = useState([]);
 const [attendeesLoading, setAttendeesLoading] = useState(false);
 const [showAttendees, setShowAttendees] = useState(false);
+const [childrenMap, setChildrenMap] = useState({});
+const [selectedChildProfile, setSelectedChildProfile] = useState(null);
   
   const supabase = createClient();
-  const router = useRouter();
+const router = useRouter();
+const { profile: currentProfile } = useProfile();
+const isCurrentUserAdmin = currentProfile?.role === 'admin';
 
   useEffect(() => {
     const checkUserAndFetchData = async () => {
@@ -155,17 +162,31 @@ const [showAttendees, setShowAttendees] = useState(false);
     if (!selectedActivity) return;
     setAttendeesLoading(true);
     const { data } = await supabase
-      .from('attendance')
-      .select('id, child_name, child_age, parent_name, is_honored')
-      .eq('activity_id', selectedActivity.id)
-      .order('child_name');
+  .from('attendance')
+  .select('id, child_name, child_age, parent_name, parent_id, is_honored')
+  .eq('activity_id', selectedActivity.id)
+  .order('child_name');
 
     if (data) {
-      setAttendees([
-        ...data.filter(a => a.is_honored),
-        ...data.filter(a => !a.is_honored)
-      ]);
-    }
+  setAttendees([
+    ...data.filter(a => a.is_honored),
+    ...data.filter(a => !a.is_honored)
+  ]);
+
+  const parentIds = [...new Set(data.map(a => a.parent_id).filter(Boolean))];
+  if (parentIds.length > 0) {
+    const { data: childrenData } = await supabase
+      .from('children')
+      .select('*')
+      .in('parent_id', parentIds);
+
+    const map = {};
+    (childrenData || []).forEach(c => {
+      map[`${c.parent_id}-${c.name}`] = c;
+    });
+    setChildrenMap(map);
+  }
+}
     setAttendeesLoading(false);
   };
 
@@ -176,7 +197,8 @@ const [showAttendees, setShowAttendees] = useState(false);
   } else {
     document.body.style.overflow = 'unset';
     setAttendees([]);
-    setShowAttendees(false);
+setShowAttendees(false);
+setChildrenMap({});
   }
   return () => { document.body.style.overflow = 'unset'; };
 }, [selectedActivity, user]);
@@ -552,33 +574,50 @@ const [showAttendees, setShowAttendees] = useState(false);
           className="overflow-hidden border-t border-base-200"
         >
           <div className="p-4 space-y-1.5 max-h-64 overflow-y-auto">
-            {attendees.map((a) => (
-              <div
-                key={a.id}
-                className={`flex items-center gap-3 p-2.5 rounded-xl ${
-                  a.is_honored ? 'bg-warning/10' : 'bg-base-200/30'
-                }`}
-              >
-                {a.is_honored ? (
-                  <FaCrown className="text-warning shrink-0 text-sm" />
-                ) : (
-                  <div className="w-1.5 h-1.5 bg-base-content/20 rounded-full shrink-0"></div>
-                )}
-                <span className={`font-medium text-sm flex-1 ${
-                  a.is_honored ? 'text-warning' : 'text-base-content/80'
-                }`}>
-                  {a.child_name}
-                </span>
-                {a.child_age && (
-                  <span className="text-xs text-base-content/40">{a.child_age} سنة</span>
-                )}
-                {a.is_honored && (
-                  <span className="badge badge-warning badge-xs gap-0.5 shrink-0">
-                    <FaCrown className="text-[7px]" /> قدوة النشاط
-                  </span>
-                )}
-              </div>
-            ))}
+            {attendees.map((a) => {
+  const childRec = a.parent_id ? childrenMap[`${a.parent_id}-${a.child_name}`] : null;
+  const lvl = getLevelDef(childRec?.level);
+  const hasLevel = childRec && childRec.level && childRec.level !== 'new';
+
+  return (
+    <div
+      key={a.id}
+      className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all ${
+        a.is_honored ? 'bg-warning/10' : 'bg-base-200/30'
+      }`}
+      onClick={() => {
+        if (childRec) {
+          setSelectedChildProfile({ record: childRec, parentId: a.parent_id });
+        }
+      }}
+      title={childRec ? 'عرض بطاقة الطفل' : ''}
+    >
+      {a.is_honored ? (
+        <FaCrown className="text-warning shrink-0 text-sm" />
+      ) : (
+        <div className="w-1.5 h-1.5 bg-base-content/20 rounded-full shrink-0"></div>
+      )}
+      <span className={`font-medium text-sm flex-1 ${
+        a.is_honored ? 'text-warning' : 'text-base-content/80'
+      } ${childRec ? 'hover:underline decoration-dotted underline-offset-4' : ''}`}>
+        {a.child_name}
+      </span>
+      {hasLevel && (
+        <span className={`badge badge-xs shrink-0 gap-0.5 ${lvl.bg} ${lvl.text} ${lvl.border} border`}>
+          {lvl.emoji} {lvl.label}
+        </span>
+      )}
+      {a.child_age && (
+        <span className="text-xs text-base-content/40">{a.child_age} سنة</span>
+      )}
+      {a.is_honored && (
+        <span className="badge badge-warning badge-xs gap-0.5 shrink-0">
+          <FaCrown className="text-[7px]" /> قدوة النشاط
+        </span>
+      )}
+    </div>
+  );
+})}
           </div>
         </motion.div>
       )}
@@ -649,6 +688,16 @@ const [showAttendees, setShowAttendees] = useState(false);
         )}
       </AnimatePresence>
 
+        {selectedChildProfile && (
+  <ChildProfileModal
+    child={selectedChildProfile.record}
+    parentId={selectedChildProfile.parentId}
+    isAdmin={isCurrentUserAdmin}
+    isOwner={user?.id === selectedChildProfile.parentId}
+    onClose={() => setSelectedChildProfile(null)}
+    onUpdate={() => setSelectedChildProfile(null)}
+  />
+)}
     </main>
   );
 }

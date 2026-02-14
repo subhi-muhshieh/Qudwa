@@ -6,7 +6,8 @@ import {
   FaEnvelope, FaLock, FaArrowRight, FaUserPlus, FaSignInAlt, 
   FaKey, FaEye, FaEyeSlash, FaUser, FaChild, FaPlus, FaTrash, FaPhone,
   FaHandsHelping, FaHandHoldingHeart, FaUsers, FaUserFriends,
-  FaBuilding, FaSitemap, FaTimes
+  FaBuilding, FaSitemap, FaTimes, FaChevronDown, FaChevronUp,
+  FaBullseye, FaStar, FaHeart, FaPalette, FaLightbulb, FaInfoCircle
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { memberRanks, offices } from '../utils/constants';
@@ -29,8 +30,8 @@ export default function LoginPage() {
   
   const [fullName, setFullName] = useState(''); 
   const [phoneNumber, setPhoneNumber] = useState(''); 
-  const [children, setChildren] = useState([{ name: '', age: '' }]);
-  
+const [children, setChildren] = useState([{ name: '', age: '', dream_profession: '', biggest_dream: '', role_model: '', role_model_why: '', hobby: '', fun_fact: '' }]);
+const [expandedChildCards, setExpandedChildCards] = useState({});  
   const router = useRouter();
   const supabase = createClient();
 
@@ -53,7 +54,7 @@ export default function LoginPage() {
     setMemberRoles(newRoles);
   };
 
-  const addChild = () => setChildren([...children, { name: '', age: '' }]);
+const addChild = () => setChildren([...children, { name: '', age: '', dream_profession: '', biggest_dream: '', role_model: '', role_model_why: '', hobby: '', fun_fact: '' }]);
   const removeChild = (index) => {
     if (children.length > 1) setChildren(children.filter((_, i) => i !== index));
   };
@@ -93,7 +94,18 @@ export default function LoginPage() {
         let finalMemberRoles = [];
 
         if (userType === 'parent') {
-          finalChildren = children.filter(child => child.name.trim() && child.age);
+          finalChildren = children
+  .filter(child => child.name.trim() && child.age)
+  .map(child => ({
+    name: child.name.trim(),
+    age: child.age,
+    dream_profession: child.dream_profession || '',
+    biggest_dream: child.biggest_dream || '',
+    role_model: child.role_model || '',
+    role_model_why: child.role_model_why || '',
+    hobby: child.hobby || '',
+    fun_fact: child.fun_fact || '',
+  }));
           if (finalChildren.length === 0) {
             toast.error("الرجاء إدخال بيانات طفل واحد على الأقل", { id: toastId });
             setLoading(false); return;
@@ -148,8 +160,29 @@ export default function LoginPage() {
             .upsert(profileData);
 
           if (profileError) {
-            console.error('Profile save error:', profileError);
-          }
+  console.error('Profile save error:', profileError);
+}
+
+// Also insert children into children table with fun facts
+if (userType === 'parent' && finalChildren.length > 0) {
+  try {
+    const childRecords = finalChildren.map(c => ({
+      parent_id: data.user.id,
+      name: c.name,
+      age: String(c.age),
+      dream_profession: c.dream_profession?.trim() || null,
+      biggest_dream: c.biggest_dream?.trim() || null,
+      role_model: c.role_model?.trim() || null,
+      role_model_why: c.role_model_why?.trim() || null,
+      hobby: c.hobby?.trim() || null,
+      fun_fact: c.fun_fact?.trim() || null,
+    }));
+    await supabase.from('children').insert(childRecords);
+  } catch (childErr) {
+    console.error('Children table insert error:', childErr);
+    // Non-fatal: profile page sync will catch this
+  }
+}
         }
 
         toast.dismiss(toastId);
@@ -206,7 +239,8 @@ export default function LoginPage() {
     setIsSignUp(!isSignUp);
     setFullName('');
     setPhoneNumber('');
-    setChildren([{ name: '', age: '' }]);
+    setChildren([{ name: '', age: '', dream_profession: '', biggest_dream: '', role_model: '', role_model_why: '', hobby: '', fun_fact: '' }]);
+setExpandedChildCards({});
     setMemberRoles([{ rank: '', office: '' }]);
     setUserType('parent');
     setDonorParty('');
@@ -424,64 +458,162 @@ export default function LoginPage() {
                 )}
 
                 {userType === 'parent' && (
-                  <div className="space-y-4">
-                    <div className="divider text-base-content/50 my-2 text-xs">بيانات الأبناء</div>
-                    
-                    {children.map((child, index) => (
-                      <div key={index} className="bg-base-200/30 p-4 rounded-2xl space-y-3 relative">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
-                            الطفل {index + 1}
-                          </span>
-                          
-                          {children.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeChild(index)}
-                              className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                            >
-                              <FaTrash />
-                            </button>
-                          )}
-                        </div>
+  <div className="space-y-4">
+    <div className="divider text-base-content/50 my-2 text-xs">بيانات الأبناء</div>
+    
+    {children.map((child, index) => (
+      <div key={index} className="bg-base-200/30 p-4 rounded-2xl space-y-3 relative">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">
+            الشاب {index + 1}
+          </span>
+          
+          {children.length > 1 && (
+            <button
+              type="button"
+              onClick={() => removeChild(index)}
+              className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+            >
+              <FaTrash />
+            </button>
+          )}
+        </div>
 
-                        <div className="relative">
-                          <FaChild className="absolute top-4 right-4 text-base-content/40 z-10" />
-                          <input 
-                            type="text" 
-                            placeholder="اسم الطفل" 
-                            className="input input-bordered w-full rounded-full pr-12 bg-base-100 focus:bg-base-100 transition-colors text-right"
-                            value={child.name}
-                            onChange={(e) => updateChild(index, 'name', e.target.value)}
-                            required
-                          />
-                        </div>
+        <div className="relative">
+          <FaChild className="absolute top-4 right-4 text-base-content/40 z-10" />
+          <input 
+            type="text" 
+            placeholder="اسم الشاب" 
+            className="input input-bordered w-full rounded-full pr-12 bg-base-100 focus:bg-base-100 transition-colors text-right"
+            value={child.name}
+            onChange={(e) => updateChild(index, 'name', e.target.value)}
+            required
+          />
+        </div>
 
-                        <div className="relative">
-                          <span className="absolute top-4 right-4 text-base-content/40 z-10 text-xs font-bold">عمر</span>
-                          <input 
-                            type="text"
-                            inputMode="numeric"
-                            placeholder="عمر الطفل" 
-                            className="input input-bordered w-full rounded-full pr-12 bg-base-100 focus:bg-base-100 transition-colors text-right"
-                            value={child.age}
-                            onChange={(e) => handleAgeChange(index, e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                    ))}
+        <div className="relative">
+          <span className="absolute top-4 right-4 text-base-content/40 z-10 text-xs font-bold">عمر</span>
+          <input 
+            type="text"
+            inputMode="numeric"
+            placeholder="عمر الشاب" 
+            className="input input-bordered w-full rounded-full pr-12 bg-base-100 focus:bg-base-100 transition-colors text-right"
+            value={child.age}
+            onChange={(e) => handleAgeChange(index, e.target.value)}
+            required
+          />
+        </div>
 
-                    <button
-                      type="button"
-                      onClick={addChild}
-                      className="btn btn-outline btn-primary btn-sm w-full rounded-full gap-2"
-                    >
-                      <FaPlus />
-                      إضافة طفل آخر
-                    </button>
-                  </div>
-                )}
+        {/* Fun Facts Toggle */}
+        <button
+          type="button"
+          onClick={() => setExpandedChildCards(prev => ({ ...prev, [index]: !prev[index] }))}
+          className="w-full flex items-center justify-between p-3 bg-base-100 rounded-xl hover:bg-base-200/50 transition-colors"
+        >
+          <span className="text-xs font-bold text-secondary flex items-center gap-2">
+            <FaStar className="text-secondary/70" /> بطاقة التعريف (اختياري)
+          </span>
+          {expandedChildCards[index] ? (
+            <FaChevronUp className="text-xs text-base-content/40" />
+          ) : (
+            <FaChevronDown className="text-xs text-base-content/40" />
+          )}
+        </button>
+
+        {/* Fun Fact Fields */}
+        {expandedChildCards[index] && (
+          <div className="space-y-3 bg-base-100 p-4 rounded-xl border border-base-200">
+            <div className="relative">
+              <FaBullseye className="absolute top-3 right-3 text-base-content/30 z-10 text-sm" />
+              <input
+                type="text"
+                placeholder="ماذا يريد أن يصبح؟ (طبيب، مهندس...)"
+                className="input input-bordered input-sm w-full rounded-xl pr-10 bg-base-200/30 text-right"
+                value={child.dream_profession}
+                onChange={(e) => updateChild(index, 'dream_profession', e.target.value)}
+              />
+            </div>
+
+            <div className="relative">
+              <FaStar className="absolute top-3 right-3 text-base-content/30 z-10 text-sm" />
+              <input
+                type="text"
+                placeholder="أكبر أحلامه"
+                className="input input-bordered input-sm w-full rounded-xl pr-10 bg-base-200/30 text-right"
+                value={child.biggest_dream}
+                onChange={(e) => updateChild(index, 'biggest_dream', e.target.value)}
+              />
+            </div>
+
+            <div className="relative">
+              <FaUser className="absolute top-3 right-3 text-base-content/30 z-10 text-sm" />
+              <input
+                type="text"
+                placeholder="قدوته في الحياة"
+                className="input input-bordered input-sm w-full rounded-xl pr-10 bg-base-200/30 text-right"
+                value={child.role_model}
+                onChange={(e) => updateChild(index, 'role_model', e.target.value)}
+              />
+            </div>
+
+            {child.role_model && (
+              <div className="relative">
+                <FaHeart className="absolute top-3 right-3 text-base-content/30 z-10 text-sm" />
+                <input
+                  type="text"
+                  placeholder="لماذا هو/هي قدوته؟"
+                  className="input input-bordered input-sm w-full rounded-xl pr-10 bg-base-200/30 text-right"
+                  value={child.role_model_why}
+                  onChange={(e) => updateChild(index, 'role_model_why', e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="relative">
+              <FaPalette className="absolute top-3 right-3 text-base-content/30 z-10 text-sm" />
+              <input
+                type="text"
+                placeholder="هوايته المفضلة"
+                className="input input-bordered input-sm w-full rounded-xl pr-10 bg-base-200/30 text-right"
+                value={child.hobby}
+                onChange={(e) => updateChild(index, 'hobby', e.target.value)}
+              />
+            </div>
+
+            <div className="relative">
+              <FaLightbulb className="absolute top-3 right-3 text-base-content/30 z-10 text-sm" />
+              <input
+                type="text"
+                placeholder="حقيقة ممتعة عنه"
+                className="input input-bordered input-sm w-full rounded-xl pr-10 bg-base-200/30 text-right"
+                value={child.fun_fact}
+                onChange={(e) => updateChild(index, 'fun_fact', e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    ))}
+
+    {/* Skip Reminder */}
+    <div className="flex items-start gap-3 p-3 bg-info/5 border border-info/10 rounded-2xl">
+      <FaInfoCircle className="text-info shrink-0 mt-0.5" />
+      <p className="text-xs text-base-content/60 leading-relaxed">
+        بطاقة التعريف اختيارية ويمكنك تعبئتها أو تعديلها لاحقاً من خلال 
+        <span className="font-bold text-primary"> صفحة الملف الشخصي</span>
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={addChild}
+      className="btn btn-outline btn-primary btn-sm w-full rounded-full gap-2"
+    >
+      <FaPlus />
+      إضافة طفل آخر
+    </button>
+  </div>
+)}
               </div>
             )}
 

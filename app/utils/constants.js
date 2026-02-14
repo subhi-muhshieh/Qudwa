@@ -45,3 +45,15 @@ export const userTypes = [
   { id: 'donor', label: 'داعم/مانح', desc: 'لدعم الجمعية' },
   { id: 'follower', label: 'متابع', desc: 'للمتابعة والاطلاع' },
 ];
+
+export const levelDefinitions = [
+  { id: 'new', label: 'جديد', emoji: '🌱', bg: 'bg-green-400/10', text: 'text-green-400', border: 'border-green-400/20' },
+  { id: 'promising', label: 'واعد', emoji: '✨', bg: 'bg-blue-400/10', text: 'text-blue-400', border: 'border-blue-400/20' },
+  { id: 'distinguished', label: 'متميز', emoji: '⭐', bg: 'bg-orange-400/10', text: 'text-orange-400', border: 'border-orange-400/20' },
+  { id: 'star', label: 'نجم قدوة', emoji: '🌟', bg: 'bg-yellow-500/10', text: 'text-yellow-500', border: 'border-yellow-500/20' },
+  { id: 'ideal', label: 'قدوة مثالية', emoji: '👑', bg: 'bg-amber-500/10', text: 'text-amber-500', border: 'border-amber-500/20' },
+];
+
+export const getLevelDef = (levelId) => {
+  return levelDefinitions.find(l => l.id === levelId) || levelDefinitions[0];
+};

@@ -495,25 +495,34 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/login">
-                  <motion.button 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="btn btn-lg bg-white text-primary hover:bg-white/90 border-none rounded-full px-10 shadow-xl w-full sm:w-auto gap-2"
-                  >
-                    سجّل الآن <FaArrowLeft />
-                  </motion.button>
-                </Link>
-                <Link href="/contact">
-                  <motion.button 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 w-full sm:w-auto"
-                  >
-                    تواصل معنا
-                  </motion.button>
-                </Link>
-              </div>
+  <Link href="/login">
+    <motion.button 
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="btn btn-lg bg-white text-primary hover:bg-white/90 border-none rounded-full px-10 shadow-xl w-full sm:w-auto gap-2"
+    >
+      سجّل الآن <FaArrowLeft />
+    </motion.button>
+  </Link>
+  <Link href="/donate">
+    <motion.button 
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 w-full sm:w-auto gap-2"
+    >
+      <FaHeart /> ادعمنا
+    </motion.button>
+  </Link>
+  <Link href="/contact">
+    <motion.button 
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 w-full sm:w-auto"
+    >
+      تواصل معنا
+    </motion.button>
+  </Link>
+</div>
             </div>
           </motion.div>
         </div>

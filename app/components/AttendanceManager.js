@@ -7,7 +7,8 @@ import {
   FaSearch, FaCheckDouble, FaUserFriends, FaTimesCircle, FaCheck, FaCrown
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { levelDefinitions, getLevelDef } from '../utils/constants';
+import ChildProfileModal from './ChildProfileModal';import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AttendanceManager({ activities }) {
   const [selectedActivityId, setSelectedActivityId] = useState('');
@@ -20,6 +21,9 @@ export default function AttendanceManager({ activities }) {
   
   // Walk-in state
   const [showWalkInForm, setShowWalkInForm] = useState(false);
+const [childrenMap, setChildrenMap] = useState({});
+const [selectedChildProfile, setSelectedChildProfile] = useState(null);
+const [changingLevel, setChangingLevel] = useState({});
   const [walkInForm, setWalkInForm] = useState({ child_name: '', child_age: '', parent_name: '' });
   const [addingWalkIn, setAddingWalkIn] = useState(false);
 
@@ -62,12 +66,27 @@ export default function AttendanceManager({ activities }) {
 
       // Fetch attendance records
       const { data: att, error: attError } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('activity_id', selectedActivityId);
+  .from('attendance')
+  .select('*')
+  .eq('activity_id', selectedActivityId);
 
-      if (attError) throw attError;
-      setAttendanceRecords(att || []);
+if (attError) throw attError;
+setAttendanceRecords(att || []);
+
+// Fetch children table records for level data
+const parentIds = [...new Set((regs || []).map(r => r.user_id).filter(Boolean))];
+if (parentIds.length > 0) {
+  const { data: childrenData } = await supabase
+    .from('children')
+    .select('*')
+    .in('parent_id', parentIds);
+
+  const map = {};
+  (childrenData || []).forEach(c => {
+    map[`${c.parent_id}-${c.name}`] = c;
+  });
+  setChildrenMap(map);
+}
     } catch (error) {
       console.error('Error fetching attendance data:', error);
       toast.error('فشل تحميل البيانات');
@@ -302,7 +321,7 @@ const toggleWalkInHonor = async (recordId) => {
   const handleAddWalkIn = async (e) => {
     e.preventDefault();
     if (!walkInForm.child_name.trim()) {
-      toast.error('اسم الطفل مطلوب');
+      toast.error('اسم الشاب مطلوب');
       return;
     }
 
@@ -335,6 +354,57 @@ const toggleWalkInHonor = async (recordId) => {
     }
   };
 
+  const getChildRecord = (parentId, childName) => {
+  return childrenMap[`${parentId}-${childName}`] || null;
+};
+
+const handleLevelChange = async (parentId, childName, childAge, newLevel) => {
+  const key = `level-${parentId}-${childName}`;
+  if (changingLevel[key]) return;
+  setChangingLevel(prev => ({ ...prev, [key]: true }));
+
+  let record = childrenMap[`${parentId}-${childName}`];
+
+  try {
+    if (!record && parentId) {
+      const { data, error } = await supabase
+        .from('children')
+        .insert({ parent_id: parentId, name: childName, age: childAge || null, level: newLevel })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setChildrenMap(prev => ({ ...prev, [`${parentId}-${childName}`]: data }));
+        toast.success(`تم تحديث المستوى: ${getLevelDef(newLevel).label}`);
+      }
+    } else if (record) {
+      const { error } = await supabase
+        .from('children')
+        .update({ level: newLevel, updated_at: new Date().toISOString() })
+        .eq('id', record.id);
+
+      if (error) throw error;
+      setChildrenMap(prev => ({
+        ...prev,
+        [`${parentId}-${childName}`]: { ...record, level: newLevel }
+      }));
+      toast.success(`تم تحديث المستوى: ${getLevelDef(newLevel).label}`);
+    }
+  } catch (error) {
+    console.error('Level change error:', error);
+    toast.error('حدث خطأ');
+  } finally {
+    setChangingLevel(prev => ({ ...prev, [key]: false }));
+  }
+};
+
+const openChildProfile = (parentId, childName) => {
+  const record = childrenMap[`${parentId}-${childName}`];
+  if (record) {
+    setSelectedChildProfile({ record, parentId });
+  }
+};
   // Remove walk-in
   const removeWalkIn = async (recordId) => {
     try {
@@ -489,7 +559,7 @@ const toggleWalkInHonor = async (recordId) => {
                   <FaSearch className="absolute top-3.5 right-3 text-base-content/40" />
                   <input
                     type="text"
-                    placeholder="بحث باسم الطفل أو ولي الأمر..."
+                    placeholder="بحث باسم الشاب أو ولي الأمر..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input input-bordered rounded-xl w-full pr-10 input-sm md:input-md"
@@ -536,13 +606,13 @@ const toggleWalkInHonor = async (recordId) => {
 
                       <form onSubmit={handleAddWalkIn} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="form-control">
-                          <label className="label py-1"><span className="label-text text-xs font-bold">اسم الطفل *</span></label>
+                          <label className="label py-1"><span className="label-text text-xs font-bold">اسم الشاب *</span></label>
                           <input
                             type="text"
                             value={walkInForm.child_name}
                             onChange={(e) => setWalkInForm({ ...walkInForm, child_name: e.target.value })}
                             className="input input-bordered input-sm rounded-xl"
-                            placeholder="اسم الطفل"
+                            placeholder="اسم الشاب"
                             required
                           />
                         </div>
@@ -668,7 +738,7 @@ const toggleWalkInHonor = async (recordId) => {
                                 return (
                                   <div
   key={idx}
-  className={`w-full flex items-center gap-3 p-2.5 md:p-3 rounded-xl transition-all duration-200 text-right ${
+  className={`w-full flex items-center gap-2 md:gap-3 p-2.5 md:p-3 rounded-xl transition-all duration-200 text-right ${
     attended
       ? isChildHonored(profile.id, child.name)
         ? 'bg-warning/10 hover:bg-warning/15 ring-1 ring-warning/20'
@@ -693,28 +763,49 @@ const toggleWalkInHonor = async (recordId) => {
     ) : null}
   </button>
 
-  {/* Child info */}
-  <div className="flex-1 min-w-0 flex items-center gap-2">
+  {/* Child name — clickable */}
+  <button
+    onClick={() => openChildProfile(profile.id, child.name)}
+    className="flex-1 min-w-0 text-right hover:underline decoration-dotted underline-offset-4"
+    title="عرض بطاقة الطفل"
+  >
     <span className={`font-medium text-sm md:text-base ${
       isChildHonored(profile.id, child.name) ? 'text-warning' : attended ? 'text-success' : 'text-base-content'
     }`}>
       {child.name}
     </span>
-    {isChildHonored(profile.id, child.name) && (
-      <span className="badge badge-warning badge-xs gap-0.5">
-        <FaCrown className="text-[8px]" /> قدوة
-      </span>
-    )}
-  </div>
+  </button>
 
-  {/* Age badge */}
+  {/* Level badge */}
+  {(() => {
+    const rec = getChildRecord(profile.id, child.name);
+    const lvl = getLevelDef(rec?.level);
+    if (rec && rec.level && rec.level !== 'new') {
+      return (
+        <span className={`badge badge-xs shrink-0 gap-0.5 ${lvl.bg} ${lvl.text} ${lvl.border} border`}>
+          {lvl.emoji}
+          <span className="hidden sm:inline">{lvl.label}</span>
+        </span>
+      );
+    }
+    return null;
+  })()}
+
+  {/* Honor badge */}
+  {isChildHonored(profile.id, child.name) && (
+    <span className="badge badge-warning badge-xs gap-0.5 shrink-0">
+      <FaCrown className="text-[8px]" /> قدوة
+    </span>
+  )}
+
+  {/* Age */}
   {child.age && (
     <span className={`badge badge-sm shrink-0 ${attended ? 'badge-success badge-outline' : 'badge-ghost'}`}>
       {child.age} سنة
     </span>
   )}
 
-  {/* Honor toggle — only when attended */}
+  {/* Honor toggle */}
   {attended && (
     <button
       onClick={(e) => {
@@ -735,6 +826,21 @@ const toggleWalkInHonor = async (recordId) => {
         <FaCrown className="text-xs md:text-sm" />
       )}
     </button>
+  )}
+
+  {/* Level selector — admin only, when attended */}
+  {attended && (
+    <select
+      value={getChildRecord(profile.id, child.name)?.level || 'new'}
+      onChange={(e) => handleLevelChange(profile.id, child.name, child.age, e.target.value)}
+      disabled={changingLevel[`level-${profile.id}-${child.name}`]}
+      className="select select-xs rounded-lg bg-base-200/50 border-base-300 text-xs w-20 md:w-24 shrink-0"
+      title="تغيير المستوى"
+    >
+      {levelDefinitions.map(l => (
+        <option key={l.id} value={l.id}>{l.emoji} {l.label}</option>
+      ))}
+    </select>
   )}
 </div>
                                 );
@@ -830,6 +936,22 @@ const toggleWalkInHonor = async (recordId) => {
           )}
         </>
       )}
+      {selectedChildProfile && (
+  <ChildProfileModal
+    child={selectedChildProfile.record}
+    parentId={selectedChildProfile.parentId}
+    isAdmin={true}
+    isOwner={false}
+    onClose={() => setSelectedChildProfile(null)}
+    onUpdate={(updated) => {
+      setChildrenMap(prev => ({
+        ...prev,
+        [`${updated.parent_id}-${updated.name}`]: { ...prev[`${updated.parent_id}-${updated.name}`], ...updated }
+      }));
+      setSelectedChildProfile(null);
+    }}
+  />
+)}
     </div>
   );
 }

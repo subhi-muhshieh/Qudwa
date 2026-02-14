@@ -13,9 +13,11 @@ import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
 import { userTypeLabels, rankLabels, officeLabels } from '../utils/constants';
 import ImageEditorModal from '../components/ImageEditorModal';
+import ChildProfileModal from '../components/ChildProfileModal';
 
 export default function ProfilePage() {
-  const { user, profile: contextProfile, loading: contextLoading, updateProfile } = useProfile();
+const { user, profile: contextProfile, loading: contextLoading, updateProfile } = useProfile();
+const isAdmin = contextProfile?.role === 'admin';
   const [saving, setSaving] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
   
@@ -46,7 +48,9 @@ export default function ProfilePage() {
   const [editingDonorParty, setEditingDonorParty] = useState(false);
 
   const [showImageEditor, setShowImageEditor] = useState(false);
-  const [tempImageFile, setTempImageFile] = useState(null);
+const [tempImageFile, setTempImageFile] = useState(null);
+const [childTableRecords, setChildTableRecords] = useState([]);
+const [selectedChildForProfile, setSelectedChildForProfile] = useState(null);
   
   const fileInputRef = useRef(null);
   const supabase = createClient();
@@ -88,6 +92,37 @@ export default function ProfilePage() {
       setCurrentDonorParty(contextProfile.donor_party || '');
       
       setProfileReady(true);
+
+// Sync children table for parents
+if ((contextProfile.user_type || 'parent') === 'parent') {
+  const syncChildren = async () => {
+    try {
+      const { data: tableRecords } = await supabase
+        .from('children')
+        .select('*')
+        .eq('parent_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (tableRecords && tableRecords.length > 0) {
+        setChildTableRecords(tableRecords);
+      } else if ((contextProfile.children || []).length > 0) {
+        const records = (contextProfile.children || []).map(c => ({
+          parent_id: user.id,
+          name: c.name,
+          age: String(c.age)
+        }));
+        const { data: inserted } = await supabase
+          .from('children')
+          .insert(records)
+          .select();
+        if (inserted) setChildTableRecords(inserted);
+      }
+    } catch (err) {
+      console.error('Children sync error:', err);
+    }
+  };
+  syncChildren();
+}
     }
   }, [user, contextProfile, contextLoading, router]);
 
@@ -138,6 +173,52 @@ export default function ProfilePage() {
     setCurrentChildren([...originalChildren]);
     setEditingChildren(false);
   };
+
+  const syncChildrenTable = async (parentId, children) => {
+  try {
+    const { data: existing } = await supabase
+      .from('children')
+      .select('id, name')
+      .eq('parent_id', parentId);
+
+    const existingByName = {};
+    (existing || []).forEach(c => { existingByName[c.name] = c.id; });
+    const currentNames = new Set(children.map(c => c.name));
+
+    for (const child of children) {
+      if (existingByName[child.name]) {
+        await supabase.from('children')
+          .update({ age: String(child.age), updated_at: new Date().toISOString() })
+          .eq('id', existingByName[child.name]);
+      } else {
+        await supabase.from('children')
+          .insert({ parent_id: parentId, name: child.name, age: String(child.age) });
+      }
+    }
+
+    const toDelete = (existing || []).filter(c => !currentNames.has(c.name));
+    if (toDelete.length > 0) {
+      await supabase.from('children').delete().in('id', toDelete.map(c => c.id));
+    }
+
+    const { data: refreshed } = await supabase
+      .from('children')
+      .select('*')
+      .eq('parent_id', parentId)
+      .order('created_at', { ascending: true });
+
+    return refreshed || [];
+  } catch (err) {
+    console.error('Children table sync error:', err);
+    return [];
+  }
+};
+
+const handleChildProfileUpdate = (updatedChild) => {
+  setChildTableRecords(prev =>
+    prev.map(c => c.id === updatedChild.id ? { ...c, ...updatedChild } : c)
+  );
+};
 
   const handleSaveChanges = async () => {
     if (!hasChanges) return;
@@ -207,6 +288,11 @@ export default function ProfilePage() {
       setEditingMemberRoles(false);
       setEditingDonorParty(false);
 
+      // Sync children table
+if (currentUserType === 'parent' && updates.children.length > 0) {
+  const refreshed = await syncChildrenTable(user.id, updates.children);
+  setChildTableRecords(refreshed);
+}
       toast.success('تم حفظ التغييرات بنجاح!', { id: toastId });
     } catch (error) {
       console.error('Save error:', error);
@@ -433,20 +519,37 @@ export default function ProfilePage() {
                         {editingChildren ? (
                           <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">الطفل {index + 1}</span>
+                              <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">الشاب {index + 1}</span>
                               {currentChildren.length > 1 && <button onClick={() => removeChild(index)} className="btn btn-ghost btn-xs text-error"><FaTrash /></button>}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <input type="text" value={child.name} onChange={(e) => updateChild(index, 'name', e.target.value)} className="input input-bordered input-sm w-full" placeholder="اسم الطفل" />
+                              <input type="text" value={child.name} onChange={(e) => updateChild(index, 'name', e.target.value)} className="input input-bordered input-sm w-full" placeholder="اسم الشاب" />
                               <input type="text" inputMode="numeric" value={child.age} onChange={(e) => updateChild(index, 'age', e.target.value)} className="input input-bordered input-sm w-full" placeholder="العمر" />
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-base-content">{child.name}</span>
-                            <span className="badge badge-primary">{child.age} سنة</span>
-                          </div>
-                        )}
+  <div className="flex items-center justify-between">
+    <span className="font-medium text-base-content">{child.name}</span>
+    <div className="flex items-center gap-2">
+      <span className="badge badge-primary">{child.age} سنة</span>
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          const record = childTableRecords.find(r => r.name === child.name);
+          if (record) {
+            setSelectedChildForProfile(record);
+          } else {
+            toast('جاري تحميل البيانات...', { icon: '⏳' });
+          }
+        }}
+        className="btn btn-ghost btn-xs text-secondary hover:text-primary gap-1"
+        title="بطاقة تعريف الشاب"
+      >
+        <FaChild className="text-xs" /> البطاقة
+      </button>
+    </div>
+  </div>
+)}
                       </div>
                     ))}
                     {editingChildren && <button onClick={addChild} className="btn btn-outline btn-primary btn-sm w-full rounded-xl gap-2"><FaPlus /> إضافة طفل آخر</button>}
@@ -499,6 +602,17 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {selectedChildForProfile && (
+  <ChildProfileModal
+    child={selectedChildForProfile}
+    parentId={user.id}
+    isAdmin={isAdmin}
+    isOwner={true}
+    onClose={() => setSelectedChildForProfile(null)}
+    onUpdate={handleChildProfileUpdate}
+  />
+)}
 
       {showImageEditor && tempImageFile && (
         <ImageEditorModal

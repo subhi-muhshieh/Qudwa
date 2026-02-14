@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog, FaImages, FaBars, FaTimes, FaInfoCircle, FaSignInAlt } from 'react-icons/fa';
+import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog, FaImages, FaBars, FaTimes, FaInfoCircle, FaSignInAlt, FaHeart } from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
 import NotificationBell from './NotificationBell'; // ADD THIS LINE
 
@@ -120,6 +120,14 @@ export default function Navbar() {
             عن الجمعية
           </Link>
 
+          <Link 
+  href="/donate" 
+  className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/donate' ? 'bg-primary/10 text-primary' : ''}`}
+>
+  <FaHeart className="text-red-400 opacity-70" />
+  ادعمنا
+</Link>
+
           {isAdmin && (
             <Link 
               href="/admin" 
@@ -196,6 +204,7 @@ export default function Navbar() {
               <li className="md:hidden"><Link href="/gallery" className="py-2"><FaImages /> معرض الصور</Link></li>
               <li className="md:hidden"><Link href="/contact" className="py-2"><FaEnvelope /> راسل الإدارة</Link></li>
               <li className="md:hidden"><Link href="/about" className="py-2"><FaInfoCircle /> عن الجمعية</Link></li>
+              <li className="md:hidden"><Link href="/donate" className="py-2"><FaHeart /> ادعمنا</Link></li>
               
               {isAdmin && (
                 <li className="border-t border-base-200 mt-1 pt-1">
@@ -262,6 +271,11 @@ export default function Navbar() {
                     <FaInfoCircle className="text-primary" /> عن الجمعية
                   </Link>
                 </li>
+                <li>
+  <Link href="/donate" className="gap-2 py-2">
+    <FaHeart className="text-red-400" /> ادعمنا
+  </Link>
+</li>
                 <li>
                   <Link href="/contact" className="gap-2 py-2">
                     <FaEnvelope className="text-primary" /> تواصل معنا

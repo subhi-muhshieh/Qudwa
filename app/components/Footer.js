@@ -43,6 +43,7 @@ function Footer() {
   <li><Link href="/gallery" className="link link-hover hover:text-primary transition-colors">معرض الصور</Link></li>
   <li><Link href="/contact" className="link link-hover hover:text-primary transition-colors">تواصل معنا</Link></li>
   <li><Link href="/about" className="link link-hover hover:text-primary transition-colors">عن الجمعية</Link></li>
+  <li><Link href="/donate" className="link link-hover hover:text-primary transition-colors">ادعمنا</Link></li>
   <li><Link href="/faq" className="link link-hover hover:text-primary transition-colors">الأسئلة الشائعة</Link></li>
 </ul>
         </div>
