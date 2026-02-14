@@ -853,7 +853,7 @@ export default function Dashboard() {
                 <h4 className="font-bold text-lg sm:text-xl text-primary mb-3 sm:mb-4 flex items-center gap-2">
                   <FaInfoCircle className="text-base shrink-0" /> التفاصيل
                 </h4>
-                <p className="text-base-content/80 whitespace-pre-wrap leading-loose text-sm sm:text-base break-words [overflow-wrap:anywhere]">
+                <p className="text-base-content/80 whitespace-pre-wrap leading-loose text-sm sm:text-base break-words overflow-wrap-anywhere">
                   {selectedActivity.full_report}
                 </p>
               </div>
@@ -863,7 +863,7 @@ export default function Dashboard() {
                   <FaStar className="text-warning text-lg sm:text-xl mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <h5 className="font-bold text-base-content mb-1 text-sm sm:text-base">ملاحظات هامة</h5>
-                    <p className="text-base-content/70 text-xs sm:text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                    <p className="text-base-content/70 text-xs sm:text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">
                       {selectedActivity.notable_notes}
                     </p>
                   </div>
