@@ -98,12 +98,13 @@ export default function ContactPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: message,
-          userEmail: user.email,
-          parentName: profile?.parent_name || 'غير محدد',
-          parentPhone: profile?.parent_phone || 'غير محدد',
-          children: profile?.children || []
-        })
+  message: message,
+  userEmail: user.email,
+  userName: profile?.parent_name || 'غير محدد',
+  userPhone: profile?.parent_phone || 'غير محدد',
+  userType: profile?.user_type || 'follower',
+  children: profile?.user_type === 'parent' ? (profile?.children || []) : []
+})
       });
 
       const data = await res.json();

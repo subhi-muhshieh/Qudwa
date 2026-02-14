@@ -13,7 +13,11 @@ import {
   FaLock,
   FaQuestionCircle,
   FaInfoCircle,
-  FaDownload
+  FaDownload,
+  FaExclamationTriangle,
+  FaTrash,
+  FaEye,
+  FaEyeSlash
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
@@ -21,6 +25,11 @@ import { useProfile } from '../context/ProfileContext';
 export default function SettingsPage() {
   const { user, profile } = useProfile();
   const [loading, setLoading] = useState(true);
+const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [deletePassword, setDeletePassword] = useState('');
+const [deleteConfirmText, setDeleteConfirmText] = useState('');
+const [deleting, setDeleting] = useState(false);
+const [showDeletePassword, setShowDeletePassword] = useState(false);
   
   const supabase = createClient();
   const router = useRouter();
@@ -61,6 +70,51 @@ export default function SettingsPage() {
     toast.success('تم تحميل بياناتك');
   };
 
+  const handleDeleteAccount = async () => {
+  if (deleteConfirmText !== 'حذف حسابي') {
+    toast.error('يرجى كتابة "حذف حسابي" للتأكيد');
+    return;
+  }
+
+  if (!deletePassword) {
+    toast.error('يرجى إدخال كلمة المرور');
+    return;
+  }
+
+  setDeleting(true);
+  const toastId = toast.loading('جاري حذف الحساب...');
+
+  try {
+    const res = await fetch('/api/account/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        password: deletePassword,
+        confirmText: deleteConfirmText,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'فشل حذف الحساب');
+    }
+
+    toast.success('تم حذف حسابك نهائياً', { id: toastId });
+
+    // Sign out and redirect
+    await supabase.auth.signOut();
+    setTimeout(() => {
+      router.push('/login');
+      router.refresh();
+    }, 1500);
+
+  } catch (error) {
+    console.error('Delete account error:', error);
+    toast.error(error.message || 'حدث خطأ أثناء حذف الحساب', { id: toastId });
+    setDeleting(false);
+  }
+};
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -241,6 +295,36 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Danger Zone */}
+<div className="bg-base-100 rounded-2xl shadow-sm p-6 mb-6 border-2 border-error/10">
+  <h2 className="text-lg font-bold text-error flex items-center gap-2 mb-4">
+    <FaExclamationTriangle />
+    منطقة الخطر
+  </h2>
+  
+  <div className="space-y-3">
+    <div className="bg-error/5 rounded-xl p-4">
+      <p className="text-sm text-base-content/70 mb-1">
+        <span className="font-bold text-error">تحذير:</span> حذف الحساب عملية نهائية لا يمكن التراجع عنها.
+      </p>
+      <p className="text-xs text-base-content/50">
+        سيتم حذف جميع بياناتك بما في ذلك الملف الشخصي، بيانات الأبناء، سجل الحضور، التسجيلات، والإشعارات.
+      </p>
+    </div>
+    
+    <button 
+      onClick={() => setShowDeleteModal(true)}
+      className="flex items-center justify-between p-4 bg-base-200 rounded-xl hover:bg-error/10 transition-colors cursor-pointer w-full group"
+    >
+      <div className="flex items-center gap-3 text-error">
+        <FaTrash />
+        <span className="group-hover:font-bold transition-all">حذف الحساب نهائياً</span>
+      </div>
+      <span className="text-error/40 group-hover:text-error transition-colors">⚠</span>
+    </button>
+  </div>
+</div>
+
         {/* App Version */}
         <div className="text-center text-base-content/40 text-sm py-4">
           <p>منظمة قدوة - الإصدار 1.0.0</p>
@@ -250,6 +334,129 @@ export default function SettingsPage() {
         </div>
 
       </div>
+      {/* DELETE ACCOUNT MODAL */}
+{showDeleteModal && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+    <div 
+      className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+      onClick={() => {
+        if (!deleting) {
+          setShowDeleteModal(false);
+          setDeletePassword('');
+          setDeleteConfirmText('');
+          setShowDeletePassword(false);
+        }
+      }}
+    ></div>
+    
+    <div className="bg-base-100 rounded-3xl p-6 md:p-8 relative z-10 max-w-md w-full shadow-2xl">
+      
+      {/* Header */}
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <FaExclamationTriangle className="text-3xl text-error" />
+        </div>
+        <h3 className="text-2xl font-bold text-error">حذف الحساب نهائياً</h3>
+        <p className="text-base-content/50 mt-2 text-sm leading-relaxed">
+          هذا الإجراء <span className="font-bold text-error">لا يمكن التراجع عنه</span>. 
+          سيتم حذف جميع بياناتك من النظام بشكل كامل.
+        </p>
+      </div>
+
+      {/* What will be deleted */}
+      <div className="bg-error/5 rounded-xl p-4 mb-6 border border-error/10">
+        <p className="text-xs font-bold text-error mb-2">سيتم حذف:</p>
+        <ul className="text-xs text-base-content/60 space-y-1">
+          <li>• الملف الشخصي والصورة الشخصية</li>
+          <li>• بيانات الأبناء وبطاقات التعريف</li>
+          <li>• سجل الحضور والتسجيلات في النشاطات</li>
+          <li>• جميع الإشعارات والإعجابات</li>
+          <li>• الحساب بالكامل من النظام</li>
+        </ul>
+      </div>
+
+      {/* Confirmation */}
+      <div className="space-y-4">
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text text-sm">
+              اكتب <span className="font-bold text-error bg-error/10 px-2 py-0.5 rounded">حذف حسابي</span> للتأكيد
+            </span>
+          </label>
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            className={`input input-bordered rounded-xl text-center font-bold ${
+              deleteConfirmText === 'حذف حسابي' ? 'input-error border-error' : ''
+            }`}
+            placeholder="حذف حسابي"
+            disabled={deleting}
+            dir="rtl"
+          />
+        </div>
+
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text text-sm">أدخل كلمة المرور للتأكيد</span>
+          </label>
+          <div className="relative">
+            <FaLock className="absolute top-4 left-4 text-base-content/40 z-10" />
+            <input
+              type={showDeletePassword ? "text" : "password"}
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              className="input input-bordered rounded-xl w-full pl-12 pr-12 text-left"
+              placeholder="كلمة المرور"
+              disabled={deleting}
+              dir="ltr"
+            />
+            <button
+              type="button"
+              onClick={() => setShowDeletePassword(!showDeletePassword)}
+              className="absolute top-4 right-4 text-base-content/40 hover:text-primary transition-colors z-10"
+            >
+              {showDeletePassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-3 mt-6">
+        <button
+          onClick={handleDeleteAccount}
+          disabled={deleting || deleteConfirmText !== 'حذف حسابي' || !deletePassword}
+          className="btn btn-error w-full rounded-xl text-white gap-2 disabled:opacity-40"
+        >
+          {deleting ? (
+            <>
+              <span className="loading loading-spinner loading-sm"></span>
+              جاري الحذف...
+            </>
+          ) : (
+            <>
+              <FaTrash /> حذف حسابي نهائياً
+            </>
+          )}
+        </button>
+        
+        <button
+          onClick={() => {
+            setShowDeleteModal(false);
+            setDeletePassword('');
+            setDeleteConfirmText('');
+            setShowDeletePassword(false);
+          }}
+          disabled={deleting}
+          className="btn btn-ghost w-full rounded-xl"
+        >
+          إلغاء والعودة
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

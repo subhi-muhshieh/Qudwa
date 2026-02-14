@@ -10,9 +10,19 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+const userTypeLabels = {
+  'parent': 'ولي أمر',
+  'member': 'عضو جمعية',
+  'volunteer': 'متطوع',
+  'donor': 'داعم/مانح',
+  'follower': 'متابع'
+};
+
 export async function POST(request) {
   try {
-    const { message, userEmail, parentName, parentPhone, children } = await request.json();
+    const { message, userEmail, userName, userPhone, userType, children,
+            // Backward compatibility with old field names
+            parentName, parentPhone } = await request.json();
 
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -43,33 +53,40 @@ export async function POST(request) {
       return NextResponse.json({ error: 'البريد الإلكتروني مطلوب' }, { status: 400 });
     }
 
-    let childrenText = '';
-    if (children && Array.isArray(children) && children.length > 0) {
-      childrenText = children.map((child, index) => 
-        `   ${index + 1}. ${escapeHtml(child.name || 'غير محدد')} (${escapeHtml(String(child.age || '?'))} سنة)`
-      ).join('\n');
-    } else {
-      childrenText = '   لا توجد بيانات';
+    // Use new field names, fall back to old ones for backward compat
+    const finalName = userName || parentName || 'غير متوفر';
+    const finalPhone = userPhone || parentPhone || 'غير متوفر';
+    const finalType = userType || 'parent';
+    const typeLabel = userTypeLabels[finalType] || 'مستخدم';
+    const isParent = finalType === 'parent';
+
+    // Build children section only for parents
+    let childrenSection = '';
+    if (isParent) {
+      if (children && Array.isArray(children) && children.length > 0) {
+        const childrenText = children.map((child, index) => 
+          `   ${index + 1}. ${escapeHtml(child.name || 'غير محدد')} (${escapeHtml(String(child.age || '?'))} سنة)`
+        ).join('\n');
+        childrenSection = `\n👶 <b>الأبناء المسجلين:</b>\n${childrenText}\n`;
+      } else {
+        childrenSection = `\n👶 <b>الأبناء المسجلين:</b>\n   لا توجد بيانات\n`;
+      }
     }
 
     const now = new Date();
     const timeStr = `${now.toISOString().slice(0, 10)} ${now.toISOString().slice(11, 16)} UTC`;
 
-    const text = `
-📩 <b>رسالة جديدة من الموقع</b>
+    const text = `📩 <b>رسالة جديدة من الموقع</b>
 
-👤 <b>ولي الأمر:</b> ${escapeHtml(parentName || 'غير متوفر')}
+👤 <b>الاسم:</b> ${escapeHtml(finalName)}
+🏷 <b>نوع الحساب:</b> ${escapeHtml(typeLabel)}
 📧 <b>البريد:</b> ${escapeHtml(userEmail)}
-📱 <b>رقم الهاتف:</b> ${escapeHtml(parentPhone || 'غير متوفر')}
-
-👶 <b>الأبناء المسجلين:</b>
-${childrenText}
-
+📱 <b>رقم الهاتف:</b> ${escapeHtml(finalPhone)}
+${childrenSection}
 💬 <b>الرسالة:</b>
 ${escapeHtml(trimmedMessage)}
 
-⏰ <b>التوقيت:</b> ${timeStr}
-    `;
+⏰ <b>التوقيت:</b> ${timeStr}`;
 
     const response = await fetch(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
