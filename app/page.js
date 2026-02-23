@@ -105,23 +105,24 @@ export default function LandingPage() {
         <div className="absolute bottom-0 left-0 w-60 md:w-96 h-60 md:h-96 bg-black/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
         <div className="absolute top-1/3 left-1/4 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
 
-        <div className="relative z-10 text-center text-white max-w-3xl mx-auto py-20">
+<div className="relative z-10 text-center text-white max-w-3xl mx-auto pt-32 sm:pt-28 md:pt-20 pb-20">
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <div className="relative mx-auto mb-8 w-32 h-32 md:w-40 md:h-40">
-              <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse"></div>
-              <motion.img 
-                src="/logo.png" 
-                alt="شعار قدوة"
-                className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              />
-            </div>
+            <div className="relative mx-auto mb-6 sm:mb-8 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40">
+  <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse"></div>
+  <motion.img 
+    src="/logo.png" 
+    alt="شعار قدوة"
+    className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
+    animate={{ y: [0, -6, 0] }}
+    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+    style={{ willChange: 'transform' }}
+  />
+</div>
           </motion.div>
 
           {/* Title */}
