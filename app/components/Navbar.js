@@ -68,8 +68,9 @@ export default function Navbar() {
           <div className="relative w-12 h-12 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
             <img 
               src="/logo.png" 
-              alt="Qudwa Logo" 
+              alt="شعار جمعية قدوة" 
               className="w-full h-full object-contain drop-shadow-md rounded-full" 
+              loading="lazy"
             />
           </div>
           <div className="flex flex-col items-start justify-center h-12">
@@ -152,15 +153,25 @@ export default function Navbar() {
           <div className="relative" ref={dropdownRef}>
             <div 
               role="button" 
+              tabIndex={0}
               onClick={toggleDropdown}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleDropdown();
+                }
+              }}
+              aria-label="قائمة المستخدم"
+              aria-expanded={isDropdownOpen}
               className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors cursor-pointer"
             >
               <div className="bg-primary/10 text-primary rounded-full w-10 overflow-hidden">
                 {profile?.avatar_url ? (
                   <img 
                     src={profile.avatar_url} 
-                    alt="Profile" 
+                    alt="صورة الملف الشخصي" 
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 ) : (
                   <span className="text-lg font-bold flex items-center justify-center h-full">

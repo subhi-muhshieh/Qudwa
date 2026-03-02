@@ -75,7 +75,7 @@ function Footer() {
         <p className="flex items-center justify-center gap-1">
           صنع بكل <FaHeart className="text-red-500 animate-pulse" /> من أجل مستقبل أفضل
         </p>
-        <p className="mt-1">© {new Date().getFullYear()} منظمة قدوة. جميع الحقوق محفوظة.</p>
+        <p className="mt-1">© {new Date().getFullYear()} جمعية قدوة. جميع الحقوق محفوظة.</p>
       </div>
     </footer>
   );

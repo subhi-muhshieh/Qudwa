@@ -610,7 +610,7 @@ export default function AboutPage() {
       ========================================== */}
       <div className="py-6 md:py-8 px-4 bg-base-100">
         <div className="max-w-4xl mx-auto text-center text-base-content/40 text-xs md:text-sm">
-          <p className="mb-1 md:mb-2">منظمة قدوة - الإصدار 1.0.0</p>
+          <p className="mb-1 md:mb-2">جمعية قدوة - الإصدار 1.0.0</p>
           <p>جميع الحقوق محفوظة © {new Date().getFullYear()}</p>
         </div>
       </div>

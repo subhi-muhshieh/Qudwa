@@ -327,7 +327,7 @@ const [showDeletePassword, setShowDeletePassword] = useState(false);
 
         {/* App Version */}
         <div className="text-center text-base-content/40 text-sm py-4">
-          <p>منظمة قدوة - الإصدار 1.0.0</p>
+          <p>جمعية قدوة - الإصدار 1.0.0</p>
         </div>
         <div className="text-center text-base-content/40 text-sm py-4 font-slogan">
           <p>جيلٌ يبني... أثرٌ يبقى</p>

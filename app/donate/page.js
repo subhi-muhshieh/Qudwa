@@ -220,14 +220,14 @@ export default function DonatePage() {
                 <div className="bg-white rounded-2xl p-4 md:p-6 inline-block mx-auto shadow-lg border border-base-200 mb-6">
                   <img 
                     src="/shamcash-qr.png" 
-                    alt="رمز QR لحساب شام كاش - منظمة قدوة"
+                    alt="رمز QR لحساب شام كاش - جمعية قدوة"
                     className="w-48 h-48 md:w-56 md:h-56 object-contain mx-auto"
                   />
                 </div>
 
                 <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
                   <p className="text-xs text-base-content/50 mb-1">اسم الحساب</p>
-                  <p className="font-bold text-primary text-lg">منظمة قدوة</p>
+                  <p className="font-bold text-primary text-lg">جمعية قدوة</p>
                 </div>
 
                 <div className="mt-4 flex items-start gap-2 text-right bg-info/5 border border-info/10 p-3 rounded-xl">

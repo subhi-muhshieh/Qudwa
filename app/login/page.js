@@ -448,7 +448,7 @@ setExpandedChildCards({});
                     </h4>
                     <input 
                       type="text" 
-                      placeholder="اسم الجمعية / المنظمة / الشركة" 
+                      placeholder="اسم الجمعية / الجهة / الشركة" 
                       className="input input-bordered w-full rounded-2xl bg-base-100"
                       value={donorParty}
                       onChange={(e) => setDonorParty(e.target.value)}
