@@ -417,7 +417,7 @@ export default function DonatePage() {
               </motion.div>
 
               <h2 className="text-2xl md:text-4xl font-bold mb-4">
-                «خيرُ الناسِ أنفعُهم للناس»
+               قال رسول الله ﷺ: «أحبُّ النَّاسِ إلى اللَّهِ أنفعهُم للناس»
               </h2>
               <p className="opacity-90 mb-8 text-sm md:text-lg max-w-lg mx-auto leading-relaxed">
                 ساهم معنا في بناء مستقبل أفضل لأبنائنا. كل مساهمة تترك أثراً يبقى.
