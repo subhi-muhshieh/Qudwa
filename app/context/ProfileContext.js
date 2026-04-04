@@ -1,22 +1,44 @@
 'use client'
-import { createContext, useContext, useState, useEffect } from 'react';
+
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createClient } from '../utils/supabase/client';
 
-const ProfileContext = createContext();
+const ProfileContext = createContext(undefined);
 
 export function ProfileProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [supabase] = useState(() => createClient()); // React 19: lazy initialization
 
-  const supabase = createClient();
+  // Memoized fetch function (React 19 optimization)
+  const fetchProfile = useCallback(async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(); // Better than .single() for optional data
+
+      if (error) throw error;
+      
+      if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      setProfile(null);
+    }
+  }, [supabase]);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchUserAndProfile = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) throw error;
         
         if (isMounted && user) {
           setUser(user);
@@ -25,73 +47,63 @@ export function ProfileProvider({ children }) {
       } catch (error) {
         console.error('Error fetching user:', error);
       } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    const fetchProfile = async (userId) => {
-      try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-        
-        if (isMounted && data) {
-          setProfile(data);
+        if (isMounted) {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
       }
     };
 
     fetchUserAndProfile();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (isMounted) {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id);
+    // Auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser) {
+          await fetchProfile(currentUser.id);
         } else {
           setProfile(null);
         }
+
+        // Ensure loading is false after auth change
+        setLoading(false);
       }
-    });
+    );
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
     };
+  }, [supabase, fetchProfile]);
+
+  // Optimized update function with optimistic updates
+  const updateProfile = useCallback((newProfileData) => {
+    setProfile(prev => {
+      if (!prev) return prev;
+      return { ...prev, ...newProfileData };
+    });
   }, []);
 
-  // Function to update profile (called from Profile page)
-  const updateProfile = (newProfileData) => {
-    setProfile(prev => ({ ...prev, ...newProfileData }));
-  };
-
-  // Function to refresh profile from database
-  const refreshProfile = async () => {
+  // Refresh profile from database
+  const refreshProfile = useCallback(async () => {
     if (!user) return;
-    
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    
-    if (data) {
-      setProfile(data);
-    }
+    await fetchProfile(user.id);
+  }, [user, fetchProfile]);
+
+  const value = {
+    user,
+    profile,
+    loading,
+    updateProfile,
+    refreshProfile
   };
 
   return (
-    <ProfileContext.Provider value={{ 
-      user, 
-      profile, 
-      loading, 
-      updateProfile,
-      refreshProfile 
-    }}>
+    <ProfileContext.Provider value={value}>
       {children}
     </ProfileContext.Provider>
   );
@@ -99,8 +111,10 @@ export function ProfileProvider({ children }) {
 
 export function useProfile() {
   const context = useContext(ProfileContext);
-  if (!context) {
+  
+  if (context === undefined) {
     throw new Error('useProfile must be used within a ProfileProvider');
   }
+  
   return context;
 }

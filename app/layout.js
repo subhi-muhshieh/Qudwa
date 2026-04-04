@@ -9,19 +9,24 @@ import { ProfileProvider } from "./context/ProfileContext";
 const tajawal = Tajawal({ 
   subsets: ["arabic"], 
   weight: ["300", "400", "500", "700", "800"],
-  variable: '--font-tajawal'
+  variable: '--font-tajawal',
+  display: 'swap',
+  preload: true, // React 19 optimization
 });
 
 const nastaliq = Noto_Nastaliq_Urdu({ 
   subsets: ["arabic"], 
   weight: ["400", "700"],
-  variable: '--font-nastaliq'
+  variable: '--font-nastaliq',
+  display: 'swap',
+  preload: true,
 });
 
 const sloganFont = localFont({
   src: './fonts/FS_Future.ttf', 
   variable: '--font-slogan',
   display: 'swap',
+  preload: true,
 });
 
 export const metadata = {
@@ -96,7 +101,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ar" dir="rtl" data-theme="qudwaTheme"> 
+    <html lang="ar" dir="rtl" data-theme="qudwaTheme" suppressHydrationWarning>
       <head>
         <link rel="preload" href="/logo.png" as="image" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -105,7 +110,10 @@ export default function RootLayout({ children }) {
         <meta name="color-scheme" content="light" />
         <meta name="format-detection" content="telephone=no" />
       </head>
-     <body className={`${tajawal.variable} ${nastaliq.variable} ${sloganFont.variable} font-sans`}>
+      <body 
+        className={`${tajawal.variable} ${nastaliq.variable} ${sloganFont.variable} font-sans`}
+        suppressHydrationWarning
+      >
         <ProfileProvider>
           <Navbar />
           {children}

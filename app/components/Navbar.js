@@ -1,159 +1,165 @@
 'use client'
-import React, { useState, useEffect, useRef } from 'react'; 
+
+import { useState, useEffect, useRef, useCallback } from 'react'; 
 import Link from 'next/link';
 import { createClient } from '../utils/supabase/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, FaCog, FaImages, FaBars, FaTimes, FaInfoCircle, FaSignInAlt, FaHeart } from 'react-icons/fa';
+import { 
+  FaSignOutAlt, FaShieldAlt, FaHistory, FaEnvelope, FaUser, 
+  FaCog, FaImages, FaBars, FaTimes, FaInfoCircle, FaSignInAlt, FaHeart 
+} from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
-import NotificationBell from './NotificationBell'; // ADD THIS LINE
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const contextData = useProfile();
-  const { user, profile } = contextData;
+  const { user, profile } = useProfile();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   
-  const isAdmin = profile && profile.role === 'admin';
+  const isAdmin = profile?.role === 'admin';
 
+  // Close dropdown on outside click
   useEffect(() => {
-    function handleClickOutside(event) {
+    const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [isDropdownOpen]);
 
   // Close dropdown on route change
   useEffect(() => {
     setIsDropdownOpen(false);
   }, [pathname]);
 
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
+  // Memoized callbacks (React 19 optimization)
+  const toggleDropdown = useCallback(() => {
+    setIsDropdownOpen(prev => !prev);
+  }, []);
 
-  const closeDropdown = () => {
+  const closeDropdown = useCallback(() => {
     setIsDropdownOpen(false);
-  };
+  }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/login'); 
-    router.refresh();      
-  };
+    router.push('/login');
+    router.refresh();
+  }, [router]);
 
+  // Hide navbar on certain pages
   const hiddenPages = ['/login', '/reset-password'];
   if (hiddenPages.includes(pathname)) {
     return null;
   }
 
   return (
-    <div className="navbar absolute top-6 left-4 right-4 w-auto rounded-3xl glass-panel shadow-sm z-50 px-4 md:px-6">
-      
+    <nav 
+      className="navbar absolute top-6 left-4 right-4 w-auto rounded-3xl glass-panel shadow-sm z-50 px-4 md:px-6"
+      role="navigation"
+      aria-label="القائمة الرئيسية"
+    >
       <div className="flex-1 flex items-center gap-6">
-        
         {/* Logo */}
         <Link 
           href={user ? "/dashboard" : "/"} 
           className="btn btn-ghost hover:bg-transparent normal-case gap-3 group px-0 flex items-center"
+          aria-label="الصفحة الرئيسية"
         >
           <div className="relative w-12 h-12 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
             <img 
               src="/logo.png" 
               alt="شعار جمعية قدوة" 
               className="w-full h-full object-contain drop-shadow-md rounded-full" 
-              loading="lazy"
+              loading="eager"
+              width={48}
+              height={48}
             />
           </div>
           <div className="flex flex-col items-start justify-center h-12">
-             <span 
-                className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none transition-all duration-300 group-hover:text-secondary group-hover:scale-105 origin-right font-nastaliq" 
-             >
-                قُدوَة
-             </span>
+            <span 
+              className="text-3xl text-primary -mt-3 drop-shadow-sm leading-none transition-all duration-300 group-hover:text-secondary group-hover:scale-105 origin-right font-nastaliq" 
+            >
+              قُدوَة
+            </span>
           </div>
         </Link>
 
         {/* Separator */}
-        <div className="hidden md:block h-8 w-px bg-primary/10 rounded-full mx-1"></div>
+        <div className="hidden md:block h-8 w-px bg-primary/10 rounded-full mx-1" aria-hidden="true"></div>
 
         {/* Desktop Nav Links */}
-        <div className="hidden md:flex items-center gap-3">
-          <Link 
+        <div className="hidden md:flex items-center gap-3" role="menubar">
+          <NavLink 
             href="/activities" 
-            className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/activities' ? 'bg-primary/10 text-primary' : ''}`}
-          >
-            <FaHistory className="text-secondary opacity-70" />
-            سجل النشاطات
-          </Link>
+            icon={<FaHistory className="text-secondary opacity-70" />}
+            label="سجل النشاطات"
+            isActive={pathname === '/activities'}
+          />
 
-          <Link 
+          <NavLink 
             href="/gallery" 
-            className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/gallery' ? 'bg-primary/10 text-primary' : ''}`}
-          >
-            <FaImages className="text-secondary opacity-70" />
-            معرض الصور
-          </Link>
+            icon={<FaImages className="text-secondary opacity-70" />}
+            label="معرض الصور"
+            isActive={pathname === '/gallery'}
+          />
 
           {user && (
-            <Link 
+            <NavLink 
               href="/contact"
-              className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/contact' ? 'bg-primary/10 text-primary' : ''}`}
-            >
-              <FaEnvelope className="text-secondary opacity-70" />
-              راسل الإدارة
-            </Link>
+              icon={<FaEnvelope className="text-secondary opacity-70" />}
+              label="راسل الإدارة"
+              isActive={pathname === '/contact'}
+            />
           )}
 
-          <Link 
+          <NavLink 
             href="/about" 
-            className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/about' ? 'bg-primary/10 text-primary' : ''}`}
-          >
-            <FaInfoCircle className="text-secondary opacity-70" />
-            عن الجمعية
-          </Link>
+            icon={<FaInfoCircle className="text-secondary opacity-70" />}
+            label="عن الجمعية"
+            isActive={pathname === '/about'}
+          />
 
-          <Link 
-  href="/donate" 
-  className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${pathname === '/donate' ? 'bg-primary/10 text-primary' : ''}`}
->
-  <FaHeart className="text-red-400 opacity-70" />
-  ادعمنا
-</Link>
+          <NavLink 
+            href="/donate" 
+            icon={<FaHeart className="text-red-400 opacity-70" />}
+            label="ادعمنا"
+            isActive={pathname === '/donate'}
+          />
 
           {isAdmin && (
             <Link 
               href="/admin" 
               className="btn btn-sm btn-outline btn-primary rounded-xl gap-2 hover:shadow-md transition-all"
+              role="menuitem"
             >
               <FaShieldAlt /> 
               الإدارة
             </Link>
           )}
-
         </div>
       </div>
 
-            {/* Right Side */}
+      {/* Right Side */}
       <div className="flex-none flex items-center gap-2 ml-2">
         {/* Notification Bell - Only show if logged in */}
         {user && <NotificationBell />}
         
         {user ? (
           /* ===== LOGGED-IN: Avatar Dropdown ===== */
-          /* ===== LOGGED-IN: Avatar Dropdown ===== */
           <div className="relative" ref={dropdownRef}>
-            <div 
-              role="button" 
-              tabIndex={0}
+            <button 
               onClick={toggleDropdown}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -163,6 +169,7 @@ export default function Navbar() {
               }}
               aria-label="قائمة المستخدم"
               aria-expanded={isDropdownOpen}
+              aria-haspopup="true"
               className="btn btn-ghost btn-circle avatar placeholder border-2 border-primary/20 hover:border-primary transition-colors cursor-pointer"
             >
               <div className="bg-primary/10 text-primary rounded-full w-10 overflow-hidden">
@@ -172,6 +179,8 @@ export default function Navbar() {
                     alt="صورة الملف الشخصي" 
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    width={40}
+                    height={40}
                   />
                 ) : (
                   <span className="text-lg font-bold flex items-center justify-center h-full">
@@ -179,9 +188,10 @@ export default function Navbar() {
                   </span>
                 )}
               </div>
-            </div>
+            </button>
             
             <ul 
+              role="menu"
               className={`
                 absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-base-100 rounded-2xl w-56 border border-base-200 text-right z-50
                 origin-top-left transition-all duration-200 ease-in-out
@@ -190,7 +200,8 @@ export default function Navbar() {
                   : 'opacity-0 scale-95 invisible -translate-y-2 pointer-events-none'}
               `}
               onClick={(e) => {
-                if(e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON') {
+                const target = e.target;
+                if (target.tagName === 'A' || target.closest('a') || target.tagName === 'BUTTON') {
                   closeDropdown();
                 }
               }}
@@ -199,41 +210,72 @@ export default function Navbar() {
                 {profile?.parent_name || user.email}
               </li>
               
-              <li>
-                <Link href="/profile" className="gap-2 py-2">
+              <li role="none">
+                <Link href="/profile" className="gap-2 py-2" role="menuitem">
                   <FaUser className="text-primary" /> الملف الشخصي
                 </Link>
               </li>
-              <li>
-                <Link href="/settings" className="gap-2 py-2">
+              <li role="none">
+                <Link href="/settings" className="gap-2 py-2" role="menuitem">
                   <FaCog className="text-primary" /> الإعدادات
                 </Link>
               </li>
               
               {/* Mobile-only links */}
-              <li className="md:hidden"><Link href="/activities" className="py-2"><FaHistory /> سجل النشاطات</Link></li>
-              <li className="md:hidden"><Link href="/gallery" className="py-2"><FaImages /> معرض الصور</Link></li>
-              <li className="md:hidden"><Link href="/contact" className="py-2"><FaEnvelope /> راسل الإدارة</Link></li>
-              <li className="md:hidden"><Link href="/about" className="py-2"><FaInfoCircle /> عن الجمعية</Link></li>
-              <li className="md:hidden"><Link href="/donate" className="py-2"><FaHeart /> ادعمنا</Link></li>
+              <li className="md:hidden" role="none">
+                <Link href="/activities" className="py-2" role="menuitem">
+                  <FaHistory /> سجل النشاطات
+                </Link>
+              </li>
+              <li className="md:hidden" role="none">
+                <Link href="/gallery" className="py-2" role="menuitem">
+                  <FaImages /> معرض الصور
+                </Link>
+              </li>
+              <li className="md:hidden" role="none">
+                <Link href="/contact" className="py-2" role="menuitem">
+                  <FaEnvelope /> راسل الإدارة
+                </Link>
+              </li>
+              <li className="md:hidden" role="none">
+                <Link href="/about" className="py-2" role="menuitem">
+                  <FaInfoCircle /> عن الجمعية
+                </Link>
+              </li>
+              <li className="md:hidden" role="none">
+                <Link href="/donate" className="py-2" role="menuitem">
+                  <FaHeart /> ادعمنا
+                </Link>
+              </li>
               
               {isAdmin && (
-                <li className="border-t border-base-200 mt-1 pt-1">
-                  <Link href="/admin" className="py-2 text-primary font-bold">
+                <li className="border-t border-base-200 mt-1 pt-1" role="none">
+                  <Link href="/admin" className="py-2 text-primary font-bold" role="menuitem">
                     <FaShieldAlt /> لوحة الإدارة
                   </Link>
                 </li>
               )}
               
-              <div className="divider my-1 opacity-50"></div>
-              <li><button onClick={handleLogout} className="text-error gap-2 hover:bg-error/10 py-2"><FaSignOutAlt /> خروج</button></li>
+              <div className="divider my-1 opacity-50" aria-hidden="true"></div>
+              <li role="none">
+                <button 
+                  onClick={handleLogout} 
+                  className="text-error gap-2 hover:bg-error/10 py-2"
+                  role="menuitem"
+                >
+                  <FaSignOutAlt /> خروج
+                </button>
+              </li>
             </ul>
           </div>
         ) : (
           /* ===== GUEST: Login button + mobile hamburger ===== */
           <div className="flex items-center gap-2">
             {/* Desktop login button */}
-            <Link href="/login" className="hidden md:inline-flex btn btn-primary rounded-2xl px-6 shadow-md hover:shadow-lg transition-all text-white">
+            <Link 
+              href="/login" 
+              className="hidden md:inline-flex btn btn-primary rounded-2xl px-6 shadow-md hover:shadow-lg transition-all text-white"
+            >
               دخول
             </Link>
 
@@ -241,6 +283,9 @@ export default function Navbar() {
             <div className="relative md:hidden" ref={dropdownRef}>
               <button 
                 onClick={toggleDropdown}
+                aria-label="قائمة التنقل"
+                aria-expanded={isDropdownOpen}
+                aria-haspopup="true"
                 className="btn btn-ghost btn-circle border-2 border-primary/20 hover:border-primary transition-colors"
               >
                 {isDropdownOpen ? (
@@ -251,6 +296,7 @@ export default function Navbar() {
               </button>
 
               <ul 
+                role="menu"
                 className={`
                   absolute left-0 mt-3 p-2 shadow-lg menu menu-sm bg-base-100 rounded-2xl w-56 border border-base-200 text-right z-50
                   origin-top-left transition-all duration-200 ease-in-out
@@ -259,7 +305,8 @@ export default function Navbar() {
                     : 'opacity-0 scale-95 invisible -translate-y-2 pointer-events-none'}
                 `}
                 onClick={(e) => {
-                  if(e.target.tagName === 'A' || e.target.closest('a') || e.target.tagName === 'BUTTON') {
+                  const target = e.target;
+                  if (target.tagName === 'A' || target.closest('a') || target.tagName === 'BUTTON') {
                     closeDropdown();
                   }
                 }}
@@ -267,34 +314,34 @@ export default function Navbar() {
                 <li className="menu-title px-4 py-2 text-xs text-primary/70 border-b border-base-200 mb-2">
                   تصفح الموقع
                 </li>
-                <li>
-                  <Link href="/activities" className="gap-2 py-2">
+                <li role="none">
+                  <Link href="/activities" className="gap-2 py-2" role="menuitem">
                     <FaHistory className="text-primary" /> سجل النشاطات
                   </Link>
                 </li>
-                <li>
-                  <Link href="/gallery" className="gap-2 py-2">
+                <li role="none">
+                  <Link href="/gallery" className="gap-2 py-2" role="menuitem">
                     <FaImages className="text-primary" /> معرض الصور
                   </Link>
                 </li>
-                <li>
-                  <Link href="/about" className="gap-2 py-2">
+                <li role="none">
+                  <Link href="/about" className="gap-2 py-2" role="menuitem">
                     <FaInfoCircle className="text-primary" /> عن الجمعية
                   </Link>
                 </li>
-                <li>
-  <Link href="/donate" className="gap-2 py-2">
-    <FaHeart className="text-red-400" /> ادعمنا
-  </Link>
-</li>
-                <li>
-                  <Link href="/contact" className="gap-2 py-2">
+                <li role="none">
+                  <Link href="/donate" className="gap-2 py-2" role="menuitem">
+                    <FaHeart className="text-red-400" /> ادعمنا
+                  </Link>
+                </li>
+                <li role="none">
+                  <Link href="/contact" className="gap-2 py-2" role="menuitem">
                     <FaEnvelope className="text-primary" /> تواصل معنا
                   </Link>
                 </li>
-                <div className="divider my-1 opacity-50"></div>
-                <li>
-                  <Link href="/login" className="gap-2 py-2 text-primary font-bold">
+                <div className="divider my-1 opacity-50" aria-hidden="true"></div>
+                <li role="none">
+                  <Link href="/login" className="gap-2 py-2 text-primary font-bold" role="menuitem">
                     <FaSignInAlt /> تسجيل الدخول
                   </Link>
                 </li>
@@ -303,6 +350,22 @@ export default function Navbar() {
           </div>
         )}
       </div>
-    </div>
+    </nav>
+  );
+}
+
+// Helper component for nav links (React 19 pattern)
+function NavLink({ href, icon, label, isActive }) {
+  return (
+    <Link 
+      href={href} 
+      className={`btn btn-sm btn-ghost hover:bg-primary/5 text-base-content font-bold rounded-xl gap-2 transition-all ${
+        isActive ? 'bg-primary/10 text-primary' : ''
+      }`}
+      role="menuitem"
+    >
+      {icon}
+      {label}
+    </Link>
   );
 }

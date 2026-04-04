@@ -1,7 +1,8 @@
 'use client'
+
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from './utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { 
@@ -11,7 +12,7 @@ import {
 } from 'react-icons/fa';
 
 export default function LandingPage() {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient()); // Lazy init
   const router = useRouter();
   const [recentActivities, setRecentActivities] = useState([]);
   const [upcomingActivity, setUpcomingActivity] = useState(null);
@@ -20,52 +21,69 @@ export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        setIsLoggedIn(true);
-        router.replace('/dashboard');
-        return;
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!isMounted) return;
 
-      // Fetch public data for landing page
-      const [activitiesRes, upcomingRes, photosRes] = await Promise.allSettled([
-        supabase
-          .from('activities')
-          .select('id, title, short_description, image_url, activity_date')
-          .eq('is_upcoming', false)
-          .order('activity_date', { ascending: false })
-          .limit(3),
-        supabase
-          .from('activities')
-          .select('id, title, short_description, image_url, activity_date, start_time')
-          .eq('is_upcoming', true)
-          .order('activity_date', { ascending: true })
-          .limit(1)
-          .single(),
-        supabase
-          .from('activity_photos')
-          .select('id, image_url, caption')
-          .order('created_at', { ascending: false })
-          .limit(8),
-      ]);
+        if (user) {
+          setIsLoggedIn(true);
+          router.replace('/dashboard');
+          return;
+        }
 
-      if (activitiesRes.status === 'fulfilled' && activitiesRes.value.data) {
-        setRecentActivities(activitiesRes.value.data);
-      }
-      if (upcomingRes.status === 'fulfilled' && upcomingRes.value.data) {
-        setUpcomingActivity(upcomingRes.value.data);
-      }
-      if (photosRes.status === 'fulfilled' && photosRes.value.data) {
-        setGalleryPhotos(photosRes.value.data);
-      }
+        // Fetch public data for landing page
+        const [activitiesRes, upcomingRes, photosRes] = await Promise.allSettled([
+          supabase
+            .from('activities')
+            .select('id, title, short_description, image_url, activity_date')
+            .eq('is_upcoming', false)
+            .order('activity_date', { ascending: false })
+            .limit(3),
+          supabase
+            .from('activities')
+            .select('id, title, short_description, image_url, activity_date, start_time')
+            .eq('is_upcoming', true)
+            .order('activity_date', { ascending: true })
+            .limit(1)
+            .maybeSingle(), // Changed from .single()
+          supabase
+            .from('activity_photos')
+            .select('id, image_url, caption')
+            .order('created_at', { ascending: false })
+            .limit(8),
+        ]);
 
-      setLoading(false);
+        if (!isMounted) return;
+
+        if (activitiesRes.status === 'fulfilled' && activitiesRes.value.data) {
+          setRecentActivities(activitiesRes.value.data);
+        }
+        if (upcomingRes.status === 'fulfilled' && upcomingRes.value.data) {
+          setUpcomingActivity(upcomingRes.value.data);
+        }
+        if (photosRes.status === 'fulfilled' && photosRes.value.data) {
+          setGalleryPhotos(photosRes.value.data);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing landing page:', error);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
 
     init();
-  }, [router]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase, router]);
 
   if (isLoggedIn || loading) {
     return (
@@ -74,6 +92,8 @@ export default function LandingPage() {
           <motion.img 
             src="/logo.png" 
             alt="Qudwa"
+            width={96}
+            height={96}
             className="w-24 h-24 mx-auto mb-4 object-contain"
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
@@ -101,11 +121,11 @@ export default function LandingPage() {
       ========================================== */}
       <section className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-primary via-secondary to-accent overflow-hidden px-4">
         {/* Background decorations */}
-        <div className="absolute top-0 right-0 w-72 md:w-[500px] h-72 md:h-[500px] bg-white/10 rounded-full blur-3xl -mr-36 -mt-36 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-60 md:w-96 h-60 md:h-96 bg-black/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
-        <div className="absolute top-1/3 left-1/4 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-72 md:w-[500px] h-72 md:h-[500px] bg-white/10 rounded-full blur-3xl -mr-36 -mt-36 pointer-events-none" aria-hidden="true"></div>
+        <div className="absolute bottom-0 left-0 w-60 md:w-96 h-60 md:h-96 bg-black/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none" aria-hidden="true"></div>
+        <div className="absolute top-1/3 left-1/4 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" aria-hidden="true"></div>
 
-<div className="relative z-10 text-center text-white max-w-3xl mx-auto pt-32 sm:pt-28 md:pt-20 pb-20">
+        <div className="relative z-10 text-center text-white max-w-3xl mx-auto pt-32 sm:pt-28 md:pt-20 pb-20">
           {/* Logo */}
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
@@ -113,27 +133,29 @@ export default function LandingPage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <div className="relative mx-auto mb-6 sm:mb-8 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40">
-  <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse"></div>
-  <motion.img 
-    src="/logo.png" 
-    alt="شعار قدوة"
-    className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
-    animate={{ y: [0, -6, 0] }}
-    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-    style={{ willChange: 'transform' }}
-  />
-</div>
+              <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse" aria-hidden="true"></div>
+              <motion.img 
+                src="/logo.png" 
+                alt="شعار قدوة"
+                width={160}
+                height={160}
+                className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                style={{ willChange: 'transform' }}
+              />
+            </div>
           </motion.div>
 
           {/* Title */}
-<motion.h1 
-  className="text-6xl md:text-8xl font-bold mb-6 md:mb-8 font-nastaliq"
-  initial={{ opacity: 0, y: -30 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.3, duration: 0.7 }}
->
-  قُدوَة
-</motion.h1>
+          <motion.h1 
+            className="text-6xl md:text-8xl font-bold mb-6 md:mb-8 font-nastaliq"
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.7 }}
+          >
+            قُدوَة
+          </motion.h1>
 
           {/* Slogan */}
           <motion.p 
@@ -190,18 +212,10 @@ export default function LandingPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
           >
-            <a href="https://www.instagram.com/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-sm bg-white/15 border-none hover:bg-white/25 text-white">
-              <FaInstagram />
-            </a>
-            <a href="https://www.facebook.com/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-sm bg-white/15 border-none hover:bg-white/25 text-white">
-              <FaFacebook />
-            </a>
-            <a href="https://t.me/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-sm bg-white/15 border-none hover:bg-white/25 text-white">
-              <FaTelegramPlane />
-            </a>
-            <a href="https://wa.me/963980931111" target="_blank" rel="noopener noreferrer" className="btn btn-circle btn-sm bg-white/15 border-none hover:bg-white/25 text-white">
-              <FaWhatsapp />
-            </a>
+            <SocialLink href="https://www.instagram.com/QudwaAssoc" icon={<FaInstagram />} label="Instagram" />
+            <SocialLink href="https://www.facebook.com/QudwaAssoc" icon={<FaFacebook />} label="Facebook" />
+            <SocialLink href="https://t.me/QudwaAssoc" icon={<FaTelegramPlane />} label="Telegram" />
+            <SocialLink href="https://wa.me/963980931111" icon={<FaWhatsapp />} label="WhatsApp" />
           </motion.div>
         </div>
 
@@ -210,6 +224,7 @@ export default function LandingPage() {
           className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/50"
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
+          aria-hidden="true"
         >
           <FaChevronDown className="text-2xl" />
         </motion.div>
@@ -228,15 +243,15 @@ export default function LandingPage() {
               variants={fadeInUp}
             >
               <div className="flex items-center gap-3 mb-8">
-                <div className="w-2 h-8 bg-primary rounded-full"></div>
+                <div className="w-2 h-8 bg-primary rounded-full" aria-hidden="true"></div>
                 <h2 className="text-2xl md:text-3xl font-bold text-base-content">النشاط القادم</h2>
               </div>
 
               <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.5rem] blur opacity-20 group-hover:opacity-40 transition duration-500" aria-hidden="true"></div>
                 
                 <div className="relative bg-gradient-to-br from-primary via-secondary to-accent rounded-[2rem] p-6 md:p-10 text-white overflow-hidden">
-                  <div className="absolute top-0 right-0 w-60 h-60 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                  <div className="absolute top-0 right-0 w-60 h-60 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" aria-hidden="true"></div>
                   
                   <div className="flex flex-col lg:flex-row gap-8 relative z-10">
                     <div className="flex-1 text-right space-y-4 order-2 lg:order-1">
@@ -268,6 +283,7 @@ export default function LandingPage() {
                             src={upcomingActivity.image_url} 
                             alt={upcomingActivity.title}
                             className="w-full h-full object-cover"
+                            loading="lazy"
                           />
                         </div>
                       </div>
@@ -281,7 +297,7 @@ export default function LandingPage() {
       )}
 
       {/* ==========================================
-          WHAT WE DO — Quick overview
+          WHAT WE DO
       ========================================== */}
       <section className="py-16 md:py-24 px-4 bg-base-200">
         <div className="max-w-5xl mx-auto">
@@ -318,7 +334,7 @@ export default function LandingPage() {
                 variants={fadeInUp}
                 className={`bg-gradient-to-br ${item.color} bg-base-100 rounded-2xl p-4 md:p-6 text-center border border-base-200 hover:shadow-lg transition-shadow duration-300`}
               >
-                <div className="text-primary mb-3">{item.icon}</div>
+                <div className="text-primary mb-3" aria-hidden="true">{item.icon}</div>
                 <h3 className="font-bold text-base-content text-sm md:text-lg mb-1">{item.title}</h3>
                 <p className="text-base-content/50 text-xs md:text-sm">{item.desc}</p>
               </motion.div>
@@ -352,7 +368,7 @@ export default function LandingPage() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-8 bg-secondary rounded-full"></div>
+                  <div className="w-2 h-8 bg-secondary rounded-full" aria-hidden="true"></div>
                   <h2 className="text-2xl md:text-3xl font-bold text-base-content">أحدث النشاطات</h2>
                 </div>
                 <Link href="/activities" className="btn btn-ghost btn-sm text-primary gap-1">
@@ -369,43 +385,7 @@ export default function LandingPage() {
               variants={staggerContainer}
             >
               {recentActivities.map((activity) => (
-                <motion.div
-                  key={activity.id}
-                  variants={fadeInUp}
-                >
-                  <Link href="/activities">
-                    <div className="group bg-base-100 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-base-200 cursor-pointer h-full">
-                      <div className="h-44 overflow-hidden relative">
-                        {activity.image_url ? (
-                          <img 
-                            src={activity.image_url} 
-                            alt={activity.title}
-                            loading="lazy"
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-base-200 flex items-center justify-center text-base-content/20">
-                            <FaStar className="text-4xl" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
-                      </div>
-                      <div className="p-5">
-                        <h3 className="font-bold text-base-content text-lg mb-2 line-clamp-1 group-hover:text-primary transition-colors">
-                          {activity.title}
-                        </h3>
-                        <p className="text-base-content/60 text-sm line-clamp-2 mb-3">
-                          {activity.short_description}
-                        </p>
-                        {activity.activity_date && (
-                          <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                            {activity.activity_date}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
+                <ActivityCard key={activity.id} activity={activity} />
               ))}
             </motion.div>
           </div>
@@ -426,7 +406,7 @@ export default function LandingPage() {
             >
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-8 bg-accent rounded-full"></div>
+                  <div className="w-2 h-8 bg-accent rounded-full" aria-hidden="true"></div>
                   <h2 className="text-2xl md:text-3xl font-bold text-base-content">من معرض الصور</h2>
                 </div>
                 <Link href="/gallery" className="btn btn-ghost btn-sm text-primary gap-1">
@@ -443,21 +423,7 @@ export default function LandingPage() {
               variants={staggerContainer}
             >
               {galleryPhotos.map((photo, idx) => (
-                <motion.div
-                  key={photo.id}
-                  variants={fadeInUp}
-                >
-                  <Link href="/gallery">
-                    <div className="aspect-square rounded-2xl overflow-hidden bg-base-300 cursor-pointer group shadow-md hover:shadow-xl transition-all duration-300">
-                      <img 
-                        src={photo.image_url} 
-                        alt={photo.caption || `صورة ${idx + 1}`}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                      />
-                    </div>
-                  </Link>
-                </motion.div>
+                <GalleryPhoto key={photo.id} photo={photo} idx={idx} />
               ))}
             </motion.div>
           </div>
@@ -476,8 +442,8 @@ export default function LandingPage() {
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-36 h-36 bg-white/10 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" aria-hidden="true"></div>
+            <div className="absolute bottom-0 left-0 w-36 h-36 bg-white/10 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none" aria-hidden="true"></div>
             
             <div className="relative z-10">
               <motion.div
@@ -486,6 +452,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, type: "spring" }}
                 className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6"
+                aria-hidden="true"
               >
                 <FaHeart className="text-3xl" />
               </motion.div>
@@ -496,39 +463,119 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-  <Link href="/login">
-    <motion.button 
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className="btn btn-lg bg-white text-primary hover:bg-white/90 border-none rounded-full px-10 shadow-xl w-full sm:w-auto gap-2"
-    >
-      سجّل الآن <FaArrowLeft />
-    </motion.button>
-  </Link>
-  <Link href="/donate">
-    <motion.button 
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 w-full sm:w-auto gap-2"
-    >
-      <FaHeart /> ادعمنا
-    </motion.button>
-  </Link>
-  <Link href="/contact">
-    <motion.button 
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 w-full sm:w-auto"
-    >
-      تواصل معنا
-    </motion.button>
-  </Link>
-</div>
+                <Link href="/login">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="btn btn-lg bg-white text-primary hover:bg-white/90 border-none rounded-full px-10 shadow-xl w-full sm:w-auto gap-2"
+                  >
+                    سجّل الآن <FaArrowLeft />
+                  </motion.button>
+                </Link>
+                <Link href="/donate">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 w-full sm:w-auto gap-2"
+                  >
+                    <FaHeart /> ادعمنا
+                  </motion.button>
+                </Link>
+                <Link href="/contact">
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 w-full sm:w-auto"
+                  >
+                    تواصل معنا
+                  </motion.button>
+                </Link>
+              </div>
             </div>
           </motion.div>
         </div>
       </section>
-
     </main>
+  );
+}
+
+// Helper Components (React 19 pattern - better for memoization)
+function SocialLink({ href, icon, label }) {
+  return (
+    <a 
+      href={href} 
+      target="_blank" 
+      rel="noopener noreferrer" 
+      className="btn btn-circle btn-sm bg-white/15 border-none hover:bg-white/25 text-white"
+      aria-label={label}
+    >
+      {icon}
+    </a>
+  );
+}
+
+function ActivityCard({ activity }) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 40 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } }
+      }}
+    >
+      <Link href="/activities">
+        <div className="group bg-base-100 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-base-200 cursor-pointer h-full">
+          <div className="h-44 overflow-hidden relative">
+            {activity.image_url ? (
+              <img 
+                src={activity.image_url} 
+                alt={activity.title}
+                loading="lazy"
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+              />
+            ) : (
+              <div className="w-full h-full bg-base-200 flex items-center justify-center text-base-content/20">
+                <FaStar className="text-4xl" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
+          </div>
+          <div className="p-5">
+            <h3 className="font-bold text-base-content text-lg mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+              {activity.title}
+            </h3>
+            <p className="text-base-content/60 text-sm line-clamp-2 mb-3">
+              {activity.short_description}
+            </p>
+            {activity.activity_date && (
+              <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
+                {activity.activity_date}
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+function GalleryPhoto({ photo, idx }) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 40 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } }
+      }}
+    >
+      <Link href="/gallery">
+        <div className="aspect-square rounded-2xl overflow-hidden bg-base-300 cursor-pointer group shadow-md hover:shadow-xl transition-all duration-300">
+          <img 
+            src={photo.image_url} 
+            alt={photo.caption || `صورة ${idx + 1}`}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+          />
+        </div>
+      </Link>
+    </motion.div>
   );
 }
