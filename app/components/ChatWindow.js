@@ -314,7 +314,7 @@ export default function ChatWindow({ onClose, onMessageRead }) {
       >
         <div className="text-center">
           <span className="loading loading-spinner loading-lg text-primary" />
-          <p className="mt-4 text-base-content/50">جاري تحميل المحادثة...</p>
+          <p className="mt-4 text-base-content/50">جارٍ تحميل المحادثة...</p>
         </div>
       </motion.div>
     );
