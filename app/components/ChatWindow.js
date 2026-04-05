@@ -20,12 +20,8 @@ export default function ChatWindow({ onClose, onMessageRead }) {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [conversation, setConversation] = useState(null);
-  const [otherUserTyping, setOtherUserTyping] = useState(false);
-
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
-
   const [supabase] = useState(() => createClient());
   const { user } = useProfile();
 
@@ -207,59 +203,12 @@ export default function ChatWindow({ onClose, onMessageRead }) {
       )
       .subscribe();
 
-    const typingChannel = supabase
-      .channel(`typing-${conversation.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'typing_indicators',
-          filter: `conversation_id=eq.${conversation.id}`,
-        },
-        (payload) => {
-          if (payload.new?.user_id && payload.new.user_id !== user.id) {
-            setOtherUserTyping(!!payload.new.is_typing);
-          }
-          if (payload.eventType === 'DELETE') {
-            setOtherUserTyping(false);
-          }
-        }
-      )
-      .subscribe();
 
     return () => {
       messagesChannel.unsubscribe();
-      typingChannel.unsubscribe();
     };
   }, [conversation, user, supabase, scrollMessagesToBottom, onMessageRead]);
 
-  const handleTyping = useCallback(() => {
-    if (!conversation || !user) return;
-
-    supabase
-      .from('typing_indicators')
-      .upsert({
-        conversation_id: conversation.id,
-        user_id: user.id,
-        is_typing: true,
-        updated_at: new Date().toISOString(),
-      })
-      .then();
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      supabase
-        .from('typing_indicators')
-        .delete()
-        .eq('conversation_id', conversation.id)
-        .eq('user_id', user.id)
-        .then();
-    }, 2000);
-  }, [conversation, user, supabase]);
 
   const handleSendMessage = useCallback(
     async (e) => {
@@ -283,12 +232,6 @@ export default function ChatWindow({ onClose, onMessageRead }) {
         if (error) throw error;
 
         setNewMessage('');
-
-        await supabase
-          .from('typing_indicators')
-          .delete()
-          .eq('conversation_id', conversation.id)
-          .eq('user_id', user.id);
 
         setTimeout(() => {
           scrollMessagesToBottom(true);
@@ -337,7 +280,7 @@ export default function ChatWindow({ onClose, onMessageRead }) {
           <div>
             <h3 className="font-bold">راسل الإدارة</h3>
             <p className="text-xs opacity-80">
-              {otherUserTyping ? 'يكتب...' : 'نحن هنا للمساعدة'}
+نحن هنا للمساعدة
             </p>
           </div>
         </div>
@@ -372,15 +315,6 @@ export default function ChatWindow({ onClose, onMessageRead }) {
         )}
       </div>
 
-      {otherUserTyping && (
-        <div className="px-4 py-2 bg-base-200 shrink-0">
-          <div className="flex gap-1">
-            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-        </div>
-      )}
 
       <form onSubmit={handleSendMessage} className="p-4 border-t border-base-300 bg-base-100 shrink-0">
         <div className="flex gap-2">
@@ -392,7 +326,6 @@ export default function ChatWindow({ onClose, onMessageRead }) {
             value={newMessage}
             onChange={(e) => {
               setNewMessage(e.target.value);
-              handleTyping();
             }}
             disabled={sending}
           />
