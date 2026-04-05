@@ -5,13 +5,14 @@ import Navbar from "./components/Navbar";
 import { Toaster } from "react-hot-toast";
 import Footer from "./components/Footer";
 import { ProfileProvider } from "./context/ProfileContext";
+import ChatIcon from "./components/ChatIcon";
 
 const tajawal = Tajawal({ 
   subsets: ["arabic"], 
   weight: ["300", "400", "500", "700", "800"],
   variable: '--font-tajawal',
   display: 'swap',
-  preload: true, // React 19 optimization
+  preload: true,
 });
 
 const nastaliq = Noto_Nastaliq_Urdu({ 
@@ -107,8 +108,6 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
-        <meta name="color-scheme" content="light" />
-        <meta name="format-detection" content="telephone=no" />
       </head>
       <body 
         className={`${tajawal.variable} ${nastaliq.variable} ${sloganFont.variable} font-sans`}
@@ -118,6 +117,8 @@ export default function RootLayout({ children }) {
           <Navbar />
           {children}
           <Footer />
+          <ChatIcon />
+
           <Toaster 
             position="bottom-center" 
             toastOptions={{ 

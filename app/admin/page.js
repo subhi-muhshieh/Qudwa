@@ -8,13 +8,14 @@ import {
   FaPlus, FaTrash, FaEdit, FaCalendarAlt, FaImage, FaTimes, FaStar, 
   FaHistory, FaSpinner, FaExclamationTriangle, FaUsers, FaLink, FaSync, 
   FaImages, FaUserFriends, FaChild, FaPhone, FaEnvelope, FaChevronDown, 
-  FaChevronUp, FaSearch, FaUserTag, FaClipboardList, FaCrown, FaUser,
+  FaChevronUp,FaComments, FaSearch, FaUserTag, FaClipboardList, FaCrown, FaUser,
   FaSortNumericDown, FaClipboardCheck, FaBell
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { updateActivityStatuses } from '../utils/activityHelpers'; 
 import ActivityPhotoManager from '../components/ActivityPhotoManager';
 import AttendanceManager from '../components/AttendanceManager';
+import Link from 'next/link';
 
 export default function AdminDashboard() {
   // --- ACTIVITIES STATE ---
@@ -532,6 +533,12 @@ export default function AdminDashboard() {
           <button onClick={() => setActiveTab('activities')} className={`btn rounded-2xl gap-2 ${activeTab === 'activities' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
             <FaStar /> النشاطات
           </button>
+          <Link
+  href="/admin/messages"
+  className="btn rounded-2xl gap-2 btn-ghost bg-base-100 hover:bg-primary hover:text-white transition-colors"
+>
+  <FaComments /> الرسائل
+</Link>
           <button onClick={() => setActiveTab('users')} className={`btn rounded-2xl gap-2 ${activeTab === 'users' ? 'btn-primary text-white shadow-lg' : 'btn-ghost bg-base-100'}`}>
             <FaUsers /> المستخدمون
             {users.length > 0 && <span className="badge badge-sm">{users.length}</span>}
