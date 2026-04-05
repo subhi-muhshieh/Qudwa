@@ -177,12 +177,8 @@ export async function compressImage(file, maxSizeInMB = 2) {
  * @param {number} maxSizeInMB - Maximum file size in MB (default: 10)
  * @returns {Promise<File>} - The compressed file
  */
-export async function compressImageForGallery(file, maxSizeInMB = 10) {
+export async function compressImageForGallery(file, maxSizeInMB = 2) {
   const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
-
-  if (file.size <= maxSizeInBytes) {
-    return file;
-  }
 
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -194,7 +190,8 @@ export async function compressImageForGallery(file, maxSizeInMB = 10) {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
 
-        const maxDimension = 2048;
+        // Reduce max dimension from 2048 to 1400
+        const maxDimension = 1400;
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
             height = (height / width) * maxDimension;
@@ -205,27 +202,24 @@ export async function compressImageForGallery(file, maxSizeInMB = 10) {
           }
         }
 
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
 
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
+        // Start at 0.75 quality — good enough for gallery, much faster
         const tryCompress = (quality) => {
           canvas.toBlob(
             (blob) => {
-              if (blob.size <= maxSizeInBytes || quality <= 0.1) {
-                const compressedFile = new File(
-                  [blob],
-                  file.name.replace(/\.[^/.]+$/, '.jpg'),
-                  {
-                    type: 'image/jpeg',
-                    lastModified: Date.now(),
-                  }
-                );
-                resolve(compressedFile);
+              if (blob.size <= maxSizeInBytes || quality <= 0.3) {
+                resolve(new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                }));
               } else {
-                tryCompress(quality - 0.1);
+                // Drop by 0.15 instead of 0.1 — fewer iterations
+                tryCompress(Math.max(quality - 0.15, 0.3));
               }
             },
             'image/jpeg',
@@ -233,7 +227,7 @@ export async function compressImageForGallery(file, maxSizeInMB = 10) {
           );
         };
 
-        tryCompress(0.9);
+        tryCompress(0.75);
       };
     };
   });

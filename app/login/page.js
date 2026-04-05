@@ -653,9 +653,11 @@ export default function LoginPage() {
             donor_party: userType === 'donor' ? donorParty : null,
           };
 
+         // Use .update() instead of .upsert(), and target the specific ID
           const { error: profileError } = await supabase
             .from('profiles')
-            .upsert(profileData);
+            .update(profileData)
+            .eq('id', profileData.id); 
 
           if (profileError) {
             console.error('Profile save error:', profileError);

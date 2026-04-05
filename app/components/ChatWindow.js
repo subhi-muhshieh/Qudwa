@@ -40,56 +40,46 @@ export default function ChatWindow({ onClose, onMessageRead }) {
 
     let isMounted = true;
 
-    const initConversation = async () => {
+   const initConversation = async () => {
       try {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
         if (!session) throw new Error('لا توجد جلسة مستخدم نشطة');
 
         let conversationData = null;
 
-        const { data: conversations, error: fetchError } = await supabase
+        // 1. Use maybeSingle() to cleanly fetch one row (returns null instead of error if empty)
+        const { data: existingConvo, error: fetchError } = await supabase
           .from('conversations')
           .select('*')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: true });
+          .maybeSingle();
 
-        if (fetchError) throw fetchError;
+        if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
 
-        if (conversations && conversations.length > 0) {
-          conversationData = conversations[0];
-        }
+        conversationData = existingConvo;
 
+        // 2. If it truly doesn't exist, insert it
         if (!conversationData) {
           const { data: createdConv, error: createError } = await supabase
             .from('conversations')
-            .insert([
-              {
-                user_id: user.id,
-                is_active: true,
-                last_message_at: new Date().toISOString(),
-              },
-            ])
+            .insert([{ 
+              user_id: user.id, 
+              is_active: true,
+              last_message_at: new Date().toISOString()
+            }])
             .select()
-            .single();
+            .maybeSingle();
 
           if (createError) {
-            if (createError.code === '23505') {
-              const { data: retryConversations, error: retryError } = await supabase
+            // Catch the React Strict Mode race condition gracefully
+            if (createError.code === '23505' || createError.code === '409') {
+              const { data: retryData } = await supabase
                 .from('conversations')
                 .select('*')
                 .eq('user_id', user.id)
-                .order('created_at', { ascending: true });
-
-              if (retryError || !retryConversations?.length) {
-                throw retryError || new Error('تعذر جلب المحادثة بعد إنشائها');
-              }
-
-              conversationData = retryConversations[0];
+                .single();
+              conversationData = retryData;
             } else {
               throw createError;
             }
@@ -99,9 +89,9 @@ export default function ChatWindow({ onClose, onMessageRead }) {
         }
 
         if (!isMounted) return;
-
         setConversation(conversationData);
 
+        // 3. Fetch the messages for this conversation
         const { data: msgs, error: messagesError } = await supabase
           .from('messages')
           .select('*')
@@ -110,12 +100,12 @@ export default function ChatWindow({ onClose, onMessageRead }) {
           .order('created_at', { ascending: true });
 
         if (messagesError) throw messagesError;
-
         if (!isMounted) return;
 
         setMessages(msgs || []);
         setLoading(false);
 
+        // 4. Mark unread messages as read
         const unreadMessages = (msgs || []).filter(
           (m) => m.sender_id !== user.id && !m.is_read
         );

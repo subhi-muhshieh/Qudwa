@@ -59,125 +59,105 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
   }, [activityId]);
 
   const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
 
-    setUploading(true);
-    setUploadProgress({ current: 0, total: files.length, compressing: false });
-    
-    const toastId = toast.loading(`جاري تجهيز ${files.length} صورة...`);
+  setUploading(true);
+  setUploadProgress({ current: 0, total: files.length, compressing: true });
+  const toastId = toast.loading(`جاري تجهيز ${files.length} صورة...`);
 
-    try {
-      const uploadedPhotos = [];
-      let successCount = 0;
-      let errorCount = 0;
+  try {
+    // Step 1 — compress all files first
+    const compressedFiles = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress({ current: i + 1, total: files.length, compressing: true });
 
-      for (let i = 0; i < files.length; i++) {
-        let file = files[i];
-        
-        setUploadProgress({ current: i + 1, total: files.length, compressing: true });
-        toast.loading(`جاري معالجة الصورة ${i + 1} من ${files.length}...`, { id: toastId });
-
-        if (!file.type.startsWith('image/')) {
-          toast.error(`${file.name} ليس ملف صورة`);
-          errorCount++;
-          continue;
-        }
-
-        const isHeic = file.name.toLowerCase().endsWith('.heic') || 
-                       file.name.toLowerCase().endsWith('.heif');
-        if (isHeic) {
-          toast.error(`${file.name}: صور HEIC غير مدعومة`);
-          errorCount++;
-          continue;
-        }
-
-        try {
-          if (file.size > 10 * 1024 * 1024) {
-            const originalSize = file.size / 1024 / 1024;
-            toast.loading(`جاري ضغط ${file.name} (${originalSize.toFixed(1)}MB)...`, { id: toastId });
-            
-            try {
-              file = await compressImageForGallery(file, 10);
-            } catch (compressError) {
-              console.error('Compression error:', compressError);
-              toast.error(`فشل ضغط ${file.name}`);
-              errorCount++;
-              continue;
-            }
-          }
-
-          setUploadProgress({ current: i + 1, total: files.length, compressing: false });
-          toast.loading(`جاري رفع الصورة ${i + 1} من ${files.length}...`, { id: toastId });
-
-          const fileExt = file.name.split('.').pop() || 'jpg';
-          const fileName = `${activityId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('activity-images')
-            .upload(fileName, file, {
-              cacheControl: '3600',
-              upsert: false
-            });
-
-          if (uploadError) {
-            console.error('Upload error:', uploadError);
-            toast.error(`فشل رفع ${file.name}`);
-            errorCount++;
-            continue;
-          }
-
-          const { data: urlData } = supabase.storage
-            .from('activity-images')
-            .getPublicUrl(fileName);
-
-          const { data: photoData, error: insertError } = await supabase
-            .from('activity_photos')
-            .insert({
-              activity_id: activityId,
-              image_url: urlData.publicUrl,
-              display_order: photos.length + uploadedPhotos.length
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('Database insert error:', insertError);
-            toast.error(`فشل حفظ بيانات ${file.name}`);
-            errorCount++;
-            continue;
-          }
-
-          if (photoData) {
-            uploadedPhotos.push(photoData);
-            successCount++;
-          }
-        } catch (err) {
-          console.error('Error processing file:', err);
-          errorCount++;
-        }
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} ليس ملف صورة`);
+        continue;
       }
 
-      if (uploadedPhotos.length > 0) {
-        setPhotos(prevPhotos => [...prevPhotos, ...uploadedPhotos]);
-        toast.success(`تم رفع ${successCount} صورة بنجاح! 🎉`, { id: toastId });
-      } else {
-        toast.error(`فشل رفع جميع الصور`, { id: toastId });
+      const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+      if (isHeic) {
+        toast.error(`${file.name}: صور HEIC غير مدعومة`);
+        continue;
       }
 
-      if (errorCount > 0 && successCount > 0) {
-        toast.error(`فشل رفع ${errorCount} ملف`);
+      try {
+        const compressed = await compressImageForGallery(file, 2); // 2MB target
+        compressedFiles.push(compressed);
+      } catch (err) {
+        console.error('Compression error:', err);
+        toast.error(`فشل ضغط ${file.name}`);
       }
-
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('حدث خطأ أثناء الرفع', { id: toastId });
-    } finally {
-      setUploading(false);
-      setUploadProgress({ current: 0, total: 0, compressing: false });
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
+
+    if (compressedFiles.length === 0) {
+      toast.error('فشل تجهيز جميع الصور', { id: toastId });
+      return;
+    }
+
+    // Step 2 — upload all in parallel
+    toast.loading(`جاري رفع ${compressedFiles.length} صورة...`, { id: toastId });
+    setUploadProgress({ current: 0, total: compressedFiles.length, compressing: false });
+
+    const results = await Promise.allSettled(
+      compressedFiles.map(async (file, i) => {
+        const fileExt = 'jpg';
+        const fileName = `${activityId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('activity-images')
+          .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage.from('activity-images').getPublicUrl(fileName);
+
+        const { data: photoData, error: insertError } = await supabase
+          .from('activity_photos')
+          .insert({
+            activity_id: activityId,
+            image_url: urlData.publicUrl,
+            display_order: photos.length + i,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
+        return photoData;
+      })
+    );
+
+    const uploaded = results
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value);
+
+    const errorCount = results.filter(r => r.status === 'rejected').length;
+
+    if (uploaded.length > 0) {
+      setPhotos(prev => [...prev, ...uploaded]);
+      toast.success(`تم رفع ${uploaded.length} صورة بنجاح! 🎉`, { id: toastId });
+    } else {
+      toast.error('فشل رفع جميع الصور', { id: toastId });
+    }
+
+    if (errorCount > 0 && uploaded.length > 0) {
+      toast.error(`فشل رفع ${errorCount} صورة`);
+    }
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    toast.error('حدث خطأ أثناء الرفع', { id: toastId });
+  } finally {
+    setUploading(false);
+    setUploadProgress({ current: 0, total: 0, compressing: false });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+};
 
   const handleDeletePhoto = async (photoId, imageUrl) => {
     const toastId = toast.loading('جاري حذف الصورة...');
