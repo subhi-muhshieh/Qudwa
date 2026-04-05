@@ -97,18 +97,18 @@ const ChatIcon = memo(function ChatIcon() {
     <>
       <motion.button
         onClick={toggleChat}
-        className="fixed bottom-6 left-6 z-50 btn btn-circle btn-lg btn-primary shadow-2xl text-white hover:scale-110 transition-transform"
+        className="fixed bottom-5 sm:bottom-6 left-3 sm:left-6 z-50 btn btn-circle btn-lg btn-primary shadow-2xl text-white hover:scale-110 transition-transform"
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         aria-label="فتح الدردشة"
       >
         {isOpen ? (
-          <FaTimes className="text-2xl" />
+          <FaTimes className="text-xl sm:text-2xl" />
         ) : (
           <>
-            <FaComments className="text-2xl" />
+            <FaComments className="text-xl sm:text-2xl" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 badge badge-error badge-sm text-white font-bold">
+              <span className="absolute -top-1 -right-1 badge badge-error badge-sm text-white font-bold text-[10px] sm:text-xs">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}

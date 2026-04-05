@@ -26,6 +26,7 @@ export default function AdminMessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const messagesContainerRef = useRef(null);
+  const inputRef = useRef(null);
   const [supabase] = useState(() => createClient());
   const router = useRouter();
   const { user, profile } = useProfile();
@@ -265,7 +266,10 @@ export default function AdminMessagesPage() {
         if (error) throw error;
 
         setNewMessage('');
-        setTimeout(() => scrollToBottom(true), 30);
+        setTimeout(() => {
+          scrollToBottom(true);
+          inputRef.current?.focus();
+        }, 50);
       } catch (error) {
         console.error('Error sending admin message:', error);
         toast.error('حدث خطأ في إرسال الرسالة');
@@ -297,32 +301,32 @@ export default function AdminMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen pt-32 pb-20 px-4 md:px-8" dir="rtl">
+    <div className="min-h-screen pt-20 sm:pt-32 pb-20 px-2 sm:px-4 md:px-8" dir="rtl">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-primary mb-8 flex items-center gap-3">
-          <FaComments /> الرسائل
+        <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-6 sm:mb-8 flex items-center gap-2 sm:gap-3">
+          <FaComments className="text-2xl sm:text-3xl" /> الرسائل
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden">
-            <div className="p-4 border-b border-base-200">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-1 bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden flex flex-col max-h-[600px]">
+            <div className="p-3 sm:p-4 border-b border-base-200 shrink-0">
               <div className="relative">
                 <FaSearch className="absolute right-3 top-3 text-base-content/40" />
                 <input
                   type="text"
                   placeholder="بحث..."
-                  className="input input-bordered w-full pr-10"
+                  className="input input-bordered w-full pr-10 text-sm h-10 sm:h-12"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="max-h-[600px] overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
               {filteredConversations.length === 0 ? (
-                <div className="text-center py-8 text-base-content/50">
-                  <FaComments className="text-4xl mx-auto mb-3 opacity-20" />
-                  <p className="text-sm">
+                <div className="text-center py-8 px-4 text-base-content/50">
+                  <FaComments className="text-3xl sm:text-4xl mx-auto mb-3 opacity-20" />
+                  <p className="text-xs sm:text-sm">
                     {conversations.length === 0 ? 'لا توجد محادثات' : 'لا توجد نتائج'}
                   </p>
                 </div>
@@ -343,11 +347,11 @@ export default function AdminMessagesPage() {
 
           <div className="lg:col-span-2">
             {selectedConversation ? (
-              <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 h-[600px] flex flex-col overflow-hidden">
-                <div className="p-4 border-b border-base-200 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-3">
-                    <div className="avatar placeholder">
-                      <div className="bg-primary/10 text-primary rounded-full w-12">
+              <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 max-h-[600px] h-full flex flex-col overflow-hidden">
+                <div className="p-3 sm:p-4 border-b border-base-200 flex items-center justify-between shrink-0 gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div className="avatar placeholder shrink-0">
+                      <div className="bg-primary/10 text-primary rounded-full w-10 sm:w-12 text-sm sm:text-base">
                         {selectedConversation.profiles?.avatar_url ? (
                           <img src={selectedConversation.profiles.avatar_url} alt="" />
                         ) : (
@@ -355,12 +359,12 @@ export default function AdminMessagesPage() {
                         )}
                       </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-sm sm:text-base truncate">
                         {selectedConversation.profiles?.parent_name || 'مستخدم'}
                       </h3>
                       {selectedConversation.profiles?.parent_phone && (
-                        <p className="text-xs text-base-content/50">
+                        <p className="text-[10px] sm:text-xs text-base-content/50 truncate">
                           {selectedConversation.profiles.parent_phone}
                         </p>
                       )}
@@ -371,18 +375,18 @@ export default function AdminMessagesPage() {
                     onClick={() => setSelectedConversation(null)}
                     className="btn btn-ghost btn-sm btn-circle lg:hidden"
                   >
-                    <FaTimes />
+                    <FaTimes className="text-sm" />
                   </button>
                 </div>
 
                 <div
                   ref={messagesContainerRef}
-                  className="flex-1 p-4 overflow-y-auto bg-base-200 space-y-3 overscroll-contain"
+                  className="flex-1 p-3 sm:p-4 overflow-y-auto bg-base-200 space-y-3 overscroll-contain min-h-[200px]"
                 >
                   {messages.length === 0 ? (
                     <div className="text-center py-10 text-base-content/50">
-                      <FaComments className="text-4xl mx-auto mb-3 opacity-20" />
-                      <p className="text-sm">لا توجد رسائل بعد</p>
+                      <FaComments className="text-3xl sm:text-4xl mx-auto mb-3 opacity-20" />
+                      <p className="text-xs sm:text-sm">لا توجد رسائل بعد</p>
                     </div>
                   ) : (
                     messages.map((msg) => (
@@ -395,26 +399,29 @@ export default function AdminMessagesPage() {
                   )}
                 </div>
 
-                <form onSubmit={handleSendMessage} className="p-4 border-t border-base-200 shrink-0">
+                <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-base-200 shrink-0 bg-base-100">
                   <div className="flex gap-2">
                     <input
+                      ref={inputRef}
                       type="text"
                       placeholder="اكتب ردك..."
-                      className="input input-bordered flex-1"
+                      className="input input-bordered flex-1 text-sm h-10 sm:h-12"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       disabled={sending}
                     />
                     <button
                       type="submit"
-                      className="btn btn-primary"
+                      className="btn btn-primary text-sm sm:text-base h-10 sm:h-12"
                       disabled={!newMessage.trim() || sending}
                     >
                       {sending ? (
                         <span className="loading loading-spinner loading-sm" />
                       ) : (
                         <>
-                          <FaPaperPlane /> إرسال
+                          <FaPaperPlane className="hidden sm:inline" /> 
+                          <span className="hidden sm:inline">إرسال</span>
+                          <FaPaperPlane className="sm:hidden" />
                         </>
                       )}
                     </button>
@@ -422,10 +429,10 @@ export default function AdminMessagesPage() {
                 </form>
               </div>
             ) : (
-              <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 h-[600px] flex items-center justify-center">
+              <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 max-h-[600px] h-full hidden lg:flex items-center justify-center">
                 <div className="text-center text-base-content/50">
-                  <FaComments className="text-5xl mx-auto mb-3 opacity-20" />
-                  <p>اختر محادثة للبدء</p>
+                  <FaComments className="text-4xl sm:text-5xl mx-auto mb-3 opacity-20" />
+                  <p className="text-xs sm:text-base">اختر محادثة للبدء</p>
                 </div>
               </div>
             )}

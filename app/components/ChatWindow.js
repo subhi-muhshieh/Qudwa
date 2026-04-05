@@ -235,8 +235,8 @@ export default function ChatWindow({ onClose, onMessageRead }) {
 
         setTimeout(() => {
           scrollMessagesToBottom(true);
-          inputRef.current?.focus({ preventScroll: true });
-        }, 30);
+          inputRef.current?.focus();
+        }, 50);
       } catch (error) {
         console.error('Error sending message:', error);
         toast.error('حدث خطأ في إرسال الرسالة');
@@ -253,11 +253,11 @@ export default function ChatWindow({ onClose, onMessageRead }) {
         initial={{ opacity: 0, y: 100, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 100, scale: 0.9 }}
-        className="fixed bottom-24 left-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-[500px] bg-base-100 rounded-2xl shadow-2xl border border-base-300 flex items-center justify-center"
+        className="fixed bottom-20 sm:bottom-24 left-2 sm:left-6 right-2 sm:right-auto z-50 w-full sm:w-96 max-w-[calc(100vw-1rem)] sm:max-w-none max-h-[calc(100vh-120px)] sm:max-h-[500px] bg-base-100 rounded-2xl shadow-2xl border border-base-300 flex items-center justify-center"
       >
         <div className="text-center">
           <span className="loading loading-spinner loading-lg text-primary" />
-          <p className="mt-4 text-base-content/50">جارٍ تحميل المحادثة...</p>
+          <p className="mt-4 text-base-content/50 text-sm">جارٍ تحميل المحادثة...</p>
         </div>
       </motion.div>
     );
@@ -268,35 +268,33 @@ export default function ChatWindow({ onClose, onMessageRead }) {
       initial={{ opacity: 0, y: 100, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 100, scale: 0.9 }}
-      className="fixed bottom-24 left-6 z-50 w-96 max-w-[calc(100vw-2rem)] h-[500px] bg-base-100 rounded-2xl shadow-2xl border border-base-300 flex flex-col overflow-hidden"
+      className="fixed bottom-20 sm:bottom-24 left-2 sm:left-6 right-2 sm:right-auto z-50 w-full sm:w-96 max-w-[calc(100vw-1rem)] sm:max-w-none max-h-[calc(100vh-120px)] sm:max-h-[500px] bg-base-100 rounded-2xl shadow-2xl border border-base-300 flex flex-col overflow-hidden"
       dir="rtl"
     >
-      <div className="bg-primary text-white p-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <FaComments className="text-xl" />
-            <FaCircle className="absolute -bottom-1 -right-1 text-success text-[10px]" />
+      <div className="bg-primary text-white p-3 sm:p-4 flex items-center justify-between shrink-0 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="relative shrink-0">
+            <FaComments className="text-lg sm:text-xl" />
+            <FaCircle className="absolute -bottom-1 -right-1 text-success text-[8px] sm:text-[10px]" />
           </div>
-          <div>
-            <h3 className="font-bold">راسل الإدارة</h3>
-            <p className="text-xs opacity-80">
-نحن هنا للمساعدة
-            </p>
+          <div className="min-w-0">
+            <h3 className="font-bold text-sm sm:text-base truncate">راسل الإدارة</h3>
+            <p className="text-[10px] sm:text-xs opacity-80 truncate">نحن هنا للمساعدة</p>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20"
+          className="btn btn-ghost btn-sm btn-circle text-white hover:bg-white/20 shrink-0"
           aria-label="إغلاق"
         >
-          <FaTimes />
+          <FaTimes className="text-sm sm:text-base" />
         </button>
       </div>
 
       <div
         ref={messagesContainerRef}
-        className="flex-1 p-4 overflow-y-auto bg-base-200 space-y-3 overscroll-contain"
+        className="flex-1 p-3 sm:p-4 overflow-y-auto bg-base-200 space-y-3 overscroll-contain min-h-[200px]"
       >
         {messages.length === 0 ? (
           <div className="text-center py-10">
@@ -316,13 +314,13 @@ export default function ChatWindow({ onClose, onMessageRead }) {
       </div>
 
 
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-base-300 bg-base-100 shrink-0">
+      <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-base-300 bg-base-100 shrink-0">
         <div className="flex gap-2">
           <input
             ref={inputRef}
             type="text"
             placeholder="اكتب رسالتك..."
-            className="input input-bordered flex-1"
+            className="input input-bordered flex-1 text-sm sm:text-base h-10 sm:h-12"
             value={newMessage}
             onChange={(e) => {
               setNewMessage(e.target.value);
@@ -331,7 +329,7 @@ export default function ChatWindow({ onClose, onMessageRead }) {
           />
           <button
             type="submit"
-            className="btn btn-primary btn-square"
+            className="btn btn-primary btn-square h-10 sm:h-12 w-10 sm:w-12 text-sm sm:text-base"
             disabled={!newMessage.trim() || sending}
           >
             {sending ? <span className="loading loading-spinner loading-sm" /> : <FaPaperPlane />}

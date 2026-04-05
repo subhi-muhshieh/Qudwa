@@ -175,7 +175,7 @@ export default function NotificationBell() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 mt-2 w-80 md:w-96 bg-base-100 rounded-2xl shadow-2xl border border-base-200 overflow-hidden z-50"
+            className="fixed top-20 inset-x-0 mx-auto md:absolute md:inset-auto md:left-0 md:right-auto md:top-full md:mt-2 w-[calc(100vw-1rem)] md:w-80 lg:w-96 bg-base-100 rounded-2xl shadow-2xl border border-base-200 overflow-hidden z-50"
             role="menu"
             aria-label="قائمة الإشعارات"
           >
