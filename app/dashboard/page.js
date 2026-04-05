@@ -18,114 +18,14 @@ import { getLevelDef } from '../utils/constants';
 import ChildProfileModal from '../components/ChildProfileModal';
 
 /* ========================================== */
-/*  LIKE BUTTON - Memoized                    */
-/* ========================================== */
-const LikeButton = memo(function LikeButton({ activityId, userId }) {
-  const [isLiked, setIsLiked] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [animating, setAnimating] = useState(false);
-  const [supabase] = useState(() => createClient());
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    const checkLike = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('activity_id', activityId)
-          .maybeSingle();
-        
-        if (error) throw error;
-        
-        if (isMounted) {
-          if (data) setIsLiked(true);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error checking like:', error);
-        if (isMounted) setLoading(false);
-      }
-    };
-    
-    checkLike();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [activityId, userId, supabase]);
-
-  const toggleLike = useCallback(async () => {
-    if (loading) return;
-    
-    const prevState = isLiked;
-    setIsLiked(!prevState);
-    setAnimating(true);
-    
-    try {
-      if (!prevState) {
-        const { error } = await supabase
-          .from('likes')
-          .insert([{ user_id: userId, activity_id: activityId }]);
-        
-        if (error && error.code !== '23505') {
-          setIsLiked(prevState);
-          toast.error("حدث خطأ في الإعجاب");
-        }
-      } else {
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('user_id', userId)
-          .eq('activity_id', activityId);
-        
-        if (error) {
-          setIsLiked(prevState);
-          toast.error("حدث خطأ في إلغاء الإعجاب");
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling like:', error);
-      setIsLiked(prevState);
-      toast.error("حدث خطأ");
-    } finally {
-      setTimeout(() => setAnimating(false), 300);
-    }
-  }, [loading, isLiked, supabase, userId, activityId]);
-
-  return (
-    <motion.button 
-      onClick={toggleLike} 
-      whileTap={{ scale: 0.85 }}
-      disabled={loading}
-      className={`btn rounded-xl px-5 transition-all duration-300 gap-2 border-2 ${
-        isLiked 
-          ? 'btn-error bg-error/10 text-error border-error/20' 
-          : 'btn-outline border-base-300 hover:border-error/30 hover:text-error'
-      }`}
-    >
-      <motion.div 
-        animate={animating ? { scale: [1, 1.5, 1], rotate: [0, 15, -15, 0] } : {}} 
-        transition={{ duration: 0.4 }}
-      >
-        {isLiked ? <FaHeart className="text-lg" /> : <FaRegHeart className="text-lg" />}
-      </motion.div>
-      <span className="font-bold text-sm">أعجبني</span>
-    </motion.button>
-  );
-});
-
-/* ========================================== */
-/*  HELPERS                                   */
+/* HELPERS                                    */
 /* ========================================== */
 const getGreeting = () => {
   const h = new Date().getHours();
-  if (h >= 5 && h < 12) return { text: 'صباح الخير', emoji: '☀️' };
-  if (h >= 12 && h < 17) return { text: 'مرحباً بعودتك', emoji: '👋' };
-  if (h >= 17 && h < 21) return { text: 'مساء الخير', emoji: '🌅' };
-  return { text: 'مساء النور', emoji: '🌙' };
+  if (h >= 5 && h < 12) return { text: 'صباح الخير'  };
+  if (h >= 12 && h < 17) return { text: 'مرحباً بعودتك'  };
+  if (h >= 17 && h < 21) return { text: 'مساء الخير' };
+  return { text: 'مساء النور' };
 };
 
 const arabicDate = () =>
@@ -137,70 +37,116 @@ const arabicDate = () =>
   }).format(new Date());
 
 /* ========================================== */
-/*  ANIMATION VARIANTS                        */
+/* PREMIUM LIKE BUTTON                       */
 /* ========================================== */
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1, 
-    transition: { 
-      staggerChildren: 0.07, 
-      delayChildren: 0.12 
-    } 
-  },
-};
+const LikeButton = memo(function LikeButton({ activityId, userId }) {
+  const [isLiked, setIsLiked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [animating, setAnimating] = useState(false);
+  const [supabase] = useState(() => createClient());
 
-const staggerItem = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
-      duration: 0.5, 
-      ease: [0.25, 0.46, 0.45, 0.94] 
-    } 
-  },
-};
+  useEffect(() => {
+    let isMounted = true;
+    const checkLike = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('activity_id', activityId)
+          .maybeSingle();
+        
+        if (error) throw error;
+        if (isMounted && data) setIsLiked(true);
+      } catch (error) {
+        console.error('Error checking like:', error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    checkLike();
+    return () => { isMounted = false; };
+  }, [activityId, userId, supabase]);
 
-const fadeInUp = {
-  hidden: { opacity: 0, y: 50 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { 
-      duration: 0.6, 
-      ease: 'easeOut' 
-    } 
-  },
-};
+  const toggleLike = useCallback(async () => {
+    if (loading) return;
+    const prevState = isLiked;
+    setIsLiked(!prevState);
+    setAnimating(true);
+    
+    try {
+      if (!prevState) {
+        const { error } = await supabase
+          .from('likes')
+          .insert([{ user_id: userId, activity_id: activityId }]);
+        if (error && error.code !== '23505') throw error;
+      } else {
+        const { error } = await supabase
+          .from('likes')
+          .delete()
+          .eq('user_id', userId)
+          .eq('activity_id', activityId);
+        if (error) throw error;
+      }
+    } catch (error) {
+      setIsLiked(prevState);
+      toast.error("حدث خطأ");
+    } finally {
+      setTimeout(() => setAnimating(false), 400);
+    }
+  }, [loading, isLiked, supabase, userId, activityId]);
+
+  return (
+    <motion.button 
+      onClick={toggleLike} 
+      whileTap={{ scale: 0.9 }}
+      disabled={loading}
+      className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl transition-all duration-500 border ${
+        isLiked 
+          ? 'bg-red-50 border-red-100 text-red-500 shadow-sm' 
+          : 'bg-white/50 border-slate-200/60 text-slate-400 hover:border-red-200 hover:text-red-400'
+      }`}
+    >
+      <motion.div 
+        animate={animating ? { scale: [1, 1.4, 1], rotate: [0, 15, -15, 0] } : {}} 
+        transition={{ duration: 0.45, ease: "backOut" }}
+      >
+        {isLiked ? <FaHeart className="text-lg" /> : <FaRegHeart className="text-lg" />}
+      </motion.div>
+      <span className="font-bold text-xs tracking-wide">أعجبني</span>
+    </motion.button>
+  );
+});
 
 /* ========================================== */
-/*  SECTION HEADER - Memoized                 */
+/* REFINED SECTION HEADER                    */
 /* ========================================== */
 const SectionHeader = memo(function SectionHeader({ 
-  color = 'primary', 
   title, 
   count, 
   actionLabel, 
   actionHref 
 }) {
   return (
-    <div className="flex items-center justify-between mb-5 md:mb-6 px-1">
-      <div className="flex items-center gap-3">
-        <div className={`w-1.5 h-8 bg-${color} rounded-full`} />
-        <h3 className="text-lg md:text-2xl font-bold text-base-content">{title}</h3>
-        {count > 0 && (
-          <span className={`badge badge-sm badge-${color} badge-outline font-bold`}>
-            {count}
-          </span>
-        )}
+    <div className="flex items-end justify-between mb-8 px-1">
+      <div className="space-y-1">
+        <div className="flex items-center gap-3">
+          <h3 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">{title}</h3>
+          {count > 0 && (
+            <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-lg border border-primary/10">
+              {count}
+            </span>
+          )}
+        </div>
+        <div className="w-10 h-1 bg-gradient-to-r from-primary to-secondary rounded-full" />
       </div>
       {actionLabel && actionHref && (
         <Link 
           href={actionHref} 
-          className={`btn btn-ghost btn-sm text-${color} gap-1 text-xs md:text-sm`}
+          className="group flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-primary transition-colors"
         >
-          {actionLabel} <FaArrowLeft className="text-[10px]" />
+          {actionLabel} 
+          <FaArrowLeft className="text-[10px] transition-transform group-hover:-translate-x-1" />
         </Link>
       )}
     </div>
@@ -208,76 +154,58 @@ const SectionHeader = memo(function SectionHeader({
 });
 
 /* ========================================== */
-/*  SMALL ACTIVITY CARD - Memoized            */
+/* GLASSMORPHIC ACTIVITY CARD                */
 /* ========================================== */
 const SmallActivityCard = memo(function SmallActivityCard({ 
   activity, 
   onClick, 
   isUpcoming = false 
 }) {
-  const handleClick = useCallback(() => {
-    onClick(activity);
-  }, [activity, onClick]);
-
   return (
     <motion.div
-      className={`bg-base-100 rounded-2xl shadow-sm border overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group active:scale-[0.98] ${
-        isUpcoming ? 'border-primary/20 ring-1 ring-primary/5' : 'border-base-200'
-      }`}
-      onClick={handleClick}
-      whileHover={{ y: -3 }}
-      variants={staggerItem}
+      className="group relative bg-white/70 backdrop-blur-md border border-white/50 rounded-[2rem] p-3 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-500 cursor-pointer overflow-hidden"
+      onClick={() => onClick(activity)}
+      whileHover={{ y: -5 }}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
     >
-      <div className="flex flex-row h-32 sm:h-36 md:h-40">
-        {activity.image_url ? (
-          <div className="w-28 sm:w-36 md:w-44 shrink-0 overflow-hidden relative">
-            <img 
-              src={activity.image_url} 
-              alt={activity.title} 
-              loading="lazy"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-            />
-            {isUpcoming && (
-              <div className="absolute top-2 right-2">
-                <span className="flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className={`w-28 sm:w-36 md:w-44 shrink-0 flex items-center justify-center ${
-            isUpcoming ? 'bg-primary/5' : 'bg-base-200'
-          }`}>
-            {isUpcoming ? (
-              <FaCalendarAlt className="text-3xl text-primary/30" />
-            ) : (
-              <FaStar className="text-3xl text-base-300" />
-            )}
-          </div>
-        )}
-        <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center min-w-0">
-          {isUpcoming && (
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-              <span className="text-[10px] text-primary font-bold tracking-wide">قادم</span>
+      <div className="flex gap-4 h-32 md:h-36">
+        <div className="w-28 sm:w-36 md:w-40 shrink-0 rounded-[1.5rem] overflow-hidden relative">
+          {activity.image_url ? (
+            <>
+              <img 
+                src={activity.image_url} 
+                alt={activity.title} 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            </>
+          ) : (
+            <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+              <FaStar className="text-2xl text-slate-300" />
             </div>
           )}
-          <h4 className="font-bold text-base-content text-sm sm:text-base md:text-lg mb-1 line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+        </div>
+        
+        <div className="flex-1 py-2 flex flex-col justify-center min-w-0 pr-1">
+          {isUpcoming && (
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+              <span className="text-[10px] text-primary font-black uppercase tracking-widest">قادم قريباً</span>
+            </div>
+          )}
+          <h4 className="font-bold text-slate-800 text-base md:text-lg mb-1 line-clamp-1 group-hover:text-primary transition-colors">
             {activity.title}
           </h4>
-          <p className="text-base-content/50 text-[11px] sm:text-xs md:text-sm line-clamp-2 mb-2 leading-relaxed">
+          <p className="text-slate-500 text-xs md:text-sm line-clamp-2 leading-relaxed mb-3">
             {activity.short_description}
           </p>
           {activity.activity_date && (
-            <span className={`text-[10px] sm:text-xs px-2 py-0.5 rounded-full w-fit ${
-              isUpcoming 
-                ? 'text-primary bg-primary/10 font-medium' 
-                : 'text-base-content/40 bg-base-200/60'
-            }`}>
+            <div className="mt-auto flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-slate-400">
+              <FaCalendarAlt className="text-primary/60" />
               {activity.activity_date}
-            </span>
+            </div>
           )}
         </div>
       </div>
@@ -286,44 +214,13 @@ const SmallActivityCard = memo(function SmallActivityCard({
 });
 
 /* ========================================== */
-/*  BOTTOM SHEET MODAL - Memoized             */
+/* PREMIUM BOTTOM SHEET                      */
 /* ========================================== */
-const DISMISS_THRESHOLD = 120;
-const VELOCITY_THRESHOLD = 500;
-
 const BottomSheetModal = memo(function BottomSheetModal({ children, onClose }) {
   const dragControls = useDragControls();
-  const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useMotionValue(0);
-  const backdropDragOpacity = useTransform(dragOffset, [0, 400], [0.6, 0]);
-
-  const isMobile = useMemo(() => 
-    typeof window !== 'undefined' && window.innerWidth < 640
-  , []);
-
-  const handleDragEnd = useCallback((_, info) => {
-    if (
-      info.offset.y > DISMISS_THRESHOLD ||
-      info.velocity.y > VELOCITY_THRESHOLD
-    ) {
-      onClose();
-    } else {
-      dragOffset.set(0);
-      setIsDragging(false);
-    }
-  }, [onClose, dragOffset]);
-
-  const handleDragStart = useCallback(() => {
-    setIsDragging(true);
-  }, []);
-
-  const handleDrag = useCallback((_, info) => {
-    dragOffset.set(Math.max(0, info.offset.y));
-  }, [dragOffset]);
-
-  const handlePointerDown = useCallback((e) => {
-    dragControls.start(e);
-  }, [dragControls]);
+  const backdropOpacity = useTransform(dragOffset, [0, 300], [0.5, 0]);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
   return (
     <motion.div
@@ -331,62 +228,37 @@ const BottomSheetModal = memo(function BottomSheetModal({ children, onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25 }}
-      role="dialog"
-      aria-modal="true"
     >
-      {/* Backdrop */}
       <motion.div
-        className="absolute inset-0 bg-black backdrop-blur-md"
-        style={isMobile && isDragging ? { opacity: backdropDragOpacity } : undefined}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.6 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.25 }}
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        style={{ opacity: backdropOpacity }}
         onClick={onClose}
       />
-
-      {/* Sheet */}
       <motion.div
-        className="bg-base-100 w-full sm:max-w-3xl rounded-t-[2rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10 max-h-[92vh] sm:max-h-[90vh] flex flex-col"
-        initial={isMobile ? { y: '100%' } : { scale: 0.95, y: 30, opacity: 0 }}
-        animate={isMobile ? { y: 0 } : { scale: 1, y: 0, opacity: 1 }}
-        exit={isMobile ? { y: '100%' } : { scale: 0.95, y: 30, opacity: 0 }}
-        transition={{ type: 'spring', damping: 30, stiffness: 280 }}
-        drag={isMobile ? 'y' : false}
+        className="bg-white w-full sm:max-w-4xl rounded-t-[3rem] sm:rounded-[3rem] shadow-2xl relative z-10 max-h-[94vh] sm:max-h-[85vh] flex flex-col border border-white/20 overflow-hidden"
+        initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0, y: 20 }}
+        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1, y: 0 }}
+        exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        drag={isMobile ? "y" : false}
         dragControls={dragControls}
         dragListener={false}
         dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.6 }}
-        onDragStart={handleDragStart}
-        onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 150) onClose();
+          else dragOffset.set(0);
+        }}
+        onDrag={(_, info) => dragOffset.set(Math.max(0, info.offset.y))}
       >
-        {/* Drag handle (mobile) */}
         {isMobile && (
-          <div
-            className="flex flex-col items-center pt-3 pb-2 sticky top-0 z-30 bg-base-100 cursor-grab active:cursor-grabbing touch-none select-none"
-            onPointerDown={handlePointerDown}
+          <div 
+            className="flex flex-col items-center py-4 cursor-grab active:cursor-grabbing touch-none"
+            onPointerDown={(e) => dragControls.start(e)}
           >
-            <motion.div
-              className="w-12 h-1.5 bg-base-300 rounded-full"
-              initial={{ scaleX: 0.5, opacity: 0 }}
-              animate={{ scaleX: 1, opacity: 1 }}
-              transition={{ delay: 0.25, duration: 0.35 }}
-            />
-            <motion.p
-              className="text-[10px] text-base-content/30 mt-1 select-none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-            >
-              اسحب للإغلاق
-            </motion.p>
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mb-1" />
           </div>
         )}
-
-        {/* Scrollable content */}
-        <div className="overflow-y-auto overflow-x-hidden flex-1 overscroll-contain">
+        <div className="overflow-y-auto flex-1 overscroll-contain">
           {children}
         </div>
       </motion.div>
@@ -395,7 +267,7 @@ const BottomSheetModal = memo(function BottomSheetModal({ children, onClose }) {
 });
 
 /* ========================================== */
-/*  DASHBOARD PAGE                            */
+/* MAIN DASHBOARD COMPONENT                  */
 /* ========================================== */
 export default function Dashboard() {
   const [recentActivities, setRecentActivities] = useState([]);
@@ -421,706 +293,355 @@ export default function Dashboard() {
   const { profile: currentProfile } = useProfile();
   const isCurrentUserAdmin = currentProfile?.role === 'admin';
 
-  /* ---------- data fetch ---------- */
+  /* ---------- Initialization ---------- */
   useEffect(() => {
     let isMounted = true;
-
     const loadData = async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError) throw userError;
-        
-        if (!user) {
-          router.replace('/login');
-          return;
-        }
-
+        if (userError || !user) { router.replace('/login'); return; }
         if (!isMounted) return;
         setUser(user);
 
         await updateActivityStatuses(supabase);
 
         const [pastRes, upRes, regRes, profRes] = await Promise.all([
-          supabase
-            .from('activities')
-            .select('*')
-            .eq('is_upcoming', false)
-            .order('activity_date', { ascending: false })
-            .limit(3),
-          supabase
-            .from('activities')
-            .select('*')
-            .eq('is_upcoming', true)
-            .order('activity_date', { ascending: true })
-            .limit(6),
-          supabase
-            .from('activity_registrations')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id),
-          supabase
-            .from('profiles')
-            .select('children')
-            .eq('id', user.id)
-            .maybeSingle(),
+          supabase.from('activities').select('*').eq('is_upcoming', false).order('activity_date', { ascending: false }).limit(3),
+          supabase.from('activities').select('*').eq('is_upcoming', true).order('activity_date', { ascending: true }).limit(5),
+          supabase.from('activity_registrations').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('profiles').select('children').eq('id', user.id).maybeSingle(),
         ]);
 
         if (!isMounted) return;
-
-        if (pastRes.data) setRecentActivities(pastRes.data);
-        if (upRes.data) setUpcomingActivities(upRes.data);
-        
+        setRecentActivities(pastRes.data || []);
+        setUpcomingActivities(upRes.data || []);
         setStatsData({
           registrations: regRes.count || 0,
           childrenCount: profRes.data?.children?.length || 0,
         });
-
-        setLoading(false);
       } catch (error) {
-        console.error('Dashboard load error:', error);
-        if (isMounted) {
-          setLoading(false);
-          toast.error('حدث خطأ في تحميل البيانات');
-        }
+        console.error('Load error:', error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
-
     loadData();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [router, supabase]);
 
-  /* ---------- modal side-effects ---------- */
+  /* ---------- Modal Interactions ---------- */
   useEffect(() => {
     if (!selectedActivity || !user) return;
-    
     let cancelled = false;
 
-    const checkRegistration = async () => {
-      setIsRegistered(false);
-      try {
-        const { data, error } = await supabase
-          .from('activity_registrations')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('activity_id', selectedActivity.id)
-          .maybeSingle();
-        
-        if (error) throw error;
-        
-        if (!cancelled && data) {
-          setIsRegistered(true);
-        }
-      } catch (error) {
-        console.error('Error checking registration:', error);
-      }
-    };
-
-    const fetchAttendees = async () => {
+    const checkState = async () => {
       setAttendeesLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('attendance')
-          .select('id, child_name, child_age, parent_name, parent_id, is_honored')
-          .eq('activity_id', selectedActivity.id)
-          .order('child_name');
-        
-        if (error) throw error;
-        
-        if (!cancelled && data) {
-          setAttendees([
-            ...data.filter(a => a.is_honored), 
-            ...data.filter(a => !a.is_honored)
-          ]);
+        const [regCheck, attCheck] = await Promise.all([
+          supabase.from('activity_registrations').select('*').eq('user_id', user.id).eq('activity_id', selectedActivity.id).maybeSingle(),
+          supabase.from('attendance').select('id, child_name, child_age, parent_id, is_honored').eq('activity_id', selectedActivity.id)
+        ]);
+
+        if (cancelled) return;
+        if (regCheck.data) setIsRegistered(true);
+        if (attCheck.data) {
+          const sorted = [...attCheck.data.filter(a => a.is_honored), ...attCheck.data.filter(a => !a.is_honored)];
+          setAttendees(sorted);
           
-          const parentIds = [...new Set(data.map(a => a.parent_id).filter(Boolean))];
-          
+          const parentIds = [...new Set(attCheck.data.map(a => a.parent_id).filter(Boolean))];
           if (parentIds.length) {
-            const { data: childData, error: childError } = await supabase
-              .from('children')
-              .select('*')
-              .in('parent_id', parentIds);
-            
-            if (childError) throw childError;
-            
-            const childMap = {};
-            (childData || []).forEach(c => {
-              childMap[`${c.parent_id}-${c.name}`] = c;
-            });
-            
-            if (!cancelled) {
-              setChildrenMap(childMap);
-            }
+            const { data: children } = await supabase.from('children').select('*').in('parent_id', parentIds);
+            const map = {};
+            children?.forEach(c => map[`${c.parent_id}-${c.name}`] = c);
+            setChildrenMap(map);
           }
         }
-      } catch (error) {
-        console.error('Error fetching attendees:', error);
       } finally {
-        if (!cancelled) {
-          setAttendeesLoading(false);
-        }
+        if (!cancelled) setAttendeesLoading(false);
       }
     };
 
     document.body.style.overflow = 'hidden';
-    checkRegistration();
-    fetchAttendees();
-
+    checkState();
     return () => {
       cancelled = true;
       document.body.style.overflow = 'unset';
+      setIsRegistered(false);
       setAttendees([]);
       setShowAttendees(false);
-      setChildrenMap({});
     };
   }, [selectedActivity, user, supabase]);
 
-  useEffect(() => {
-    if (expandedImage) {
-      document.body.style.overflow = 'hidden';
-    } else if (!selectedActivity) {
-      document.body.style.overflow = 'unset';
-    }
-  }, [expandedImage, selectedActivity]);
-
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        if (expandedImage) {
-          setExpandedImage(null);
-        } else if (selectedActivity) {
-          setSelectedActivity(null);
-        }
-      }
-    };
-
-    if (selectedActivity || expandedImage) {
-      document.addEventListener('keydown', handleEscape);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [selectedActivity, expandedImage]);
-
-  /* ---------- handlers (memoized) ---------- */
   const handleRegister = useCallback(async () => {
     if (!user || !selectedActivity) return;
-
     if (selectedActivity.registration_form_url) {
       window.open(selectedActivity.registration_form_url, '_blank');
     } else {
-      toast.error("رابط التسجيل غير متوفر، ولكن تم تسجيل اهتمامك.");
+      toast.error("رابط التسجيل غير متوفر حالياً");
     }
-
     if (isRegistered) return;
 
     setRegistering(true);
-
     try {
-      const { error } = await supabase
-        .from('activity_registrations')
-        .insert([{ user_id: user.id, activity_id: selectedActivity.id }]);
-
-      if (!error || error.code === '23505') {
-        setIsRegistered(true);
-        
-        if (selectedActivity.registration_form_url) {
-          toast.success("جاري فتح النموذج...", { duration: 2000 });
-        }
-
-        try {
-          await fetch('/api/notifications/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userIds: [user.id],
-              type: 'registration_confirmed',
-              title: 'تم تأكيد التسجيل ✅',
-              message: `تم تسجيلك بنجاح في نشاط: ${selectedActivity.title}`,
-              link: '/dashboard',
-              activityId: selectedActivity.id,
-            }),
-          });
-        } catch (notifError) {
-          console.error('Notification error:', notifError);
-        }
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      toast.error('حدث خطأ في التسجيل');
+      const { error } = await supabase.from('activity_registrations').insert([{ user_id: user.id, activity_id: selectedActivity.id }]);
+      if (!error || error.code === '23505') setIsRegistered(true);
     } finally {
       setRegistering(false);
     }
   }, [user, selectedActivity, isRegistered, supabase]);
-
-  const handleActivityClick = useCallback((activity) => {
-    setSelectedActivity(activity);
-  }, []);
-
-  const handleCloseModal = useCallback(() => {
-    setSelectedActivity(null);
-  }, []);
-
-  const handleExpandImage = useCallback((imageUrl) => {
-    setExpandedImage(imageUrl);
-  }, []);
-
-  const handleCloseImage = useCallback(() => {
-    setExpandedImage(null);
-  }, []);
-
-  const handleToggleAttendees = useCallback(() => {
-    setShowAttendees(prev => !prev);
-  }, []);
-
-  const handleChildProfileClick = useCallback((childRec, parentId) => {
-    if (childRec) {
-      setSelectedChildProfile({ record: childRec, parentId });
-    }
-  }, []);
-
-  const handleCloseChildProfile = useCallback(() => {
-    setSelectedChildProfile(null);
-  }, []);
-
-  /* ---------- derived values (memoized) ---------- */
-  const firstName = useMemo(() => 
-    currentProfile?.parent_name?.split(' ')[0] || ''
-  , [currentProfile]);
-
+  /* ---------- Derived Values ---------- */
+  const firstName = useMemo(() => currentProfile?.parent_name?.split(' ')[0] || '', [currentProfile]);
   const greeting = useMemo(() => getGreeting(), []);
   
-  const heroUpcoming = useMemo(() => 
-    upcomingActivities[0] || null
-  , [upcomingActivities]);
+  const heroUpcoming = useMemo(() => upcomingActivities[0] || null, [upcomingActivities]);
+  const additionalUpcoming = useMemo(() => upcomingActivities.slice(1), [upcomingActivities]);
   
-  const additionalUpcoming = useMemo(() => 
-    upcomingActivities.slice(1)
-  , [upcomingActivities]);
-  
-  const heroRecent = useMemo(() => 
-    recentActivities[0] || null
-  , [recentActivities]);
-  
-  const additionalRecent = useMemo(() => 
-    recentActivities.slice(1)
-  , [recentActivities]);
+  const heroRecent = useMemo(() => recentActivities[0] || null, [recentActivities]);
+  const additionalRecent = useMemo(() => recentActivities.slice(1), [recentActivities]);
 
-  /* ---------- loading state ---------- */
+  const arabicDateStr = useMemo(() => arabicDate(), []);
+
+  /* ---------- Loading UI ---------- */
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="relative w-16 h-16 mx-auto">
-            <span className="loading loading-ring loading-lg text-primary absolute inset-0" />
-          </div>
-          <p className="text-base-content/40 text-sm animate-pulse">جاري تحميل لوحتك…</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50/50">
+        <div className="relative flex items-center justify-center">
+          <div className="w-16 h-16 border-4 border-slate-200 border-t-primary rounded-full animate-spin absolute" />
+          <div className="w-8 h-8 border-4 border-slate-200 border-b-secondary rounded-full animate-spin-reverse absolute" />
         </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen pt-32 sm:pt-36 md:pt-40 pb-20 px-4 md:px-8 lg:px-10 overflow-hidden">
+    <main className="min-h-screen pt-32 pb-24 px-4 md:px-8 lg:px-12 bg-[#FAFCFF] relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px] -z-10 pointer-events-none translate-x-1/3 -translate-y-1/4" />
+      <div className="absolute bottom-40 left-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[100px] -z-10 pointer-events-none -translate-x-1/3" />
+
       {/* ======== WELCOME HEADER ======== */}
       <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto mb-10 md:mb-14"
+        initial={{ opacity: 0, y: -20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="max-w-6xl mx-auto mb-14"
       >
-        <div className="flex flex-col gap-6 md:gap-8">
+        <div className="flex flex-col gap-6">
           <div className="space-y-1.5">
-            <p className="text-[11px] md:text-xs text-base-content/40 font-medium tracking-wide">
-              {arabicDate()}
-            </p>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-base-content leading-tight">
-              {greeting.text}
-              {firstName && (
-                <>
-                  {' '}
-                  <span className="text-primary">{firstName}</span>
-                </>
-              )}
-              {' '}
-              <span className="inline-block">{greeting.emoji}</span>
+            <p className="text-xs text-slate-400 font-bold tracking-wider">{arabicDateStr}</p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-800 tracking-tight">
+              {greeting.text}{' '}
+              {firstName && <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-secondary">{firstName}</span>}
+              <span className="ml-2 inline-block origin-bottom-right hover:animate-wave">{greeting.emoji}</span>
             </h1>
-            <p className="text-base-content/45 text-xs sm:text-sm mt-0.5">
-              إليك ملخّص آخر المستجدات في منصة قدوة
-            </p>
           </div>
 
-          {/* Slogan */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="relative"
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="inline-flex self-start bg-white/70 backdrop-blur-xl border border-white/60 shadow-sm rounded-full px-6 py-3"
           >
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 rounded-2xl blur-lg" />
-            <div className="relative bg-gradient-to-r from-primary/[0.08] via-secondary/[0.06] to-accent/[0.08] border border-primary/20 rounded-2xl px-6 py-4 sm:px-8 sm:py-5 backdrop-blur-sm">
-              <div className="flex items-center justify-center gap-3">
-                <div className="hidden sm:block w-12 h-[1px] bg-gradient-to-r from-transparent to-primary/40" />
-                <p className="text-lg sm:text-xl md:text-2xl text-primary font-slogan font-bold tracking-wide text-center">
-                  ✦ جيلٌ يبني، أثرٌ يبقى ✦
-                </p>
-                <div className="hidden sm:block w-12 h-[1px] bg-gradient-to-l from-transparent to-primary/40" />
-              </div>
-            </div>
+            <p className="text-lg md:text-xl text-primary font-slogan font-bold tracking-wide">
+              ✦ جيلٌ يبني، أثرٌ يبقى ✦
+            </p>
           </motion.div>
         </div>
       </motion.header>
 
-      {/* ======== QUICK STATS ======== */}
-      <motion.section
-        className="max-w-6xl mx-auto mb-10 md:mb-14"
-        variants={staggerContainer} 
-        initial="hidden" 
-        animate="visible"
+      {/* ======== QUICK STATS (Glassmorphic) ======== */}
+      <motion.section 
+        className="max-w-6xl mx-auto mb-16" 
+        initial="hidden" animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+        }}
       >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          <motion.div 
-            variants={staggerItem}
-            className="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex items-center gap-3"
-          >
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
-              <FaCalendarAlt className="text-primary" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xl font-bold text-primary tabular-nums">{statsData.registrations}</div>
-              <div className="text-[10px] md:text-xs text-base-content/50 truncate">تسجيل في نشاطات</div>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="bg-white/70 backdrop-blur-xl border border-white/60 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-3"><FaCalendarAlt className="text-primary text-xl" /></div>
+            <div className="text-3xl font-black text-slate-800">{statsData.registrations}</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">نشاطات مسجلة</div>
           </motion.div>
 
           {currentProfile?.user_type === 'parent' && (
-            <motion.div 
-              variants={staggerItem}
-              className="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex items-center gap-3"
-            >
-              <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center shrink-0">
-                <FaChild className="text-secondary" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xl font-bold text-secondary tabular-nums">{statsData.childrenCount}</div>
-                <div className="text-[10px] md:text-xs text-base-content/50 truncate">أبناء مسجلين</div>
-              </div>
+            <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="bg-white/70 backdrop-blur-xl border border-white/60 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+              <div className="w-12 h-12 bg-secondary/10 rounded-2xl flex items-center justify-center mb-3"><FaChild className="text-secondary text-xl" /></div>
+              <div className="text-3xl font-black text-slate-800">{statsData.childrenCount}</div>
+              <div className="text-xs text-slate-500 font-bold mt-1">أبناء مسجلين</div>
             </motion.div>
           )}
 
-          <motion.div variants={staggerItem}>
-            <Link 
-              href="/activities"
-              className="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex items-center gap-3 hover:shadow-md hover:border-primary/20 transition-all group h-full active:scale-[0.97]"
-            >
-              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-accent transition-colors">
-                <FaHistory className="text-accent group-hover:text-white transition-colors" />
+          <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="h-full">
+            <Link href="/activities" className="block h-full bg-primary/[0.03] backdrop-blur-xl border border-primary/20 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 group relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-3 group-hover:bg-primary transition-colors duration-300">
+                <FaHistory className="text-primary text-xl group-hover:text-white transition-colors duration-300" />
               </div>
-              <div className="min-w-0">
-                <div className="text-xs sm:text-sm font-bold text-base-content group-hover:text-primary transition-colors truncate">
-                  سجل النشاطات
-                </div>
-                <div className="text-[10px] text-base-content/40 truncate">عرض الأرشيف</div>
-              </div>
+              <div className="text-lg font-bold text-slate-800 group-hover:text-primary transition-colors relative z-10">سجل النشاطات</div>
+              <div className="text-xs text-slate-500 font-medium mt-1 relative z-10">تصفح الأرشيف كاملاً</div>
             </Link>
           </motion.div>
 
-          <motion.div variants={staggerItem}>
-            <Link 
-              href="/gallery"
-              className="bg-base-100 rounded-2xl p-4 shadow-sm border border-base-200 flex items-center gap-3 hover:shadow-md hover:border-primary/20 transition-all group h-full active:scale-[0.97]"
-            >
-              <div className="w-10 h-10 bg-warning/10 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-warning transition-colors">
-                <FaImages className="text-warning group-hover:text-white transition-colors" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs sm:text-sm font-bold text-base-content group-hover:text-primary transition-colors truncate">
-                  معرض الصور
-                </div>
-                <div className="text-[10px] text-base-content/40 truncate">لحظاتنا المميزة</div>
-              </div>
+          <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} className="h-full">
+            <Link href="/gallery" className="block h-full bg-white/70 backdrop-blur-xl border border-white/60 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
+              <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mb-3"><FaImages className="text-orange-400 text-xl" /></div>
+              <div className="text-lg font-bold text-slate-800 group-hover:text-orange-500 transition-colors">معرض الصور</div>
+              <div className="text-xs text-slate-500 font-medium mt-1">لحظاتنا المميزة</div>
             </Link>
           </motion.div>
         </div>
       </motion.section>
 
-      {/* ======== UPCOMING ACTIVITIES ======== */}
-      {upcomingActivities.length > 0 ? (
-        <motion.section
-          className="max-w-6xl mx-auto mb-14 md:mb-20"
-          initial="hidden" 
-          whileInView="visible" 
-          viewport={{ once: true, amount: 0.15 }}
-          variants={fadeInUp}
+      {/* ======== UPCOMING ACTIVITIES (Cinematic) ======== */}
+      {upcomingActivities.length > 0 && (
+        <motion.section 
+          className="max-w-6xl mx-auto mb-20" 
+          initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
         >
-          <SectionHeader 
-            color="primary" 
-            title="النشاطات القادمة" 
-            count={upcomingActivities.length} 
-          />
-
+          <SectionHeader title="النشاطات القادمة" count={upcomingActivities.length} />
+          
           {heroUpcoming && (
-            <div className="relative group mb-6">
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-[2.4rem] blur opacity-20 group-hover:opacity-40 transition duration-700" />
-              <div className="card w-full bg-gradient-to-br from-primary via-secondary to-accent text-white shadow-2xl rounded-[2rem] relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 rounded-full bg-black/10 blur-3xl pointer-events-none" />
-                <div className="card-body p-5 sm:p-8 md:p-10 lg:p-12 relative z-10">
-                  <div className="flex flex-wrap justify-between items-center mb-5 md:mb-7 gap-2">
-                    <div className="badge bg-white/20 border-0 text-white backdrop-blur-md px-3 py-2 sm:px-4 sm:py-2.5 h-auto gap-2 text-xs sm:text-sm font-bold shadow-sm">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-                      </span>
-                      <span>النشاط القادم</span>
-                    </div>
-                    {heroUpcoming.activity_date && (
-                      <div className="text-blue-100 font-medium bg-black/10 px-3 py-1.5 rounded-lg text-xs sm:text-sm">
-                        {heroUpcoming.activity_date}
-                      </div>
-                    )}
+            <div 
+              className="relative w-full rounded-[3rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.08)] mb-6 cursor-pointer group h-[400px] md:h-[500px]"
+              onClick={() => setSelectedActivity(heroUpcoming)}
+            >
+              {heroUpcoming.image_url ? (
+                <img src={heroUpcoming.image_url} alt={heroUpcoming.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary" />
+              )}
+              
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent opacity-90" />
+              
+              <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-end">
+                <div className="flex flex-wrap items-center gap-3 mb-5">
+                  <div className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl text-white text-xs font-bold flex items-center gap-2 shadow-sm border border-white/20">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> قريباً جداً
                   </div>
-                  <div className="flex flex-col lg:flex-row gap-6 lg:gap-12 items-center">
-                    <div className="w-full lg:w-1/2 text-right space-y-3 md:space-y-5 order-2 lg:order-1 min-w-0">
-                      <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black leading-tight drop-shadow-md break-words">
-                        {heroUpcoming.title}
-                      </h2>
-                      <p className="text-sm sm:text-base md:text-lg text-blue-50 opacity-90 leading-relaxed font-light line-clamp-3 break-words">
-                        {heroUpcoming.short_description}
-                      </p>
-                      {heroUpcoming.start_time && (
-                        <div className="flex items-center gap-2 text-white/70 text-xs sm:text-sm">
-                          <FaClock />
-                          <span>{heroUpcoming.start_time.slice(0, 5)}</span>
-                          {heroUpcoming.end_time && <span>– {heroUpcoming.end_time.slice(0, 5)}</span>}
-                        </div>
-                      )}
-                      <div className="pt-2">
-                        <button 
-                          onClick={() => handleActivityClick(heroUpcoming)}
-                          className="btn btn-sm sm:btn-md bg-white text-primary hover:bg-blue-50 border-none rounded-xl sm:rounded-2xl px-6 sm:px-8 shadow-xl w-full sm:w-auto text-xs sm:text-sm active:scale-95 transition-transform"
-                        >
-                          التفاصيل والتسجيل <FaArrowLeft className="mr-1 text-xs" />
-                        </button>
-                      </div>
+                  {heroUpcoming.activity_date && (
+                    <div className="text-white/90 text-sm font-bold flex items-center gap-2 bg-black/20 px-4 py-2 rounded-xl backdrop-blur-sm">
+                      <FaCalendarAlt /> {heroUpcoming.activity_date}
                     </div>
-                    <div className="w-full lg:w-1/2 order-1 lg:order-2 flex justify-center lg:justify-end shrink-0">
-                      {heroUpcoming.image_url ? (
-                        <div 
-                          className="relative w-full max-w-md h-44 sm:h-56 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 sm:rotate-1 hover:rotate-0 transition-all duration-500 cursor-pointer group/img"
-                          onClick={(e) => { 
-                            e.stopPropagation(); 
-                            handleExpandImage(heroUpcoming.image_url); 
-                          }}
-                        >
-                          <img 
-                            src={heroUpcoming.image_url} 
-                            alt={heroUpcoming.title} 
-                            className="w-full h-full object-cover" 
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-all duration-300 flex items-center justify-center">
-                            <FaExpand className="text-white text-2xl drop-shadow-lg opacity-0 group-hover/img:opacity-100 transition-opacity" />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="hidden sm:flex justify-center opacity-60">
-                          <FaCalendarAlt className="text-[8rem] md:text-[10rem] text-white/15" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  )}
+                </div>
+                <h2 className="text-3xl md:text-5xl font-black text-white mb-4 leading-tight drop-shadow-lg max-w-3xl">
+                  {heroUpcoming.title}
+                </h2>
+                <p className="text-white/80 text-sm md:text-lg max-w-2xl line-clamp-2 mb-8 font-light leading-relaxed">
+                  {heroUpcoming.short_description}
+                </p>
+                <div>
+                  <button className="bg-white text-slate-900 font-black py-4 px-8 rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 text-sm">
+                    التفاصيل والتسجيل <FaArrowLeft />
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
           {additionalUpcoming.length > 0 && (
-            <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"
-              variants={staggerContainer} 
-              initial="hidden" 
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.1 }}
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {additionalUpcoming.map((act) => (
-                <SmallActivityCard 
-                  key={act.id} 
-                  activity={act} 
-                  onClick={handleActivityClick} 
-                  isUpcoming 
-                />
+                <SmallActivityCard key={act.id} activity={act} onClick={setSelectedActivity} isUpcoming />
               ))}
-            </motion.div>
+            </div>
           )}
-        </motion.section>
-      ) : (
-        <motion.section 
-          className="max-w-6xl mx-auto mb-14 md:mb-20"
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ delay: 0.25 }}
-        >
-          <div className="bg-base-100 rounded-3xl p-8 md:p-12 text-center shadow-sm border border-base-200">
-            <div className="w-14 h-14 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FaRegCalendarAlt className="text-xl md:text-2xl text-primary/50" />
-            </div>
-            <h3 className="text-lg md:text-xl font-bold text-base-content mb-2">
-              لا توجد نشاطات قادمة حالياً
-            </h3>
-            <p className="text-base-content/50 text-xs sm:text-sm mb-6 max-w-md mx-auto leading-relaxed">
-              ترقبوا إعلاناتنا عن النشاطات الجديدة!
-            </p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Link href="/activities" className="btn btn-primary btn-sm rounded-xl text-white gap-2">
-                <FaHistory /> سجل النشاطات
-              </Link>
-              <Link href="/gallery" className="btn btn-ghost btn-sm rounded-xl gap-2">
-                <FaImages /> معرض الصور
-              </Link>
-            </div>
-          </div>
         </motion.section>
       )}
 
       {/* ======== RECENT ACTIVITIES ======== */}
       {recentActivities.length > 0 && (
         <motion.section 
-          className="max-w-6xl mx-auto mb-14 md:mb-20"
-          initial="hidden" 
-          whileInView="visible" 
-          viewport={{ once: true, amount: 0.15 }} 
-          variants={fadeInUp}
+          className="max-w-6xl mx-auto mb-20"
+          initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
         >
-          <SectionHeader 
-            color="secondary" 
-            title="أحدث ما قمنا به" 
-            actionLabel="عرض الكل" 
-            actionHref="/activities" 
-          />
+          <SectionHeader title="أحدث الإنجازات" actionLabel="تصفح الأرشيف" actionHref="/activities" />
 
           {heroRecent && (
-            <div className="bg-base-100/70 backdrop-blur-xl border border-base-content/10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500 mb-5 md:mb-6">
-              <div className="flex flex-col lg:flex-row-reverse">
-                {heroRecent.image_url ? (
-                  <div 
-                    className="w-full lg:w-5/12 h-[220px] sm:h-[260px] lg:h-auto relative group overflow-hidden cursor-pointer"
-                    onClick={() => handleExpandImage(heroRecent.image_url)}
-                  >
-                    <img 
-                      src={heroRecent.image_url} 
-                      alt={heroRecent.title} 
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent lg:bg-gradient-to-r lg:from-black/20 lg:to-transparent" />
-                    <div className="absolute bottom-3 right-3 lg:top-4 lg:right-4 badge badge-secondary shadow-lg border-none text-xs">
-                      <FaStar className="mr-1 text-[9px]" /> تم إنجازه
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20">
-                      <FaExpand className="text-white text-2xl drop-shadow-lg" />
-                    </div>
+            <div className="bg-white/80 backdrop-blur-2xl border border-white/60 rounded-[3rem] shadow-[0_10px_40px_rgb(0,0,0,0.03)] overflow-hidden mb-6 group transition-all hover:shadow-[0_20px_50px_rgb(0,0,0,0.06)]">
+              <div className="flex flex-col lg:flex-row">
+                <div className="w-full lg:w-1/2 p-8 md:p-12 flex flex-col justify-center order-2 lg:order-1">
+                  <div className="inline-flex w-max items-center gap-2 bg-secondary/10 text-secondary font-bold px-4 py-2 rounded-xl mb-6">
+                    <FaStar className="text-sm" /> تم الإنجاز بنجاح
                   </div>
-                ) : (
-                  <div className="w-full lg:w-5/12 bg-base-200 flex items-center justify-center min-h-[220px]">
-                    <FaStar className="text-5xl text-base-300" />
-                  </div>
-                )}
-                <div className="w-full lg:w-7/12 p-5 sm:p-6 md:p-10 text-right flex flex-col justify-center min-w-0">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 md:mb-3 text-base-content break-words leading-snug">
+                  <h2 className="text-2xl md:text-4xl font-black text-slate-800 mb-5 leading-snug">
                     {heroRecent.title}
                   </h2>
-                  <p className="text-sm md:text-base text-base-content/70 leading-relaxed mb-4 md:mb-6 line-clamp-3 break-words">
+                  <p className="text-slate-500 text-sm md:text-base leading-relaxed mb-8 line-clamp-3 font-medium">
                     {heroRecent.short_description}
                   </p>
-                  {heroRecent.activity_date && (
-                    <p className="text-xs text-base-content/40 mb-4 md:mb-6 flex items-center gap-2">
-                      <FaCalendarAlt className="text-primary text-[11px]" /> {heroRecent.activity_date}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap gap-2 sm:gap-3 mt-auto items-center">
-                    <LikeButton activityId={heroRecent.id} userId={user.id} />
+                  <div className="flex items-center gap-4 mt-auto">
                     <button 
-                      onClick={() => handleActivityClick(heroRecent)}
-                      className="btn btn-ghost text-base-content/60 hover:text-primary rounded-xl text-xs sm:text-sm"
+                      onClick={() => setSelectedActivity(heroRecent)} 
+                      className="bg-slate-900 text-white font-bold px-6 py-3 rounded-xl hover:bg-slate-800 transition-colors flex items-center gap-2 text-sm shadow-md"
                     >
-                      قراءة المزيد…
+                      قراءة التقرير <FaArrowLeft className="text-xs" />
                     </button>
-                    <div className="flex-grow" />
-                    <Link 
-                      href="/contact" 
-                      className="btn btn-xs sm:btn-sm btn-ghost text-secondary opacity-70 hover:opacity-100 gap-1.5 hidden sm:inline-flex"
-                    >
-                      <FaPaperPlane className="text-[10px]" /> تواصل معنا
-                    </Link>
+                    <div className="flex-1" />
+                    <LikeButton activityId={heroRecent.id} userId={user.id} />
                   </div>
                 </div>
+                {heroRecent.image_url && (
+                  <div className="w-full lg:w-1/2 h-[280px] lg:h-auto relative overflow-hidden order-1 lg:order-2 cursor-pointer p-4 lg:p-6 lg:pl-0">
+                    <div className="w-full h-full rounded-[2rem] overflow-hidden relative">
+                      <img src={heroRecent.image_url} alt={heroRecent.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setExpandedImage(heroRecent.image_url); }}>
+                        <div className="w-14 h-14 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity transform scale-75 group-hover:scale-100 duration-300 shadow-xl">
+                          <FaExpand className="text-white text-xl" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {additionalRecent.length > 0 && (
-            <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4"
-              variants={staggerContainer} 
-              initial="hidden" 
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.1 }}
-            >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {additionalRecent.map((act) => (
-                <SmallActivityCard 
-                  key={act.id} 
-                  activity={act} 
-                  onClick={handleActivityClick} 
-                />
+                <SmallActivityCard key={act.id} activity={act} onClick={setSelectedActivity} />
               ))}
-            </motion.div>
+            </div>
           )}
         </motion.section>
       )}
 
-      {/* ======== EMPTY STATE ======== */}
+      {/* ======== EMPTY STATE (Restored) ======== */}
       {recentActivities.length === 0 && upcomingActivities.length === 0 && (
         <motion.section 
           className="max-w-4xl mx-auto mb-20 text-center"
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: 1 }} 
-          transition={{ delay: 0.3 }}
+          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
         >
-          <div className="bg-base-100 rounded-3xl p-8 sm:p-10 md:p-16 shadow-sm border border-base-200">
-            <div className="w-16 h-16 md:w-20 md:h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-5">
-              <FaStar className="text-2xl md:text-3xl text-primary/40" />
+          <div className="bg-white/70 backdrop-blur-xl rounded-[3rem] p-10 md:p-16 shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-white/60">
+            <div className="w-24 h-24 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <FaRegCalendarAlt className="text-4xl text-primary/50" />
             </div>
-            <h3 className="text-xl md:text-2xl font-bold text-base-content mb-2">مرحباً بك في قدوة!</h3>
-            <p className="text-base-content/50 text-xs sm:text-sm md:text-base mb-8 max-w-md mx-auto leading-relaxed">
-              نحن نجهز نشاطات رائعة لكم. في هذه الأثناء، تعرف علينا أكثر أو تواصل معنا.
+            <h3 className="text-2xl md:text-3xl font-black text-slate-800 mb-4">مرحباً بك في منصتك!</h3>
+            <p className="text-slate-500 text-sm md:text-base mb-10 max-w-lg mx-auto leading-relaxed">
+              نحن نعمل حالياً على تجهيز نشاطات وفعاليات رائعة. في هذه الأثناء، تفضل باستكشاف الجمعية أو تواصل معنا.
             </p>
-            <div className="flex flex-wrap gap-3 justify-center">
-              <Link href="/about" className="btn btn-primary rounded-xl text-white gap-2 btn-sm sm:btn-md">
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Link href="/about" className="bg-slate-900 text-white font-bold px-8 py-3.5 rounded-2xl hover:bg-slate-800 transition-colors shadow-lg flex items-center gap-2">
                 <FaUsers /> تعرف علينا
               </Link>
-              <Link href="/contact" className="btn btn-ghost rounded-xl gap-2 btn-sm sm:btn-md">
+              <Link href="/contact" className="bg-white text-slate-700 font-bold border border-slate-200 px-8 py-3.5 rounded-2xl hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
                 <FaEnvelope /> تواصل معنا
-              </Link>
-              <Link href="/donate" className="btn btn-outline btn-primary rounded-xl gap-2 btn-sm sm:btn-md">
-                <FaHandHoldingHeart /> ادعمنا
               </Link>
             </div>
           </div>
         </motion.section>
       )}
 
-      {/* ======== QUICK LINKS ======== */}
+      {/* ======== QUICK LINKS (Restored) ======== */}
       <motion.section 
-        className="max-w-6xl mx-auto mb-10"
-        initial={{ opacity: 0, y: 20 }} 
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }} 
-        transition={{ duration: 0.5 }}
+        className="max-w-4xl mx-auto mb-10"
+        initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
       >
-        <div className="bg-base-100 rounded-2xl p-3 sm:p-4 md:p-5 shadow-sm border border-base-200">
-          <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
+        <div className="bg-white/60 backdrop-blur-xl rounded-full p-2 md:p-3 shadow-sm border border-white/60 mx-auto w-max max-w-full overflow-x-auto">
+          <div className="flex items-center gap-1 md:gap-2 px-2">
             {[
               { href: '/profile', icon: FaChild, label: 'ملفي الشخصي' },
               { href: '/contact', icon: FaEnvelope, label: 'راسل الإدارة' },
@@ -1130,10 +651,10 @@ export default function Dashboard() {
               <Link 
                 key={href} 
                 href={href}
-                className="btn btn-ghost btn-xs sm:btn-sm rounded-xl gap-1.5 text-base-content/60 hover:text-primary active:scale-95 transition-transform"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-slate-500 hover:text-primary hover:bg-white transition-all font-bold text-xs md:text-sm whitespace-nowrap"
               >
-                <Icon className="text-[11px]" /> 
-                <span className="text-[11px] sm:text-xs">{label}</span>
+                <Icon className="text-lg opacity-70" /> 
+                {label}
               </Link>
             ))}
           </div>
@@ -1141,225 +662,170 @@ export default function Dashboard() {
       </motion.section>
 
       {/* ==================================================
-          ACTIVITY DETAIL MODAL
+          ACTIVITY DETAIL MODAL (Premium Sheet)
       ================================================== */}
       <AnimatePresence>
         {selectedActivity && (
-          <BottomSheetModal onClose={handleCloseModal}>
-            <button
-              onClick={handleCloseModal}
-              className="absolute top-3 left-3 sm:top-4 sm:left-4 btn btn-circle btn-sm bg-black/20 border-none text-white z-20 hover:bg-red-500 transition-colors"
-            >
-              <FaTimes />
-            </button>
-
-            {selectedActivity.image_url && (
-              <div 
-                className="w-full h-48 sm:h-64 md:h-80 relative cursor-pointer group"
-                onClick={() => handleExpandImage(selectedActivity.image_url)}
+          <BottomSheetModal onClose={() => setSelectedActivity(null)}>
+            <div className="relative pb-10">
+              <button 
+                onClick={() => setSelectedActivity(null)} 
+                className="absolute top-6 left-6 w-12 h-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white z-20 hover:bg-black/40 transition-all shadow-lg border border-white/10"
               >
-                <img 
-                  src={selectedActivity.image_url} 
-                  alt={selectedActivity.title} 
-                  loading="lazy" 
-                  className="w-full h-full object-cover" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-base-100 via-transparent to-transparent" />
-                <div className="absolute bottom-0 right-0 left-0 p-5 sm:p-6 md:p-8">
-                  <h3 className="text-xl sm:text-2xl md:text-4xl font-bold text-base-content drop-shadow-sm line-clamp-2 break-words">
-                    {selectedActivity.title}
-                  </h3>
-                </div>
-                <div className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <FaExpand className="text-white text-sm" />
-                </div>
-              </div>
-            )}
+                <FaTimes className="text-lg" />
+              </button>
 
-            <div className="p-5 sm:p-6 md:p-10 text-right space-y-6 sm:space-y-8">
-              {!selectedActivity.image_url && (
-                <h3 className="text-xl sm:text-2xl md:text-4xl font-bold text-primary mb-4 md:mb-6 break-words">
+              {selectedActivity.image_url ? (
+                <div 
+                  className="w-full h-[35vh] sm:h-[45vh] relative cursor-pointer group" 
+                  onClick={() => setExpandedImage(selectedActivity.image_url)}
+                >
+                  <img src={selectedActivity.image_url} alt={selectedActivity.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                    <FaExpand className="text-2xl" />
+                  </div>
+                </div>
+              ) : (
+                <div className="h-32 bg-gradient-to-br from-primary/10 to-secondary/10" />
+              )}
+
+              <div className={`px-6 sm:px-12 max-w-4xl mx-auto ${selectedActivity.image_url ? '-mt-20 relative z-10' : 'pt-8'}`}>
+                <h3 className="text-3xl sm:text-5xl font-black text-slate-800 mb-6 leading-tight drop-shadow-sm">
                   {selectedActivity.title}
                 </h3>
-              )}
-
-              {selectedActivity.short_description && (
-                <p className="text-base-content/70 text-sm sm:text-base md:text-lg leading-relaxed break-words">
-                  {selectedActivity.short_description}
-                </p>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {selectedActivity.activity_date && (
-                  <div className="flex items-center gap-3 sm:gap-4 bg-base-200/50 p-3 sm:p-4 rounded-2xl">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
-                      <FaCalendarAlt className="text-sm" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] sm:text-xs text-base-content/50">التاريخ</div>
-                      <div className="font-bold text-sm sm:text-base text-base-content">
-                        {selectedActivity.activity_date}
-                      </div>
-                    </div>
-                  </div>
+                
+                {selectedActivity.short_description && (
+                  <p className="text-slate-600 text-lg sm:text-xl font-medium leading-relaxed mb-10">
+                    {selectedActivity.short_description}
+                  </p>
                 )}
-                {selectedActivity.start_time && (
-                  <div className="flex items-center gap-3 sm:gap-4 bg-base-200/50 p-3 sm:p-4 rounded-2xl">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-warning/10 text-warning rounded-full flex items-center justify-center shrink-0">
-                      <FaClock className="text-sm" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] sm:text-xs text-base-content/50">الوقت</div>
-                      <div className="font-bold text-sm sm:text-base text-base-content">
-                        {selectedActivity.start_time.slice(0, 5)}
-                        {selectedActivity.end_time ? ` - ${selectedActivity.end_time.slice(0, 5)}` : ''}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                  {selectedActivity.activity_date && (
+                    <div className="bg-slate-50 border border-slate-100 p-5 rounded-[2rem] flex items-center gap-4">
+                      <div className="w-14 h-14 bg-primary/10 text-primary rounded-[1.2rem] flex items-center justify-center shrink-0"><FaCalendarAlt className="text-xl" /></div>
+                      <div>
+                        <div className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-wider">تاريخ النشاط</div>
+                        <div className="font-black text-slate-800 text-lg">{selectedActivity.activity_date}</div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h4 className="font-bold text-lg sm:text-xl text-primary mb-3 sm:mb-4 flex items-center gap-2">
-                  <FaInfoCircle className="text-base shrink-0" /> التفاصيل
-                </h4>
-                <p className="text-base-content/80 whitespace-pre-wrap leading-loose text-sm sm:text-base break-words overflow-wrap-anywhere">
-                  {selectedActivity.full_report}
-                </p>
-              </div>
-
-              {selectedActivity.notable_notes && (
-                <div className="bg-warning/10 border border-warning/20 p-4 sm:p-6 rounded-2xl flex gap-3 sm:gap-4 items-start">
-                  <FaStar className="text-warning text-lg sm:text-xl mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <h5 className="font-bold text-base-content mb-1 text-sm sm:text-base">ملاحظات هامة</h5>
-                    <p className="text-base-content/70 text-xs sm:text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">
-                      {selectedActivity.notable_notes}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {!attendeesLoading && attendees.length > 0 && (
-                <div className="border border-base-200 rounded-2xl overflow-hidden">
-                  <button 
-                    onClick={handleToggleAttendees}
-                    className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-base-200/50 transition-colors active:bg-base-200/70"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center shrink-0">
-                        <FaUsers className="text-sm" />
-                      </div>
-                      <div className="text-right">
-                        <h4 className="font-bold text-base-content text-sm sm:text-base">سجل الحضور</h4>
-                        <p className="text-[10px] sm:text-xs text-base-content/50">
-                          {attendees.length} حاضر
-                          {attendees.filter(a => a.is_honored).length > 0 && (
-                            <span className="text-warning mr-2">
-                              • {attendees.filter(a => a.is_honored).length} قدوة النشاط ⭐
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <FaChevronDown 
-                      className={`text-base-content/40 transition-transform duration-300 text-xs ${
-                        showAttendees ? 'rotate-180' : ''
-                      }`} 
-                    />
-                  </button>
-                  <AnimatePresence>
-                    {showAttendees && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0 }} 
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} 
-                        transition={{ duration: 0.3 }}
-                        className="overflow-hidden border-t border-base-200"
-                      >
-                        <div className="p-3 sm:p-4 space-y-1.5 max-h-60 sm:max-h-64 overflow-y-auto">
-                          {attendees.map((a) => {
-                            const childRec = a.parent_id ? childrenMap[`${a.parent_id}-${a.child_name}`] : null;
-                            const lvl = getLevelDef(childRec?.level);
-                            const hasLevel = childRec && childRec.level && childRec.level !== 'new';
-                            
-                            return (
-                              <div 
-                                key={a.id}
-                                className={`flex items-center gap-2.5 sm:gap-3 p-2 sm:p-2.5 rounded-xl cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all active:bg-base-200/50 ${
-                                  a.is_honored ? 'bg-warning/10' : 'bg-base-200/30'
-                                }`}
-                                onClick={() => handleChildProfileClick(childRec, a.parent_id)}
-                              >
-                                {a.is_honored ? (
-                                  <FaCrown className="text-warning shrink-0 text-xs sm:text-sm" />
-                                ) : (
-                                  <div className="w-1.5 h-1.5 bg-base-content/20 rounded-full shrink-0" />
-                                )}
-                                <span 
-                                  className={`font-medium text-xs sm:text-sm flex-1 ${
-                                    a.is_honored ? 'text-warning' : 'text-base-content/80'
-                                  } ${childRec ? 'hover:underline decoration-dotted underline-offset-4' : ''}`}
-                                >
-                                  {a.child_name}
-                                </span>
-                                {hasLevel && (
-                                  <span 
-                                    className={`badge badge-xs shrink-0 gap-0.5 ${lvl.bg} ${lvl.text} ${lvl.border} border text-[9px]`}
-                                  >
-                                    {lvl.emoji} {lvl.label}
-                                  </span>
-                                )}
-                                {a.child_age && (
-                                  <span className="text-[10px] sm:text-xs text-base-content/40">
-                                    {a.child_age} سنة
-                                  </span>
-                                )}
-                                {a.is_honored && (
-                                  <span className="badge badge-warning badge-xs gap-0.5 shrink-0 text-[8px] sm:text-[9px]">
-                                    <FaCrown className="text-[6px] sm:text-[7px]" /> قدوة
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+                  )}
+                  {selectedActivity.start_time && (
+                    <div className="bg-slate-50 border border-slate-100 p-5 rounded-[2rem] flex items-center gap-4">
+                      <div className="w-14 h-14 bg-secondary/10 text-secondary rounded-[1.2rem] flex items-center justify-center shrink-0"><FaClock className="text-xl" /></div>
+                      <div>
+                        <div className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-wider">التوقيت</div>
+                        <div className="font-black text-slate-800 text-lg">
+                          {selectedActivity.start_time.slice(0, 5)}
+                          {selectedActivity.end_time && ` - ${selectedActivity.end_time.slice(0, 5)}`}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              <div className="pt-2 sm:pt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
-                {selectedActivity.is_upcoming && (
-                  <button 
-                    onClick={handleRegister} 
-                    disabled={registering}
-                    className={`btn flex-1 rounded-xl shadow-lg transition-all duration-300 gap-2 text-sm ${
-                      isRegistered ? 'btn-success text-white' : 'btn-primary text-white shadow-primary/30'
-                    }`}
-                  >
-                    {registering ? (
-                      <>
-                        <FaSpinner className="animate-spin" /> جاري التحويل…
-                      </>
-                    ) : isRegistered ? (
-                      <>
-                        <FaCheckCircle /> تم التسجيل (فتح الرابط مجدداً)
-                      </>
+                <div className="mb-10">
+                  <h4 className="font-black text-xl text-slate-800 mb-5 flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><FaInfoCircle className="text-primary text-sm" /></span>
+                    التفاصيل الكاملة
+                  </h4>
+                  <div className="prose prose-lg prose-slate max-w-none bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 leading-loose">
+                    {selectedActivity.full_report ? (
+                      <p className="whitespace-pre-wrap">{selectedActivity.full_report}</p>
                     ) : (
-                      <>
-                        <FaExternalLinkAlt /> التسجيل في النشاط
-                      </>
+                      <p className="text-slate-400 italic">لا توجد تفاصيل إضافية مسجلة.</p>
                     )}
-                  </button>
+                  </div>
+                </div>
+
+                {selectedActivity.notable_notes && (
+                  <div className="bg-amber-50 border border-amber-100 p-8 rounded-[2.5rem] mb-10 flex gap-5 shadow-inner">
+                    <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <FaStar className="text-amber-500 text-xl" />
+                    </div>
+                    <div>
+                      <h5 className="font-black text-amber-900 text-lg mb-2">ملاحظات هامة للنشاط</h5>
+                      <p className="text-amber-800/80 text-base leading-relaxed whitespace-pre-wrap">{selectedActivity.notable_notes}</p>
+                    </div>
+                  </div>
                 )}
-                <button 
-                  onClick={handleCloseModal} 
-                  className="btn btn-ghost flex-1 rounded-xl text-sm"
-                >
-                  إغلاق
-                </button>
+
+                {/* Attendees Accordeon */}
+                {!attendeesLoading && attendees.length > 0 && (
+                  <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] overflow-hidden mb-10 transition-all">
+                    <button 
+                      onClick={() => setShowAttendees(!showAttendees)} 
+                      className="w-full flex items-center justify-between p-6 hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white shadow-sm text-slate-600 rounded-2xl flex items-center justify-center"><FaUsers className="text-xl" /></div>
+                        <div className="text-right">
+                          <h4 className="font-black text-slate-800 text-lg">سجل الحضور</h4>
+                          <p className="text-sm font-bold text-slate-500 mt-1">{attendees.length} مسجلين</p>
+                        </div>
+                      </div>
+                      <div className={`w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center transition-transform duration-300 ${showAttendees ? 'rotate-180 bg-slate-200' : ''}`}>
+                        <FaChevronDown className="text-slate-500 text-sm" />
+                      </div>
+                    </button>
+                    <AnimatePresence>
+                      {showAttendees && (
+                        <motion.div 
+                          initial={{ height: 0, opacity: 0 }} 
+                          animate={{ height: 'auto', opacity: 1 }} 
+                          exit={{ height: 0, opacity: 0 }} 
+                          className="border-t border-slate-200"
+                        >
+                          <div className="p-6 space-y-3 max-h-72 overflow-y-auto">
+                            {attendees.map((a) => {
+                              const childRec = a.parent_id ? childrenMap[`${a.parent_id}-${a.child_name}`] : null;
+                              return (
+                                <div 
+                                  key={a.id} 
+                                  className="flex items-center gap-4 p-4 rounded-[1.5rem] bg-white border border-slate-100 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group" 
+                                  onClick={() => childRec && setSelectedChildProfile({ record: childRec, parentId: a.parent_id })}
+                                >
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${a.is_honored ? 'bg-amber-100 text-amber-500' : 'bg-slate-100 text-slate-400'}`}>
+                                    {a.is_honored ? <FaCrown className="text-lg" /> : <FaChild />}
+                                  </div>
+                                  <div className="flex-1">
+                                    <span className="font-bold text-base text-slate-800 group-hover:text-primary transition-colors">{a.child_name}</span>
+                                    {a.child_age && <div className="text-xs font-bold text-slate-400 mt-0.5">{a.child_age} سنوات</div>}
+                                  </div>
+                                  {childRec && <FaArrowLeft className="text-slate-300 group-hover:text-primary transition-colors text-sm opacity-0 group-hover:opacity-100" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                {/* Sticky Action Button */}
+                {selectedActivity.is_upcoming && (
+                  <div className="sticky bottom-6 z-20 mt-8">
+                    <button 
+                      onClick={handleRegister} 
+                      disabled={registering}
+                      className={`w-full py-5 rounded-[2rem] shadow-2xl text-white font-black text-xl flex items-center justify-center gap-3 transition-all duration-300 ${
+                        isRegistered 
+                          ? 'bg-emerald-500 shadow-emerald-500/30' 
+                          : 'bg-primary shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]'
+                      }`}
+                    >
+                      {registering ? (
+                        <><div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" /> جاري التأكيد...</>
+                      ) : isRegistered ? (
+                        <><FaCheckCircle className="text-2xl" /> تم التسجيل بنجاح</>
+                      ) : (
+                        <>تأكيد التسجيل <FaArrowLeft className="text-lg" /></>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </BottomSheetModal>
@@ -1370,27 +836,25 @@ export default function Dashboard() {
       <AnimatePresence>
         {expandedImage && (
           <motion.div 
-            className="fixed inset-0 z-[200] flex items-center justify-center"
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }}
-            onClick={handleCloseImage}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8" 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+            onClick={() => setExpandedImage(null)}
           >
-            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-slate-900/95 backdrop-blur-2xl" />
             <button 
-              onClick={handleCloseImage}
-              className="absolute top-4 left-4 sm:top-6 sm:left-6 z-30 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 hover:bg-red-500 flex items-center justify-center text-white transition-all"
+              onClick={() => setExpandedImage(null)} 
+              className="absolute top-6 left-6 z-30 w-14 h-14 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all backdrop-blur-md border border-white/10"
             >
-              <FaTimes className="text-lg" />
+              <FaTimes className="text-2xl" />
             </button>
             <motion.img 
               src={expandedImage} 
-              alt="صورة مكبرة"
-              className="relative z-20 max-w-[95vw] max-h-[85vh] sm:max-h-[90vh] object-contain rounded-xl sm:rounded-2xl shadow-2xl"
-              initial={{ scale: 0.8, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: 'spring', duration: 0.5 }}
+              alt="صورة مكبرة" 
+              className="relative z-20 max-w-full max-h-[90vh] object-contain rounded-3xl shadow-2xl border border-white/10" 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+              animate={{ scale: 1, opacity: 1, y: 0 }} 
+              exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }} 
               onClick={(e) => e.stopPropagation()} 
             />
           </motion.div>
@@ -1399,13 +863,13 @@ export default function Dashboard() {
 
       {/* ======== CHILD PROFILE MODAL ======== */}
       {selectedChildProfile && (
-        <ChildProfileModal
-          child={selectedChildProfile.record}
-          parentId={selectedChildProfile.parentId}
-          isAdmin={isCurrentUserAdmin}
-          isOwner={user?.id === selectedChildProfile.parentId}
-          onClose={handleCloseChildProfile}
-          onUpdate={handleCloseChildProfile}
+        <ChildProfileModal 
+          child={selectedChildProfile.record} 
+          parentId={selectedChildProfile.parentId} 
+          isAdmin={isCurrentUserAdmin} 
+          isOwner={user?.id === selectedChildProfile.parentId} 
+          onClose={() => setSelectedChildProfile(null)} 
+          onUpdate={() => setSelectedChildProfile(null)} 
         />
       )}
     </main>

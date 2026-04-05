@@ -1,4 +1,5 @@
 'use client'
+
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
@@ -14,8 +15,8 @@ export default function DonatePage() {
   const impactItems = [
     { icon: <FaChild />, number: '15+', label: 'مستفيد', color: 'text-primary' },
     { icon: <FaGraduationCap />, number: '5+', label: 'نشاط', color: 'text-secondary' },
-    { icon: <FaUsers />, number: '15+', label: 'عائلة مشاركة', color: 'text-accent' },
-    { icon: <FaStar />, number: '10+', label: 'متطوع نشط', color: 'text-warning' },
+    { icon: <FaUsers />, number: '15+', label: 'عائلة مشاركة', color: 'text-emerald-500' },
+    { icon: <FaStar />, number: '10+', label: 'متطوع نشط', color: 'text-amber-500' },
   ];
 
   const donationUses = [
@@ -34,7 +35,7 @@ export default function DonatePage() {
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
   const staggerContainer = {
@@ -42,87 +43,90 @@ export default function DonatePage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 overflow-x-hidden">
+    <div className="min-h-screen bg-[#EAF4FC] overflow-x-hidden pb-20">
 
       {/* ==========================================
-          HERO SECTION
+          HERO SECTION (Cinematic & Deep)
       ========================================== */}
-      <section className="relative bg-gradient-to-br from-primary via-secondary to-accent text-white py-24 md:py-32 px-4 overflow-hidden">
-        <div className="absolute top-0 right-0 w-72 md:w-[500px] h-72 md:h-[500px] bg-white/10 rounded-full blur-3xl -mr-36 -mt-36 pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 w-60 md:w-96 h-60 md:h-96 bg-black/10 rounded-full blur-3xl -ml-32 -mb-32 pointer-events-none"></div>
+      <section className="relative bg-slate-900 pt-40 pb-48 px-4 overflow-hidden rounded-b-[4rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+        {/* Abstract Glowing Orbs */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-secondary/20 rounded-full blur-[100px] -ml-32 -mb-32 pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
 
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
+            transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
           >
-            <div className="w-20 h-20 md:w-24 md:h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
-              <FaHandHoldingHeart className="text-3xl md:text-4xl" />
+            <div className="w-24 h-24 md:w-28 md:h-28 bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 flex items-center justify-center mx-auto mb-8 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+              <FaHandHoldingHeart className="text-4xl md:text-5xl text-white drop-shadow-md" />
             </div>
           </motion.div>
 
           <motion.h1 
-            className="text-4xl md:text-6xl font-bold mb-4 md:mb-6"
-            initial={{ opacity: 0, y: -20 }}
+            className="text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 tracking-tight leading-tight"
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.1, duration: 0.6 }}
           >
-            ساهم في بناء جيل واعٍ
+            ساهم في بناء <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary to-secondary">جيل واعٍ</span>
           </motion.h1>
           
           <motion.p 
-            className="text-lg md:text-2xl opacity-90 mb-4 max-w-2xl mx-auto leading-relaxed"
+            className="text-lg md:text-2xl text-slate-300 mb-6 max-w-2xl mx-auto leading-relaxed font-light"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
           >
             تبرعك يصنع الفرق في حياة أطفال يستحقون فرصة أفضل
           </motion.p>
 
           <motion.p
-            className="text-sm md:text-base opacity-70 max-w-xl mx-auto"
+            className="text-sm md:text-base text-slate-400 max-w-xl mx-auto mb-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
           >
             كل مساهمة، مهما كانت صغيرة، تساعدنا في تقديم برامج تعليمية وتربوية لأبنائنا
           </motion.p>
 
           <motion.div
-            className="mt-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
           >
-            <a href="#donate-now" className="btn btn-lg bg-white text-primary hover:bg-white/90 border-none rounded-full px-10 shadow-xl gap-2">
-              <FaHeart className="animate-pulse" /> تبرع الآن
+            <a href="#donate-now" className="inline-flex items-center justify-center gap-3 bg-white text-slate-900 font-black px-10 py-4 rounded-full text-lg shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 transition-all duration-300">
+              <FaHeart className="text-red-500 animate-pulse" /> تبرع الآن
             </a>
           </motion.div>
         </div>
       </section>
 
       {/* ==========================================
-          IMPACT STATS
+          IMPACT STATS (Overlapping Glass Cards)
       ========================================== */}
-      <section className="py-12 md:py-16 px-4 -mt-10 relative z-10">
-        <div className="max-w-4xl mx-auto">
+      <section className="px-4 -mt-24 relative z-20 mb-20">
+        <div className="max-w-5xl mx-auto">
           <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6"
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "-100px" }}
             variants={staggerContainer}
           >
             {impactItems.map((item, idx) => (
               <motion.div 
                 key={idx} 
                 variants={fadeInUp}
-                className="bg-base-100 rounded-2xl p-5 text-center shadow-lg border border-base-200 hover:shadow-xl transition-shadow"
+                className="bg-white/80 backdrop-blur-2xl rounded-[2rem] p-6 text-center shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/60 hover:-translate-y-2 transition-transform duration-500"
               >
-                <div className={`text-2xl md:text-3xl ${item.color} mb-2`}>{item.icon}</div>
-                <div className="text-2xl md:text-3xl font-bold text-base-content">{item.number}</div>
-                <div className="text-xs md:text-sm text-base-content/50">{item.label}</div>
+                <div className={`w-14 h-14 mx-auto bg-slate-50 rounded-2xl flex items-center justify-center ${item.color} mb-4 shadow-sm`}>
+                  <span className="text-2xl">{item.icon}</span>
+                </div>
+                <div className="text-3xl md:text-4xl font-black text-slate-800 mb-1">{item.number}</div>
+                <div className="text-sm md:text-base font-bold text-slate-500">{item.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -130,27 +134,25 @@ export default function DonatePage() {
       </section>
 
       {/* ==========================================
-          WHY DONATE
+          WHY DONATE (Premium Grid)
       ========================================== */}
-      <section className="py-14 md:py-20 px-4">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-10 px-4 mb-10">
+        <div className="max-w-6xl mx-auto">
           <motion.div 
-            className="text-center mb-10 md:mb-12"
+            className="text-center mb-14"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <FaQuestionCircle className="text-2xl text-primary" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-primary mb-3">أين يذهب تبرعك؟</h2>
-            <p className="text-base-content/50 text-sm md:text-base max-w-xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4">أين يذهب تبرعك؟</h2>
+            <div className="w-16 h-1.5 bg-gradient-to-r from-primary to-secondary rounded-full mx-auto mb-4" />
+            <p className="text-slate-500 text-base md:text-lg max-w-xl mx-auto font-medium">
               نضمن أن كل ليرة تصل إلى مكانها الصحيح وتصنع أثراً حقيقياً
             </p>
           </motion.div>
 
           <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 gap-6"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -160,14 +162,14 @@ export default function DonatePage() {
               <motion.div 
                 key={idx}
                 variants={fadeInUp}
-                className="bg-base-100 rounded-2xl p-5 md:p-6 shadow-sm border border-base-200 flex items-start gap-4 hover:shadow-lg hover:border-primary/20 transition-all duration-300 group"
+                className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 flex items-start gap-6 hover:bg-white hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 group"
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 text-primary text-xl group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center shrink-0 text-primary text-2xl shadow-sm border border-slate-100 group-hover:bg-primary group-hover:text-white transition-colors duration-500">
                   {item.icon}
                 </div>
                 <div>
-                  <h3 className="font-bold text-base-content text-lg mb-1">{item.title}</h3>
-                  <p className="text-base-content/60 text-sm leading-relaxed">{item.desc}</p>
+                  <h3 className="font-black text-slate-800 text-xl mb-2">{item.title}</h3>
+                  <p className="text-slate-500 text-sm md:text-base leading-relaxed font-medium">{item.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -178,132 +180,121 @@ export default function DonatePage() {
       {/* ==========================================
           DONATE NOW — QR CODE + METHODS
       ========================================== */}
-      <section id="donate-now" className="py-14 md:py-20 px-4 bg-base-100 scroll-mt-20">
-        <div className="max-w-5xl mx-auto">
+      <section id="donate-now" className="py-16 px-4 scroll-mt-24 mb-10">
+        <div className="max-w-6xl mx-auto">
           <motion.div 
-            className="text-center mb-10 md:mb-12"
+            className="text-center mb-14"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="w-14 h-14 bg-warning/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <FaHeart className="text-2xl text-warning" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-primary mb-3">طرق التبرع</h2>
-            <p className="text-base-content/50 text-sm md:text-base max-w-xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-black text-slate-800 mb-4">طرق التبرع</h2>
+            <div className="w-16 h-1.5 bg-gradient-to-r from-warning to-red-400 rounded-full mx-auto mb-4" />
+            <p className="text-slate-500 text-base md:text-lg max-w-xl mx-auto font-medium">
               اختر الطريقة الأنسب لك للمساهمة في دعم رسالتنا
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-            {/* QR Code Card */}
+            {/* QR Code Card (Fintech Style) */}
             <motion.div
-              className="bg-gradient-to-br from-primary/5 to-secondary/5 border-2 border-primary/15 rounded-3xl p-6 md:p-8 text-center relative overflow-hidden order-1"
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              className="lg:col-span-5 bg-white rounded-[3rem] p-8 md:p-10 text-center relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-slate-100"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -ml-10 -mt-10 pointer-events-none"></div>
+              <div className="absolute top-0 right-0 w-full h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
 
               <div className="relative z-10">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <FaQrcode className="text-xl text-primary" />
-                  <h3 className="text-xl md:text-2xl font-bold text-primary">شام كاش</h3>
+                <div className="inline-flex items-center justify-center gap-2 bg-primary/10 text-primary font-bold px-4 py-2 rounded-xl mb-6">
+                  <FaQrcode className="text-lg" />
+                  <span>دفع إلكتروني</span>
                 </div>
 
-                <p className="text-base-content/60 text-sm mb-6">
+                <h3 className="text-2xl md:text-3xl font-black text-slate-800 mb-2">شام كاش</h3>
+                <p className="text-slate-500 text-sm mb-8 font-medium">
                   امسح رمز QR أدناه عبر تطبيق شام كاش للتحويل المباشر
                 </p>
 
                 {/* QR Image */}
-                <div className="bg-white rounded-2xl p-4 md:p-6 inline-block mx-auto shadow-lg border border-base-200 mb-6">
+                <div className="bg-white rounded-3xl p-4 inline-block mx-auto shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-slate-100 mb-8 aspect-square w-56 md:w-64">
                   <img 
                     src="/shamcash-qr.png" 
                     alt="رمز QR لحساب شام كاش - جمعية قدوة"
-                    className="w-48 h-48 md:w-56 md:h-56 object-contain mx-auto"
+                    className="w-full h-full object-contain rounded-2xl"
                   />
                 </div>
 
-                <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
-                  <p className="text-xs text-base-content/50 mb-1">اسم الحساب</p>
-                  <p className="font-bold text-primary text-lg">جمعية قدوة</p>
-                </div>
-
-                <div className="mt-4 flex items-start gap-2 text-right bg-info/5 border border-info/10 p-3 rounded-xl">
-                  <FaInfoCircle className="text-info shrink-0 mt-0.5 text-sm" />
-                  <p className="text-xs text-base-content/50 leading-relaxed">
-                    بعد التحويل، يرجى التواصل معنا لتأكيد وصول التبرع وإرسال إيصال الاستلام
-                  </p>
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">اسم الحساب المستفيد</p>
+                  <p className="font-black text-slate-800 text-xl">جمعية قدوة</p>
                 </div>
               </div>
             </motion.div>
 
             {/* Other Methods */}
             <motion.div
-              className="space-y-4 md:space-y-5 order-2"
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              className="lg:col-span-7 space-y-6"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
               {/* Cash Donation */}
-              <div className="bg-base-100 rounded-2xl p-5 md:p-6 shadow-sm border border-base-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center text-success">
+              <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 text-2xl">
                     <FaMoneyBillWave />
                   </div>
-                  <h3 className="font-bold text-base-content text-lg">تبرع نقدي مباشر</h3>
+                  <h3 className="font-black text-slate-800 text-xl md:text-2xl">تبرع نقدي مباشر</h3>
                 </div>
-                <p className="text-base-content/60 text-sm mb-4 leading-relaxed">
-                  يمكنك تسليم تبرعك نقداً لأحد أعضاء الإدارة. تواصل معنا لترتيب الاستلام.
+                <p className="text-slate-500 text-base mb-6 font-medium leading-relaxed">
+                  يمكنك تسليم تبرعك نقداً لأحد أعضاء الإدارة المعتمدين. تواصل معنا لترتيب الاستلام بكل سهولة.
                 </p>
-                <Link href="/contact" className="btn btn-sm btn-outline btn-success rounded-xl gap-2">
+                <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 hover:text-emerald-600 transition-colors shadow-sm">
                   <FaEnvelope /> تواصل لترتيب الاستلام
                 </Link>
               </div>
 
               {/* In-Kind Donation */}
-              <div className="bg-base-100 rounded-2xl p-5 md:p-6 shadow-sm border border-base-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent">
+              <div className="bg-white/60 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 text-2xl">
                     <FaHandsHelping />
                   </div>
-                  <h3 className="font-bold text-base-content text-lg">تبرع عيني</h3>
+                  <h3 className="font-black text-slate-800 text-xl md:text-2xl">تبرع عيني</h3>
                 </div>
-                <p className="text-base-content/60 text-sm mb-3 leading-relaxed">
-                  نستقبل التبرعات العينية التي تساعدنا في تقديم أنشطتنا:
+                <p className="text-slate-500 text-base mb-4 font-medium leading-relaxed">
+                  نستقبل التبرعات العينية التي تساعدنا في تقديم أنشطتنا بأفضل صورة:
                 </p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {['قرطاسية', 'ألعاب تعليمية', 'كتب', 'مواد فنية', 'أدوات رياضية', 'مستلزمات مخيمات'].map((item, idx) => (
-                    <span key={idx} className="badge badge-outline badge-sm py-2">{item}</span>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {['قرطاسية', 'ألعاب تعليمية', 'كتب', 'مواد فنية', 'أدوات رياضية'].map((item, idx) => (
+                    <span key={idx} className="px-4 py-2 bg-white rounded-xl text-sm font-bold text-slate-600 border border-slate-100 shadow-sm">{item}</span>
                   ))}
                 </div>
-                <Link href="/contact" className="btn btn-sm btn-outline btn-accent rounded-xl gap-2">
+                <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-700 font-bold rounded-xl border border-slate-200 hover:bg-slate-50 hover:text-amber-600 transition-colors shadow-sm">
                   <FaEnvelope /> تواصل لتنسيق التبرع
                 </Link>
               </div>
 
               {/* Contact for Other Methods */}
-              <div className="bg-gradient-to-r from-warning/5 to-warning/10 rounded-2xl p-5 md:p-6 border border-warning/15">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-warning/10 rounded-xl flex items-center justify-center text-warning">
+              <div className="bg-slate-900 rounded-[2.5rem] p-8 border border-slate-800 text-white shadow-xl">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white text-2xl backdrop-blur-md">
                     <FaQuestionCircle />
                   </div>
-                  <h3 className="font-bold text-base-content text-lg">طريقة أخرى؟</h3>
+                  <h3 className="font-black text-xl md:text-2xl">طريقة أخرى؟</h3>
                 </div>
-                <p className="text-base-content/60 text-sm mb-4 leading-relaxed">
-                  إذا كنت خارج سوريا أو تفضل طريقة دفع مختلفة، تواصل معنا وسنجد الحل المناسب.
+                <p className="text-slate-400 text-base mb-6 font-medium leading-relaxed">
+                  إذا كنت خارج سوريا أو تفضل طريقة دفع مختلفة، فريقنا جاهز للمساعدة وإيجاد الطريقة الأنسب لك.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <a href="https://wa.me/963980931111" target="_blank" rel="noopener noreferrer" className="btn btn-sm bg-[#25D366] hover:bg-[#128C7E] border-none text-white rounded-xl gap-2">
-                    <FaWhatsapp /> واتساب
+                <div className="flex flex-wrap gap-3">
+                  <a href="https://wa.me/963980931111" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold rounded-xl transition-colors">
+                    <FaWhatsapp className="text-lg" /> واتساب
                   </a>
-                  <a href="https://t.me/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="btn btn-sm bg-[#0088cc] hover:bg-[#007db3] border-none text-white rounded-xl gap-2">
-                    <FaTelegramPlane /> تلغرام
+                  <a href="https://t.me/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold rounded-xl transition-colors">
+                    <FaTelegramPlane className="text-lg" /> تلغرام
                   </a>
-                  <Link href="/contact" className="btn btn-sm btn-outline rounded-xl gap-2">
-                    <FaEnvelope /> راسلنا
-                  </Link>
                 </div>
               </div>
             </motion.div>
@@ -314,36 +305,36 @@ export default function DonatePage() {
       {/* ==========================================
           TRANSPARENCY NOTE
       ========================================== */}
-      <section className="py-14 md:py-20 px-4">
+      <section className="py-10 px-4 mb-10">
         <div className="max-w-4xl mx-auto">
           <motion.div
-            className="bg-base-100 rounded-3xl p-6 md:p-10 shadow-lg border border-base-200 relative overflow-hidden"
+            className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+            <div className="absolute top-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -ml-10 -mt-10 pointer-events-none" />
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
-                <FaShieldAlt className="text-xl text-primary" />
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
+              <div className="w-24 h-24 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-3xl flex items-center justify-center shrink-0 border border-primary/20">
+                <FaShieldAlt className="text-4xl text-primary drop-shadow-sm" />
               </div>
-              <h2 className="text-xl md:text-2xl font-bold text-primary">التزامنا بالشفافية</h2>
-            </div>
-
-            <div className="space-y-4 relative z-10">
-              {[
-                'كل تبرع يُوثّق ويُسجّل رسمياً في سجلات الجمعية',
-                'نرسل تأكيد استلام لكل متبرع عبر وسائل التواصل',
-                'يمكنك متابعة أثر تبرعك من خلال صفحة النشاطات والمعرض',
-                'نلتزم بصرف التبرعات حصرياً على البرامج والأنشطة المعلنة',
-                'نرحب بأي استفسار حول آلية صرف التبرعات في أي وقت',
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-start gap-3">
-                  <FaCheckCircle className="text-success shrink-0 mt-1" />
-                  <p className="text-base-content/70 text-sm md:text-base leading-relaxed">{item}</p>
+              <div className="space-y-5 text-center md:text-right">
+                <h2 className="text-2xl md:text-3xl font-black text-slate-800">التزامنا القاطع بالشفافية</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-right">
+                  {[
+                    'توثيق كل تبرع في السجلات الرسمية',
+                    'إرسال تأكيد استلام مباشر للمتبرع',
+                    'صرف حصري على البرامج المعلنة',
+                    'متابعة أثر التبرع عبر منصتنا',
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
+                      <FaCheckCircle className="text-emerald-500 shrink-0 text-lg" />
+                      <p className="text-slate-600 font-bold text-sm">{item}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </motion.div>
         </div>
@@ -352,7 +343,7 @@ export default function DonatePage() {
       {/* ==========================================
           DONATION FAQ
       ========================================== */}
-      <section className="py-14 md:py-20 px-4 bg-base-100">
+      <section className="py-10 px-4 mb-10">
         <div className="max-w-3xl mx-auto">
           <motion.div 
             className="text-center mb-10"
@@ -360,11 +351,11 @@ export default function DonatePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-2xl md:text-3xl font-bold text-primary mb-3">أسئلة شائعة عن التبرع</h2>
+            <h2 className="text-3xl font-black text-slate-800 mb-4">أسئلة شائعة</h2>
           </motion.div>
 
           <motion.div 
-            className="space-y-3"
+            className="space-y-4"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
@@ -374,16 +365,16 @@ export default function DonatePage() {
               <motion.details
                 key={idx}
                 variants={fadeInUp}
-                className="group bg-base-200/50 rounded-2xl border border-base-200 overflow-hidden"
+                className="group bg-white/60 backdrop-blur-md rounded-[2rem] border border-white/60 shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden"
               >
-                <summary className="flex items-center justify-between p-5 cursor-pointer hover:bg-base-200 transition-colors font-bold text-base-content list-none">
+                <summary className="flex items-center justify-between p-6 cursor-pointer hover:bg-white transition-colors font-black text-lg text-slate-800 list-none">
                   <span>{item.q}</span>
-                  <FaArrowLeft className="text-primary text-sm shrink-0 group-open:rotate-90 transition-transform duration-300" />
-                </summary>
-                <div className="px-5 pb-5 pt-0">
-                  <div className="border-t border-base-200 pt-4">
-                    <p className="text-base-content/60 text-sm leading-relaxed">{item.a}</p>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-open:rotate-90 transition-transform duration-300">
+                    <FaArrowLeft className="text-slate-500 text-sm" />
                   </div>
+                </summary>
+                <div className="px-6 pb-6 pt-0">
+                  <p className="text-slate-500 text-base leading-relaxed font-medium pt-4 border-t border-slate-100">{item.a}</p>
                 </div>
               </motion.details>
             ))}
@@ -392,18 +383,18 @@ export default function DonatePage() {
       </section>
 
       {/* ==========================================
-          CTA SECTION
+          CTA SECTION (Cinematic)
       ========================================== */}
-      <section className="py-14 md:py-20 px-4">
-        <div className="max-w-4xl mx-auto">
+      <section className="py-10 px-4">
+        <div className="max-w-5xl mx-auto">
           <motion.div 
-            className="bg-gradient-to-br from-primary via-secondary to-accent rounded-3xl p-6 md:p-14 text-white text-center relative overflow-hidden"
+            className="bg-slate-900 rounded-[3rem] p-10 md:p-16 text-white text-center relative overflow-hidden shadow-2xl"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-36 h-36 bg-white/10 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none"></div>
+            {/* Cinematic Gradient Background inside CTA */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-slate-900 to-secondary/20 pointer-events-none" />
             
             <div className="relative z-10">
               <motion.div
@@ -411,23 +402,23 @@ export default function DonatePage() {
                 whileInView={{ scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, type: "spring" }}
-                className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6"
+                className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-8 border border-white/20"
               >
-                <FaMosque className="text-3xl" />
+                <FaMosque className="text-4xl text-primary-100" />
               </motion.div>
 
-              <h2 className="text-2xl md:text-4xl font-bold mb-4">
-               قال رسول الله ﷺ: «أحبُّ النَّاسِ إلى اللَّهِ أنفعهُم للناس»
+              <h2 className="text-2xl md:text-4xl lg:text-5xl font-nastaliq leading-relaxed mb-6 drop-shadow-md">
+               «أحبُّ النَّاسِ إلى اللَّهِ أنفعهُم للناس»
               </h2>
-              <p className="opacity-90 mb-8 text-sm md:text-lg max-w-lg mx-auto leading-relaxed">
+              <p className="text-slate-300 mb-10 text-base md:text-xl max-w-2xl mx-auto leading-relaxed font-light">
                 ساهم معنا في بناء مستقبل أفضل لأبنائنا. كل مساهمة تترك أثراً يبقى.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#donate-now" className="btn btn-lg bg-white text-primary hover:bg-white/90 border-none rounded-full px-10 shadow-xl gap-2">
-                  <FaHeart /> تبرع الآن
+                <a href="#donate-now" className="inline-flex items-center justify-center px-8 py-4 bg-white text-slate-900 font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] gap-2 text-lg">
+                  <FaHeart className="text-red-500" /> تبرع الآن
                 </a>
-                <Link href="/contact" className="btn btn-lg btn-outline border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-full px-10 gap-2">
+                <Link href="/contact" className="inline-flex items-center justify-center px-8 py-4 bg-white/10 text-white border border-white/20 font-bold rounded-2xl hover:bg-white/20 transition-all gap-2 text-lg backdrop-blur-md">
                   <FaEnvelope /> تواصل معنا
                 </Link>
               </div>
