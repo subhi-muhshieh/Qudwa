@@ -37,8 +37,7 @@ export function ProfileProvider({ children }) {
     const fetchUserAndProfile = async () => {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (error) throw error;
+if (error && error.name !== 'AuthSessionMissingError') throw error;
         
         if (isMounted && user) {
           setUser(user);

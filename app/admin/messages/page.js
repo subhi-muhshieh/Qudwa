@@ -238,42 +238,91 @@ export default function AdminMessagesPage() {
     };
   }, [selectedConversation, user, supabase, scrollToBottom]);
 
-  const handleSendMessage = useCallback(
+ const handleSendMessage = useCallback(
     async (e) => {
       e.preventDefault();
 
       if (!newMessage.trim() || !selectedConversation || !user || sending) return;
 
+      const messageText = newMessage.trim();
       setSending(true);
 
+      // Optimistic message — show immediately before DB confirms
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        id: tempId,
+        conversation_id: selectedConversation.id,
+        sender_id: user.id,
+        content: messageText,
+        message_type: 'text',
+        is_read: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, optimisticMessage]);
+      setNewMessage('');
+      setTimeout(() => scrollToBottom(true), 30);
+
       try {
+        // 1. Safely assign admin to conversation if needed
         if (!selectedConversation.admin_id) {
-          await supabase
+          const { error: updateError } = await supabase
             .from('conversations')
             .update({ admin_id: user.id })
             .eq('id', selectedConversation.id);
+
+          if (updateError) {
+            console.warn('Could not assign admin_id to conversation:', updateError);
+          } else {
+            // Update local state so we don't keep firing this on every message
+            selectedConversation.admin_id = user.id;
+          }
         }
 
-        const { error } = await supabase.from('messages').insert([
+        // 2. Insert the message safely (Removed .single() to prevent fatal crashes)
+        const { data, error } = await supabase.from('messages').insert([
           {
             conversation_id: selectedConversation.id,
             sender_id: user.id,
-            content: newMessage.trim(),
+            content: messageText,
             message_type: 'text',
           },
-        ]);
+        ]).select(); 
 
         if (error) throw error;
 
-        setNewMessage('');
+        // 3. Handle the UI update smoothly
+        if (data && data.length > 0) {
+          const realMessage = data[0];
+          setMessages((prev) => {
+            // If the websocket already grabbed the real message, just delete the temp one
+            if (prev.some(m => m.id === realMessage.id && m.id !== tempId)) {
+              return prev.filter(m => m.id !== tempId);
+            }
+            // Otherwise, replace temp with real
+            return prev.map((m) => (m.id === tempId ? realMessage : m));
+          });
+        } else {
+          // If RLS blocked the insert but didn't throw an error
+          throw new Error('تم حظر إرسال الرسالة بسبب صلاحيات الأمان (RLS)');
+        }
+
         setTimeout(() => {
-          scrollToBottom(true);
           inputRef.current?.focus();
         }, 50);
+
       } catch (error) {
         console.error('Error sending admin message:', error);
-        toast.error('حدث خطأ في إرسال الرسالة');
+        
+        // Remove optimistic message on failure and restore text
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setNewMessage(messageText);
+        
+        // Show the actual error to the user so we know exactly why it failed
+        toast.error(error.message || 'حدث خطأ في إرسال الرسالة');
       } finally {
+        // Guarantee the spinner stops no matter what happens
         setSending(false);
       }
     },
@@ -301,8 +350,7 @@ export default function AdminMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen pt-20 sm:pt-32 pb-20 px-2 sm:px-4 md:px-8" dir="rtl">
-      <div className="max-w-7xl mx-auto">
+<div className="min-h-screen pt-32 sm:pt-40 pb-20 px-4 md:px-8" dir="rtl">      <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-6 sm:mb-8 flex items-center gap-2 sm:gap-3">
           <FaComments className="text-2xl sm:text-3xl" /> الرسائل
         </h1>

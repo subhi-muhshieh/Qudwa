@@ -29,7 +29,9 @@ export default function AdminDashboard() {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const fileInputRef = useRef(null);
+const activityDropdownRef = useRef(null);
   const [photoManagerActivity, setPhotoManagerActivity] = useState(null);
+const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -374,6 +376,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (activeTab === 'registrations' && selectedEventId) fetchRegistrations(selectedEventId);
   }, [activeTab, selectedEventId]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (activityDropdownRef.current && !activityDropdownRef.current.contains(e.target)) {
+        setActivityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'registrations' && !selectedEventId) {
@@ -795,33 +807,106 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <div className="bg-base-100 rounded-2xl p-6 shadow-sm">
               <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2"><FaCalendarAlt /> اختر النشاط</h2>
-              {upcomingActivities.length === 0 ? (
-                <div className="text-center py-8 text-base-content/50"><FaCalendarAlt className="text-4xl mx-auto mb-3 text-base-content/30" /><p>لا توجد نشاطات قادمة حالياً</p></div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {upcomingActivities.map((activity) => (
-                    <button key={activity.id} onClick={() => setSelectedEventId(activity.id)} className={`p-4 rounded-2xl border-2 text-right transition-all ${selectedEventId === activity.id ? 'border-primary bg-primary/5 shadow-md' : 'border-base-200 hover:border-primary/30'}`}>
-                      <div className="font-bold text-base-content truncate">{activity.title}</div>
-                      <div className="text-sm text-base-content/50 mt-1">{activity.activity_date || 'تاريخ غير محدد'}</div>
-                      {activity.capacity && <div className="text-xs text-primary mt-2">السعة: {activity.capacity} مشارك</div>}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {activities.filter(a => !a.is_upcoming).length > 0 && (
-                <details className="mt-4">
-                  <summary className="cursor-pointer text-sm text-base-content/50 hover:text-primary">عرض النشاطات السابقة ({activities.filter(a => !a.is_upcoming).length})</summary>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
-                    {activities.filter(a => !a.is_upcoming).map((activity) => (
-                      <button key={activity.id} onClick={() => setSelectedEventId(activity.id)} className={`p-4 rounded-2xl border-2 text-right transition-all ${selectedEventId === activity.id ? 'border-primary bg-primary/5 shadow-md' : 'border-base-200 hover:border-primary/30'}`}>
-                        <div className="font-bold truncate">{activity.title}</div>
-                        <div className="text-sm text-base-content/50 mt-1">{activity.activity_date || 'تاريخ غير محدد'}</div>
-                        <span className="badge badge-ghost badge-sm mt-2">منتهي</span>
-                      </button>
-                    ))}
+              <div ref={activityDropdownRef} className="relative w-full max-w-md" dir="rtl">
+                <button
+                  type="button"
+                  onClick={() => setActivityDropdownOpen(!activityDropdownOpen)}
+                  className={`w-full bg-base-100 border-2 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 transition-all ${
+                    activityDropdownOpen
+                      ? 'border-primary shadow-[0_0_0_3px_rgba(18,129,195,0.12)]'
+                      : 'border-base-300 hover:border-primary'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-base-200 flex items-center justify-center shrink-0">
+                      <FaCalendarAlt className="text-primary text-sm" />
+                    </div>
+                    <div className="text-right flex-1 min-w-0">
+                      <p className="text-sm font-bold text-base-content truncate">
+                        {selectedEventId
+                          ? activities.find(a => a.id === selectedEventId)?.title || 'اختر نشاطاً...'
+                          : 'اختر نشاطاً...'}
+                      </p>
+                      <p className="text-xs text-base-content/50 mt-0.5">
+                        {selectedEventId
+                          ? activities.find(a => a.id === selectedEventId)?.activity_date || ''
+                          : 'لم يتم الاختيار بعد'}
+                      </p>
+                    </div>
                   </div>
-                </details>
-              )}
+                  <FaChevronDown className={`text-primary text-sm shrink-0 transition-transform duration-200 ${activityDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {activityDropdownOpen && (
+                  <div className="absolute top-[calc(100%+8px)] right-0 left-0 bg-base-100 border-2 border-base-300 rounded-2xl overflow-hidden z-50 shadow-lg">
+                    <div className="p-2">
+                      {upcomingActivities.length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-primary">
+                            <span>النشاطات القادمة</span>
+                            <div className="flex-1 h-px bg-base-200" />
+                          </div>
+                          {upcomingActivities.map(activity => (
+                            <button
+                              key={activity.id}
+                              type="button"
+                              onClick={() => { setSelectedEventId(activity.id); setActivityDropdownOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-right transition-colors ${
+                                selectedEventId === activity.id ? 'bg-base-200' : 'hover:bg-base-200/60'
+                              }`}
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                <FaCalendarAlt className="text-primary text-xs" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-base-content truncate">{activity.title}</p>
+                                <p className="text-xs text-base-content/50">{activity.activity_date || 'تاريخ غير محدد'} • السعة: {activity.capacity}</p>
+                              </div>
+                              {selectedEventId === activity.id
+                                ? <span className="badge badge-primary badge-sm shrink-0">محدد</span>
+                                : <span className="badge badge-sm shrink-0" style={{background:'#dbeafe',color:'#1281c3'}}>قادم</span>
+                              }
+                            </button>
+                          ))}
+                        </>
+                      )}
+                      {activities.filter(a => !a.is_upcoming).length > 0 && (
+                        <>
+                          <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-base-content/40 mt-1">
+                            <span>النشاطات السابقة</span>
+                            <div className="flex-1 h-px bg-base-200" />
+                          </div>
+                          {activities.filter(a => !a.is_upcoming).map(activity => (
+                            <button
+                              key={activity.id}
+                              type="button"
+                              onClick={() => { setSelectedEventId(activity.id); setActivityDropdownOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-right transition-colors ${
+                                selectedEventId === activity.id ? 'bg-base-200' : 'hover:bg-base-200/60'
+                              }`}
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0">
+                                <FaHistory className="text-base-content/40 text-xs" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-base-content truncate">{activity.title}</p>
+                                <p className="text-xs text-base-content/50">{activity.activity_date || 'تاريخ غير محدد'}</p>
+                              </div>
+                              {selectedEventId === activity.id
+                                ? <span className="badge badge-primary badge-sm shrink-0">محدد</span>
+                                : <span className="badge badge-ghost badge-sm shrink-0">منتهي</span>
+                              }
+                            </button>
+                          ))}
+                        </>
+                      )}
+                      {activities.length === 0 && (
+                        <div className="text-center py-6 text-base-content/50 text-sm">لا توجد نشاطات</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {selectedEventId && (

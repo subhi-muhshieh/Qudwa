@@ -209,25 +209,49 @@ export default function ChatWindow({ onClose, onMessageRead }) {
       const messageText = newMessage.trim();
       setSending(true);
 
+      // Optimistic message — show immediately before DB confirms
+      const tempId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        id: tempId,
+        conversation_id: conversation.id,
+        sender_id: user.id,
+        content: messageText,
+        message_type: 'text',
+        is_read: false,
+        is_deleted: false,
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, optimisticMessage]);
+      setNewMessage('');
+      setTimeout(() => scrollMessagesToBottom(true), 30);
+
       try {
-        const { error } = await supabase.from('messages').insert([
+        const { data, error } = await supabase.from('messages').insert([
           {
             conversation_id: conversation.id,
             sender_id: user.id,
             content: messageText,
             message_type: 'text',
           },
-        ]);
+        ]).select().single();
 
         if (error) throw error;
 
-        setNewMessage('');
+        // Replace temp message with real one from DB
+        if (data) {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === tempId ? data : m))
+          );
+        }
 
         setTimeout(() => {
-          scrollMessagesToBottom(true);
           inputRef.current?.focus();
         }, 50);
       } catch (error) {
+        // Remove optimistic message on failure
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setNewMessage(messageText);
         console.error('Error sending message:', error);
         toast.error('حدث خطأ في إرسال الرسالة');
       } finally {

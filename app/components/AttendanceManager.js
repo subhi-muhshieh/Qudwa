@@ -1,10 +1,10 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { 
   FaCalendarAlt, FaChild, FaCheckCircle, FaUserPlus, FaTrash, 
   FaSync, FaClipboardCheck, FaUsers, FaPhone, FaPlus, FaTimes, 
-  FaSearch, FaCheckDouble, FaUserFriends, FaTimesCircle, FaCheck, FaCrown
+  FaSearch, FaCheckDouble, FaChevronDown, FaTimesCircle, FaCheck, FaCrown
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { levelDefinitions, getLevelDef } from '../utils/constants';
@@ -25,10 +25,11 @@ const [childrenMap, setChildrenMap] = useState({});
 const [selectedChildProfile, setSelectedChildProfile] = useState(null);
 const [changingLevel, setChangingLevel] = useState({});
   const [walkInForm, setWalkInForm] = useState({ child_name: '', child_age: '', parent_name: '' });
-  const [addingWalkIn, setAddingWalkIn] = useState(false);
+const [addingWalkIn, setAddingWalkIn] = useState(false);
+const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  const supabase = createClient();
-
+const supabase = createClient();
+const dropdownRef = useRef(null);
   // Auto-select first activity
   useEffect(() => {
     if (!selectedActivityId && activities.length > 0) {
@@ -42,11 +43,22 @@ const [changingLevel, setChangingLevel] = useState({});
   }, [activities, selectedActivityId]);
 
   // Fetch data when activity changes
+  // Fetch data when activity changes
   useEffect(() => {
     if (selectedActivityId) {
       fetchData();
     }
   }, [selectedActivityId]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -459,34 +471,106 @@ const openChildProfile = (parentId, childName) => {
         <h2 className="text-lg md:text-xl font-bold text-primary mb-4 flex items-center gap-2">
           <FaCalendarAlt /> اختر النشاط
         </h2>
-        <select
-          value={selectedActivityId}
-          onChange={(e) => {
-            setSelectedActivityId(e.target.value);
-            setSearchQuery('');
-          }}
-          className="select select-bordered rounded-xl w-full text-base"
-        >
-          <option value="" disabled>اختر نشاطاً...</option>
-          {activities.filter(a => a.is_upcoming).length > 0 && (
-            <optgroup label="النشاطات القادمة">
-              {activities.filter(a => a.is_upcoming).map(a => (
-                <option key={a.id} value={a.id}>
-                  {a.title} {a.activity_date ? `(${a.activity_date})` : ''}
-                </option>
-              ))}
-            </optgroup>
+        <div ref={dropdownRef} className="relative w-full max-w-md" dir="rtl">
+          <button
+            type="button"
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className={`w-full bg-base-100 border-2 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 transition-all ${
+              dropdownOpen
+                ? 'border-primary shadow-[0_0_0_3px_rgba(18,129,195,0.12)]'
+                : 'border-base-300 hover:border-primary'
+            }`}
+          >
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-base-200 flex items-center justify-center shrink-0">
+                <FaCalendarAlt className="text-primary text-sm" />
+              </div>
+              <div className="text-right flex-1 min-w-0">
+                <p className="text-sm font-bold text-base-content truncate">
+                  {selectedActivityId
+                    ? activities.find(a => a.id === selectedActivityId)?.title || 'اختر نشاطاً...'
+                    : 'اختر نشاطاً...'}
+                </p>
+                <p className="text-xs text-base-content/50 mt-0.5">
+                  {selectedActivityId
+                    ? activities.find(a => a.id === selectedActivityId)?.activity_date || ''
+                    : 'لم يتم الاختيار بعد'}
+                </p>
+              </div>
+            </div>
+            <FaChevronDown className={`text-primary text-sm shrink-0 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute top-[calc(100%+8px)] right-0 left-0 bg-base-100 border-2 border-base-300 rounded-2xl overflow-hidden z-50 shadow-lg">
+              <div className="p-2">
+                {activities.filter(a => a.is_upcoming).length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-primary">
+                      <span>النشاطات القادمة</span>
+                      <div className="flex-1 h-px bg-base-200" />
+                    </div>
+                    {activities.filter(a => a.is_upcoming).map(activity => (
+                      <button
+                        key={activity.id}
+                        type="button"
+                        onClick={() => { setSelectedActivityId(activity.id); setSearchQuery(''); setDropdownOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-right transition-colors ${
+                          selectedActivityId === activity.id ? 'bg-base-200' : 'hover:bg-base-200/60'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <FaCalendarAlt className="text-primary text-xs" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-base-content truncate">{activity.title}</p>
+                          <p className="text-xs text-base-content/50">{activity.activity_date || 'تاريخ غير محدد'} • السعة: {activity.capacity}</p>
+                        </div>
+                        {selectedActivityId === activity.id
+                          ? <span className="badge badge-primary badge-sm shrink-0">محدد</span>
+                          : <span className="badge badge-sm shrink-0" style={{background:'#dbeafe',color:'#1281c3'}}>قادم</span>
+                        }
+                      </button>
+                    ))}
+                  </>
+                )}
+                {activities.filter(a => !a.is_upcoming).length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-base-content/40 mt-1">
+                      <span>النشاطات السابقة</span>
+                      <div className="flex-1 h-px bg-base-200" />
+                    </div>
+                    {activities.filter(a => !a.is_upcoming).map(activity => (
+                      <button
+                        key={activity.id}
+                        type="button"
+                        onClick={() => { setSelectedActivityId(activity.id); setSearchQuery(''); setDropdownOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-right transition-colors ${
+                          selectedActivityId === activity.id ? 'bg-base-200' : 'hover:bg-base-200/60'
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0">
+                          <FaClipboardCheck className="text-base-content/40 text-xs" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-base-content truncate">{activity.title}</p>
+                          <p className="text-xs text-base-content/50">{activity.activity_date || 'تاريخ غير محدد'}</p>
+                        </div>
+                        {selectedActivityId === activity.id
+                          ? <span className="badge badge-primary badge-sm shrink-0">محدد</span>
+                          : <span className="badge badge-ghost badge-sm shrink-0">منتهي</span>
+                        }
+                      </button>
+                    ))}
+                  </>
+                )}
+                {activities.length === 0 && (
+                  <div className="text-center py-6 text-base-content/50 text-sm">لا توجد نشاطات</div>
+                )}
+              </div>
+            </div>
           )}
-          {activities.filter(a => !a.is_upcoming).length > 0 && (
-            <optgroup label="النشاطات السابقة">
-              {activities.filter(a => !a.is_upcoming).map(a => (
-                <option key={a.id} value={a.id}>
-                  {a.title} {a.activity_date ? `(${a.activity_date})` : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+        </div>
       </div>
 
       {/* Show content only when activity is selected */}
