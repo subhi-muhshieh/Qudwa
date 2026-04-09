@@ -1,13 +1,14 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaCamera, FaPhone, FaEnvelope, FaInstagram, FaFacebook, 
   FaTelegramPlane, FaWhatsapp, FaUser, FaChild, FaSave, 
   FaEdit, FaPlus, FaTrash, FaTimes, FaArrowRight,
-  FaSitemap, FaBuilding, FaIdBadge, FaUserTag
+  FaSitemap, FaBuilding, FaIdBadge, FaUserTag, FaCheck, FaChevronDown, FaInfoCircle
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
@@ -15,9 +16,100 @@ import { userTypeLabels, rankLabels, officeLabels } from '../utils/constants';
 import ImageEditorModal from '../components/ImageEditorModal';
 import ChildProfileModal from '../components/ChildProfileModal';
 
+/* ========================================== */
+/* CUSTOM PREMIUM DROPDOWN COMPONENT         */
+/* ========================================== */
+const CustomDropdown = ({ value, onChange, options, placeholder, className }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedLabel = value ? options[value] : placeholder;
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <div
+        className={`flex items-center justify-between cursor-pointer ${className}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="truncate">{selectedLabel}</span>
+        <FaChevronDown className={`transition-transform duration-300 text-base-content/40 text-xs sm:text-sm shrink-0 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scaleY: 0.95 }}
+            animate={{ opacity: 1, y: 0, scaleY: 1 }}
+            exit={{ opacity: 0, y: -10, scaleY: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute z-50 w-full mt-2 bg-white border border-base-300 rounded-[1.2rem] shadow-[0_15px_40px_rgba(0,0,0,0.12)] max-h-60 overflow-y-auto overflow-x-hidden transform origin-top"
+          >
+            {Object.entries(options).map(([k, v]) => (
+              <div
+                key={k}
+                className={`px-5 py-3 cursor-pointer text-sm font-bold transition-colors ${
+                  value === k ? 'bg-primary/10 text-primary border-l-4 border-primary' : 'text-base-content/80 hover:bg-base-200 border-l-4 border-transparent'
+                }`}
+                onClick={() => {
+                  onChange(k);
+                  setIsOpen(false);
+                }}
+              >
+                {v}
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+/* ========================================== */
+/* SKELETON UI                               */
+/* ========================================== */
+const ProfileSkeleton = memo(function ProfileSkeleton() {
+  return (
+    <main className="min-h-screen bg-base-100 relative w-full max-w-[100vw] overflow-x-hidden pb-24" dir="rtl">
+      <section className="relative bg-gradient-to-br from-neutral via-primary to-secondary pt-36 sm:pt-48 pb-40 sm:pb-52 px-4 overflow-hidden rounded-b-[3rem] sm:rounded-b-[4rem] shadow-lg w-full">
+        <div className="max-w-3xl mx-auto animate-pulse flex flex-col items-center">
+          <div className="w-24 h-24 bg-white/10 rounded-[2rem] mb-6" />
+          <div className="h-10 w-48 bg-white/10 rounded-xl mb-4" />
+          <div className="h-4 w-64 bg-white/10 rounded-full" />
+        </div>
+      </section>
+
+      <section className="px-2 sm:px-4 -mt-24 sm:-mt-32 relative z-20 mb-20 w-full">
+        <div className="max-w-3xl mx-auto w-full bg-white/80 backdrop-blur-2xl rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/60 animate-pulse">
+          <div className="flex justify-center -mt-16 sm:-mt-20 mb-8">
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-base-300 border-4 border-white shadow-lg" />
+          </div>
+          <div className="space-y-6 flex flex-col items-center">
+            <div className="h-8 w-48 bg-base-200 rounded-full" />
+            <div className="h-4 w-32 bg-base-200 rounded-full" />
+            <div className="h-12 w-32 bg-base-200 rounded-xl" />
+            <div className="w-full h-32 bg-base-200 rounded-[1.5rem] mt-6" />
+            <div className="w-full h-24 bg-base-200 rounded-[1.5rem]" />
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+});
+
 export default function ProfilePage() {
-const { user, profile: contextProfile, loading: contextLoading, updateProfile } = useProfile();
-const isAdmin = contextProfile?.role === 'admin';
+  const { user, profile: contextProfile, loading: contextLoading, updateProfile } = useProfile();
+  const isAdmin = contextProfile?.role === 'admin';
   const [saving, setSaving] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
   
@@ -48,9 +140,9 @@ const isAdmin = contextProfile?.role === 'admin';
   const [editingDonorParty, setEditingDonorParty] = useState(false);
 
   const [showImageEditor, setShowImageEditor] = useState(false);
-const [tempImageFile, setTempImageFile] = useState(null);
-const [childTableRecords, setChildTableRecords] = useState([]);
-const [selectedChildForProfile, setSelectedChildForProfile] = useState(null);
+  const [tempImageFile, setTempImageFile] = useState(null);
+  const [childTableRecords, setChildTableRecords] = useState([]);
+  const [selectedChildForProfile, setSelectedChildForProfile] = useState(null);
   
   const fileInputRef = useRef(null);
   const supabase = createClient();
@@ -65,9 +157,8 @@ const [selectedChildForProfile, setSelectedChildForProfile] = useState(null);
     JSON.stringify(currentMemberRoles) !== JSON.stringify(originalMemberRoles) ||
     pendingAvatarFile !== null;
 
-  // Wait for context to finish loading, then redirect or populate
   useEffect(() => {
-    if (contextLoading) return; // Still loading, do nothing
+    if (contextLoading) return;
 
     if (!user) {
       router.push('/login');
@@ -93,36 +184,35 @@ const [selectedChildForProfile, setSelectedChildForProfile] = useState(null);
       
       setProfileReady(true);
 
-// Sync children table for parents
-if ((contextProfile.user_type || 'parent') === 'parent') {
-  const syncChildren = async () => {
-    try {
-      const { data: tableRecords } = await supabase
-        .from('children')
-        .select('*')
-        .eq('parent_id', user.id)
-        .order('created_at', { ascending: true });
+      if ((contextProfile.user_type || 'parent') === 'parent') {
+        const syncChildren = async () => {
+          try {
+            const { data: tableRecords } = await supabase
+              .from('children')
+              .select('*')
+              .eq('parent_id', user.id)
+              .order('created_at', { ascending: true });
 
-      if (tableRecords && tableRecords.length > 0) {
-        setChildTableRecords(tableRecords);
-      } else if ((contextProfile.children || []).length > 0) {
-        const records = (contextProfile.children || []).map(c => ({
-          parent_id: user.id,
-          name: c.name,
-          age: String(c.age)
-        }));
-        const { data: inserted } = await supabase
-          .from('children')
-          .insert(records)
-          .select();
-        if (inserted) setChildTableRecords(inserted);
+            if (tableRecords && tableRecords.length > 0) {
+              setChildTableRecords(tableRecords);
+            } else if ((contextProfile.children || []).length > 0) {
+              const records = (contextProfile.children || []).map(c => ({
+                parent_id: user.id,
+                name: c.name,
+                age: String(c.age)
+              }));
+              const { data: inserted } = await supabase
+                .from('children')
+                .insert(records)
+                .select();
+              if (inserted) setChildTableRecords(inserted);
+            }
+          } catch (err) {
+            console.error('Children sync error:', err);
+          }
+        };
+        syncChildren();
       }
-    } catch (err) {
-      console.error('Children sync error:', err);
-    }
-  };
-  syncChildren();
-}
     }
   }, [user, contextProfile, contextLoading, router]);
 
@@ -175,50 +265,50 @@ if ((contextProfile.user_type || 'parent') === 'parent') {
   };
 
   const syncChildrenTable = async (parentId, children) => {
-  try {
-    const { data: existing } = await supabase
-      .from('children')
-      .select('id, name')
-      .eq('parent_id', parentId);
+    try {
+      const { data: existing } = await supabase
+        .from('children')
+        .select('id, name')
+        .eq('parent_id', parentId);
 
-    const existingByName = {};
-    (existing || []).forEach(c => { existingByName[c.name] = c.id; });
-    const currentNames = new Set(children.map(c => c.name));
+      const existingByName = {};
+      (existing || []).forEach(c => { existingByName[c.name] = c.id; });
+      const currentNames = new Set(children.map(c => c.name));
 
-    for (const child of children) {
-      if (existingByName[child.name]) {
-        await supabase.from('children')
-          .update({ age: String(child.age), updated_at: new Date().toISOString() })
-          .eq('id', existingByName[child.name]);
-      } else {
-        await supabase.from('children')
-          .insert({ parent_id: parentId, name: child.name, age: String(child.age) });
+      for (const child of children) {
+        if (existingByName[child.name]) {
+          await supabase.from('children')
+            .update({ age: String(child.age), updated_at: new Date().toISOString() })
+            .eq('id', existingByName[child.name]);
+        } else {
+          await supabase.from('children')
+            .insert({ parent_id: parentId, name: child.name, age: String(child.age) });
+        }
       }
+
+      const toDelete = (existing || []).filter(c => !currentNames.has(c.name));
+      if (toDelete.length > 0) {
+        await supabase.from('children').delete().in('id', toDelete.map(c => c.id));
+      }
+
+      const { data: refreshed } = await supabase
+        .from('children')
+        .select('*')
+        .eq('parent_id', parentId)
+        .order('created_at', { ascending: true });
+
+      return refreshed || [];
+    } catch (err) {
+      console.error('Children table sync error:', err);
+      return [];
     }
+  };
 
-    const toDelete = (existing || []).filter(c => !currentNames.has(c.name));
-    if (toDelete.length > 0) {
-      await supabase.from('children').delete().in('id', toDelete.map(c => c.id));
-    }
-
-    const { data: refreshed } = await supabase
-      .from('children')
-      .select('*')
-      .eq('parent_id', parentId)
-      .order('created_at', { ascending: true });
-
-    return refreshed || [];
-  } catch (err) {
-    console.error('Children table sync error:', err);
-    return [];
-  }
-};
-
-const handleChildProfileUpdate = (updatedChild) => {
-  setChildTableRecords(prev =>
-    prev.map(c => c.id === updatedChild.id ? { ...c, ...updatedChild } : c)
-  );
-};
+  const handleChildProfileUpdate = (updatedChild) => {
+    setChildTableRecords(prev =>
+      prev.map(c => c.id === updatedChild.id ? { ...c, ...updatedChild } : c)
+    );
+  };
 
   const handleSaveChanges = async () => {
     if (!hasChanges) return;
@@ -288,11 +378,10 @@ const handleChildProfileUpdate = (updatedChild) => {
       setEditingMemberRoles(false);
       setEditingDonorParty(false);
 
-      // Sync children table
-if (currentUserType === 'parent' && updates.children.length > 0) {
-  const refreshed = await syncChildrenTable(user.id, updates.children);
-  setChildTableRecords(refreshed);
-}
+      if (currentUserType === 'parent' && updates.children.length > 0) {
+        const refreshed = await syncChildrenTable(user.id, updates.children);
+        setChildTableRecords(refreshed);
+      }
       toast.success('تم حفظ التغييرات بنجاح!', { id: toastId });
     } catch (error) {
       console.error('Save error:', error);
@@ -325,294 +414,386 @@ if (currentUserType === 'parent' && updates.children.length > 0) {
 
   const displayAvatarUrl = previewUrl || currentAvatarUrl;
 
-  // Show loading while context is loading OR profile isn't ready yet
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
+  const staggerContainer = {
+    visible: { transition: { staggerChildren: 0.1 } }
+  };
+
   if (contextLoading || !profileReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-base-200 py-24 px-4">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen bg-base-100 relative w-full max-w-[100vw] overflow-x-hidden pb-24" dir="rtl">
+      
+      {/* Background Decor */}
+      <div className="absolute top-[40vh] right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[100px] -z-10 pointer-events-none translate-x-1/3" />
+      <div className="absolute bottom-40 left-0 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[100px] -z-10 pointer-events-none -translate-x-1/3" />
 
-        <Link href="/dashboard" className="btn btn-ghost btn-sm rounded-xl gap-2 mb-6">
-          <FaArrowRight /> العودة للرئيسية
-        </Link>
+      {/* ==========================================
+          HERO SECTION (Cinematic & Deep)
+      ========================================== */}
+      <section className="relative bg-gradient-to-br from-neutral via-primary to-secondary pt-36 sm:pt-48 pb-40 sm:pb-52 px-4 overflow-hidden rounded-b-[3rem] sm:rounded-b-[4rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] w-full">
+        {/* Updated blobs to match landing page gradient integration */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-neutral/30 rounded-full blur-[100px] -ml-32 -mb-32 pointer-events-none" />
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
         
-        <div className="bg-base-100 rounded-[2.5rem] shadow-xl overflow-hidden">
+        <div className="max-w-3xl mx-auto text-center relative z-10 w-full flex flex-col items-center">
+          <Link 
+            href="/dashboard" 
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:text-white hover:bg-white/10 transition-all mb-10 text-sm font-bold"
+          >
+            <FaArrowRight />
+            الرئيسية
+          </Link>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
+          >
+            <div className="w-24 h-24 md:w-28 md:h-28 bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 flex items-center justify-center mx-auto mb-6 shadow-2xl">
+              <FaUser className="text-4xl md:text-5xl text-white drop-shadow-md" />
+            </div>
+          </motion.div>
           
-          <div className="h-32 bg-gradient-to-r from-primary to-accent"></div>
+          <motion.h1 
+            className="text-4xl md:text-5xl lg:text-6xl font-black mb-4 tracking-tight text-white drop-shadow-md break-words"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+          >
+            الملف الشخصي
+          </motion.h1>
           
-          <div className="px-8 pb-8">
+          <motion.p 
+            className="text-base sm:text-lg md:text-xl text-white/80 font-light max-w-xl mx-auto leading-relaxed px-2 break-words"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+          >
+            إدارة بياناتك وحسابك الشخصي في منصة قدوة
+          </motion.p>
+        </div>
+      </section>
+
+      {/* ==========================================
+          PROFILE CONTENT (Overlapping Glass Card)
+      ========================================== */}
+      <section className="px-2 sm:px-4 -mt-24 sm:-mt-32 relative z-20 mb-20 w-full">
+        <div className="max-w-3xl mx-auto w-full">
+          <motion.div 
+            className="bg-white/80 backdrop-blur-2xl rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/60 min-w-0"
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
             
             {/* AVATAR */}
-            <div className="flex justify-center -mt-16 mb-6">
+            <motion.div variants={fadeInUp} className="flex justify-center -mt-16 sm:-mt-20 mb-8">
               <div className="relative">
-                <div className="w-32 h-32 rounded-full border-4 border-base-100 shadow-lg overflow-hidden bg-base-200">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden bg-base-100">
                   {displayAvatarUrl ? (
                     <img src={displayAvatarUrl} alt="صورة الملف الشخصي" className="w-full h-full object-cover"/>
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-primary/10">
-                      <FaUser className="text-4xl text-primary/50" />
+                    <div className="w-full h-full flex items-center justify-center bg-primary/5">
+                      <FaUser className="text-4xl text-primary/30" />
                     </div>
                   )}
                 </div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 btn btn-circle btn-sm btn-primary shadow-lg"
+                  className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all border-2 border-white"
                 >
-                  <FaCamera />
+                  <FaCamera className="text-sm" />
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
               </div>
-            </div>
+            </motion.div>
 
-            {/* HEADER */}
-            <div className="text-center mb-8">
-              
-              <div className="flex items-center justify-center gap-2 mb-1">
+            {/* HEADER / NAME / ROLE */}
+            <motion.div variants={fadeInUp} className="text-center mb-10 w-full">
+              <div className="flex items-center justify-center gap-2 mb-2 w-full">
                  {editingName ? (
-                     <div className="flex gap-2 items-center">
+                     <div className="flex gap-2 items-center w-full max-w-sm mx-auto">
                         <input 
                            type="text" 
                            value={currentName} 
                            onChange={(e) => setCurrentName(e.target.value)}
-                           className="input input-sm input-bordered text-center w-full max-w-xs"
+                           className="w-full bg-base-100 border border-base-300 text-base-content text-center font-bold px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all min-w-0"
                            placeholder="الاسم"
                         />
-                        <button onClick={() => setEditingName(false)} className="btn btn-xs btn-circle btn-ghost"><FaTimes /></button>
+                        <button onClick={() => setEditingName(false)} className="w-10 h-10 rounded-xl bg-base-200 text-base-content/60 hover:bg-base-300 flex items-center justify-center shrink-0 transition-colors"><FaTimes /></button>
                      </div>
                  ) : (
-                     <h1 className="text-2xl font-bold text-base-content flex items-center gap-2">
-                        {currentName}
-                        <button onClick={() => setEditingName(true)} className="text-base-content/40 text-sm hover:text-primary"><FaEdit /></button>
-                     </h1>
+                     <h2 className="text-2xl sm:text-3xl font-black text-base-content flex items-center gap-3 break-words justify-center">
+                        {currentName || 'مستخدم جديد'}
+                        <button onClick={() => setEditingName(true)} className="text-base-content/40 hover:text-primary transition-colors text-sm sm:text-base shrink-0"><FaEdit /></button>
+                     </h2>
                  )}
               </div>
               
-              <p className="text-base-content/50 text-sm" dir="ltr">{user?.email}</p>
+              <p className="text-base-content/60 text-sm font-medium" dir="ltr">{user?.email}</p>
 
-              <div className="mt-3 flex justify-center items-center gap-2">
+              {/* USER TYPE DROPDOWN */}
+              <div className="mt-6 flex justify-center items-center w-full">
                  {editingUserType ? (
-                    <div className="flex gap-2 items-center">
-                       <select 
-                          className="select select-sm select-bordered"
+                    <div className="flex gap-2 items-center w-full max-w-sm mx-auto">
+                       <CustomDropdown
                           value={currentUserType}
-                          onChange={(e) => {
-                              setCurrentUserType(e.target.value);
-                              if(e.target.value === 'member' && currentMemberRoles.length === 0) {
+                          options={userTypeLabels}
+                          onChange={(val) => {
+                              setCurrentUserType(val);
+                              if(val === 'member' && currentMemberRoles.length === 0) {
                                   setCurrentMemberRoles([{rank: '', office: ''}]);
                               }
-                              if(e.target.value === 'member') setEditingMemberRoles(true);
-                              if(e.target.value === 'donor') setEditingDonorParty(true);
-                              if(e.target.value === 'parent') setEditingChildren(true);
+                              if(val === 'member') setEditingMemberRoles(true);
+                              if(val === 'donor') setEditingDonorParty(true);
+                              if(val === 'parent') setEditingChildren(true);
                           }}
-                       >
-                           {Object.entries(userTypeLabels).map(([key, label]) => (
-                               <option key={key} value={key}>{label}</option>
-                           ))}
-                       </select>
-                       <button onClick={() => setEditingUserType(false)} className="btn btn-xs btn-circle btn-ghost"><FaTimes /></button>
+                          className="bg-white border border-base-300 text-base-content font-bold px-5 py-3 rounded-[1.2rem] shadow-[0_2px_15px_rgb(0,0,0,0.03)]"
+                          placeholder="اختر النوع..."
+                       />
+                       <button onClick={() => setEditingUserType(false)} className="w-12 h-12 rounded-[1.2rem] bg-base-200 text-base-content/60 hover:bg-base-300 flex items-center justify-center shrink-0 transition-colors shadow-inner"><FaTimes /></button>
                     </div>
                  ) : (
-                    <span className="badge badge-lg badge-outline gap-2 py-3 px-4">
-                       <FaUserTag /> {userTypeLabels[currentUserType] || 'مستخدم'}
-                       <button onClick={() => setEditingUserType(true)} className="hover:text-primary"><FaEdit /></button>
-                    </span>
+                    <div className="inline-flex items-center gap-3 bg-white border border-base-300 shadow-sm px-6 py-2.5 rounded-[1.2rem]">
+                       <FaUserTag className="text-primary" /> 
+                       <span className="font-bold text-base-content/90">{userTypeLabels[currentUserType] || 'مستخدم'}</span>
+                       <button onClick={() => setEditingUserType(true)} className="text-base-content/40 hover:text-primary transition-colors text-sm ml-2 border-r border-base-300 pr-3"><FaEdit /></button>
+                    </div>
                  )}
               </div>
-            </div>
+            </motion.div>
 
-            {/* MEMBER INFO */}
-            {currentUserType === 'member' && (
-              <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 mb-6">
-                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-primary flex items-center gap-2">
-                        <FaIdBadge /> تفاصيل العضوية
-                    </h3>
-                    {!editingMemberRoles ? (
-                        <button onClick={() => setEditingMemberRoles(true)} className="btn btn-ghost btn-sm text-primary"><FaEdit /> تعديل</button>
+            <div className="space-y-6 w-full">
+
+              {/* MEMBER INFO */}
+              {currentUserType === 'member' && (
+                <motion.div variants={fadeInUp} className="bg-base-100 border border-base-200 rounded-[1.5rem] p-6 w-full shadow-sm">
+                   <div className="flex items-center justify-between mb-5">
+                      <h3 className="font-black text-base-content flex items-center gap-2">
+                          <FaIdBadge className="text-primary" /> تفاصيل العضوية
+                      </h3>
+                      {!editingMemberRoles ? (
+                          <button onClick={() => setEditingMemberRoles(true)} className="text-primary text-sm font-bold flex items-center gap-1 hover:text-primary/80"><FaEdit /> تعديل</button>
+                      ) : (
+                          <button onClick={() => setEditingMemberRoles(false)} className="text-base-content/60 text-sm font-bold flex items-center gap-1 hover:text-base-content/90"><FaTimes /> إغلاق</button>
+                      )}
+                   </div>
+
+                   <div className="space-y-3 w-full">
+                      {currentMemberRoles.length > 0 ? (
+                          currentMemberRoles.map((role, idx) => (
+                              <div key={idx} className={`bg-white p-4 rounded-xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-base-200 flex flex-col gap-2 relative w-full min-w-0 ${editingMemberRoles ? 'pr-10' : ''}`}>
+                                  {editingMemberRoles ? (
+                                      <div className="space-y-3 w-full relative">
+                                          {currentMemberRoles.length > 1 && (
+                                              <button onClick={() => removeRole(idx)} className="absolute -top-1 right-2 text-error hover:bg-error/10 p-2 rounded-lg transition-colors z-10"><FaTrash size={14}/></button>
+                                          )}
+                                          
+                                          <CustomDropdown
+                                            value={role.rank}
+                                            options={rankLabels}
+                                            onChange={(val) => updateRole(idx, 'rank', val)}
+                                            className="bg-base-100 border border-base-300 text-base-content/90 font-bold px-4 py-3 rounded-xl shadow-inner text-sm"
+                                            placeholder="اختر المنصب..."
+                                          />
+
+                                          {role.rank !== 'president' && (
+                                            <CustomDropdown
+                                              value={role.office}
+                                              options={officeLabels}
+                                              onChange={(val) => updateRole(idx, 'office', val)}
+                                              className="bg-base-100 border border-base-300 text-base-content/90 font-bold px-4 py-3 rounded-xl shadow-inner text-sm"
+                                              placeholder="اختر المكتب..."
+                                            />
+                                          )}
+                                      </div>
+                                  ) : (
+                                      <div className="flex items-center gap-4 w-full min-w-0">
+                                          <div className="bg-primary/10 w-12 h-12 rounded-[1rem] flex items-center justify-center text-primary shrink-0"><FaSitemap className="text-lg" /></div>
+                                          <div className="min-w-0">
+                                              <div className="font-black text-base-content break-words">{rankLabels[role.rank] || role.rank}</div>
+                                              {role.office && <div className="text-xs text-base-content/60 font-medium mt-1 break-words">{officeLabels[role.office] || role.office}</div>}
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          ))
+                      ) : (
+                          <p className="text-base-content/40 text-sm font-medium text-center py-4">لا توجد مناصب مسجلة</p>
+                      )}
+                      {editingMemberRoles && <button onClick={addRole} className="w-full py-3 rounded-xl bg-primary/10 text-primary font-bold border border-primary/20 hover:bg-primary/20 transition-colors flex items-center justify-center gap-2 mt-2"><FaPlus /> إضافة منصب</button>}
+                   </div>
+                </motion.div>
+              )}
+
+              {/* DONOR INFO */}
+              {currentUserType === 'donor' && (
+                <motion.div variants={fadeInUp} className="bg-base-100 border border-base-200 rounded-[1.5rem] p-6 w-full shadow-sm">
+                   <div className="flex items-center justify-between mb-4">
+                       <h3 className="font-black text-base-content flex items-center gap-2"><FaBuilding className="text-warning" /> معلومات الجهة المانحة</h3>
+                       {!editingDonorParty ? (
+                          <button onClick={() => setEditingDonorParty(true)} className="text-primary text-sm font-bold flex items-center gap-1 hover:text-primary/80"><FaEdit /> تعديل</button>
+                       ) : (
+                          <button onClick={() => setEditingDonorParty(false)} className="text-base-content/60 text-sm font-bold flex items-center gap-1 hover:text-base-content/90"><FaTimes /> إغلاق</button>
+                       )}
+                   </div>
+                   {editingDonorParty ? (
+                       <div className="space-y-2 w-full">
+                          <input type="text" value={currentDonorParty} onChange={(e) => setCurrentDonorParty(e.target.value)} className="w-full bg-white border border-base-300 text-base-content font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-warning/50 transition-all min-w-0" placeholder="اسم الجهة (اختياري)" />
+                          <p className="text-xs font-medium text-base-content/40">اتركه فارغاً إذا كنت داعماً بصفة شخصية</p>
+                       </div>
+                   ) : (
+                      <p className="text-lg font-bold text-base-content/90 break-words bg-white border border-base-300 px-4 py-3 rounded-xl shadow-sm">{currentDonorParty || 'داعم بصفة شخصية'}</p>
+                   )}
+                </motion.div>
+              )}
+
+              {/* CHILDREN */}
+              {currentUserType === 'parent' && (
+                <motion.div variants={fadeInUp} className="bg-base-100 border border-base-200 rounded-[1.5rem] p-6 w-full shadow-sm">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="font-black text-base-content flex items-center gap-2"><FaChild className="text-primary" /> الأبناء المسجلين</h3>
+                    {!editingChildren ? (
+                      <button onClick={() => setEditingChildren(true)} className="text-primary text-sm font-bold flex items-center gap-1 hover:text-primary/80"><FaEdit /> تعديل</button>
                     ) : (
-                        <button onClick={() => setEditingMemberRoles(false)} className="btn btn-ghost btn-sm text-base-content/50"><FaTimes /> إغلاق</button>
+                      <button onClick={cancelChildrenEdit} className="text-base-content/60 text-sm font-bold flex items-center gap-1 hover:text-base-content/90"><FaTimes /> إغلاق</button>
                     )}
-                 </div>
-
-                 <div className="space-y-3">
-                    {currentMemberRoles.length > 0 ? (
-                        currentMemberRoles.map((role, idx) => (
-                            <div key={idx} className="bg-base-100 p-3 rounded-xl shadow-sm flex flex-col gap-2 border border-base-200 relative">
-                                {editingMemberRoles ? (
-                                    <div className="space-y-2 pt-1">
-                                        {currentMemberRoles.length > 1 && (
-                                            <button onClick={() => removeRole(idx)} className="absolute top-2 left-2 text-error hover:bg-error/10 p-1 rounded-full"><FaTrash size={12}/></button>
-                                        )}
-                                        <select className="select select-bordered select-sm w-full" value={role.rank} onChange={(e) => updateRole(idx, 'rank', e.target.value)}>
-                                            <option value="" disabled>اختر المنصب...</option>
-                                            {Object.entries(rankLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                                        </select>
-                                        {role.rank !== 'president' && (
-                                            <select className="select select-bordered select-sm w-full" value={role.office} onChange={(e) => updateRole(idx, 'office', e.target.value)}>
-                                                <option value="" disabled>اختر المكتب...</option>
-                                                {Object.entries(officeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                                            </select>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-primary/10 w-10 h-10 rounded-full flex items-center justify-center text-primary"><FaSitemap /></div>
-                                        <div>
-                                            <div className="font-bold text-base-content">{rankLabels[role.rank] || role.rank}</div>
-                                            {role.office && <div className="text-xs text-base-content/50">{officeLabels[role.office] || role.office}</div>}
-                                        </div>
-                                    </div>
-                                )}
+                  </div>
+                  {currentChildren.length > 0 || editingChildren ? (
+                    <div className="space-y-3 w-full">
+                      {currentChildren.map((child, index) => (
+                        <div key={index} className={`p-5 rounded-[1.2rem] w-full min-w-0 border ${editingChildren ? 'bg-white border-base-300 shadow-sm' : 'bg-white border-base-200 shadow-[0_2px_10px_rgb(0,0,0,0.02)]'}`}>
+                          {editingChildren ? (
+                            <div className="space-y-4 w-full">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/10">الشاب {index + 1}</span>
+                                {currentChildren.length > 1 && <button onClick={() => removeChild(index)} className="w-8 h-8 rounded-lg bg-error/10 text-error hover:bg-error/20 flex items-center justify-center transition-colors"><FaTrash size={12} /></button>}
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                                <input type="text" value={child.name} onChange={(e) => updateChild(index, 'name', e.target.value)} className="w-full bg-base-100 border border-base-300 text-base-content font-medium px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm transition-all min-w-0" placeholder="الاسم الكامل" />
+                                <input type="text" inputMode="numeric" value={child.age} onChange={(e) => updateChild(index, 'age', e.target.value)} className="w-full bg-base-100 border border-base-300 text-base-content font-medium px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm transition-all min-w-0" placeholder="العمر (أرقام فقط)" />
+                              </div>
                             </div>
-                        ))
-                    ) : (
-                        <p className="text-base-content/40 text-sm">لا توجد مناصب مسجلة</p>
-                    )}
-                    {editingMemberRoles && <button onClick={addRole} className="btn btn-outline btn-primary btn-sm w-full rounded-xl gap-2 border-dashed mt-2"><FaPlus /> إضافة منصب</button>}
-                 </div>
-              </div>
-            )}
-
-            {/* DONOR INFO */}
-            {currentUserType === 'donor' && (
-              <div className="bg-warning/5 border border-warning/10 rounded-2xl p-6 mb-6">
-                 <div className="flex items-center justify-between mb-4">
-                     <h3 className="font-bold text-warning flex items-center gap-2"><FaBuilding /> معلومات الجهة المانحة</h3>
-                     {!editingDonorParty ? (
-                        <button onClick={() => setEditingDonorParty(true)} className="btn btn-ghost btn-sm text-warning"><FaEdit /> تعديل</button>
-                     ) : (
-                        <button onClick={() => setEditingDonorParty(false)} className="btn btn-ghost btn-sm text-base-content/50"><FaTimes /> إغلاق</button>
-                     )}
-                 </div>
-                 {editingDonorParty ? (
-                     <div className="space-y-1">
-                        <input type="text" value={currentDonorParty} onChange={(e) => setCurrentDonorParty(e.target.value)} className="input input-bordered w-full bg-base-100" placeholder="اسم الجهة (اختياري)" />
-                        <p className="text-[10px] text-base-content/40">اتركه فارغاً إذا كنت داعماً بصفة شخصية</p>
-                     </div>
-                 ) : (
-                    <p className="text-lg text-base-content">{currentDonorParty || 'داعم بصفة شخصية'}</p>
-                 )}
-              </div>
-            )}
-
-            {/* CHILDREN */}
-            {currentUserType === 'parent' && (
-              <div className="bg-base-200/50 rounded-2xl p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-primary flex items-center gap-2"><FaChild /> الأبناء المسجلين</h3>
-                  {!editingChildren ? (
-                    <button onClick={() => setEditingChildren(true)} className="btn btn-ghost btn-sm text-primary"><FaEdit /> تعديل</button>
+                          ) : (
+                            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 w-full min-w-0">
+                              <span className="font-bold text-base-content break-words flex-1 min-w-0">{child.name}</span>
+                              <div className="flex items-center gap-3 shrink-0">
+                                <span className="bg-primary/10 text-primary font-bold text-xs px-3 py-1.5 rounded-full border border-primary/10">{child.age} سنة</span>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const record = childTableRecords.find(r => r.name === child.name);
+                                    if (record) {
+                                      setSelectedChildForProfile(record);
+                                    } else {
+                                      toast('جاري تحميل البيانات...', { icon: '⏳' });
+                                    }
+                                  }}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-base-200 hover:bg-base-300 text-base-content/80 font-bold rounded-full text-xs transition-colors"
+                                  title="بطاقة تعريف الشاب"
+                                >
+                                  <FaIdBadge className="text-base-content/40" /> البطاقة
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {editingChildren && <button onClick={addChild} className="w-full py-3 rounded-[1.2rem] bg-primary/10 text-primary font-bold border border-primary/20 hover:bg-primary/20 transition-colors flex items-center justify-center gap-2 mt-2"><FaPlus /> إضافة طفل آخر</button>}
+                    </div>
                   ) : (
-                    <button onClick={cancelChildrenEdit} className="btn btn-ghost btn-sm text-base-content/50"><FaTimes /> إغلاق</button>
+                     <p className="text-base-content/40 font-medium text-center py-6 bg-white border border-base-200 rounded-2xl">لم يتم إضافة أبناء</p>
                   )}
+                </motion.div>
+              )}
+
+              {/* PHONE */}
+              <motion.div variants={fadeInUp} className="bg-base-100 border border-base-200 rounded-[1.5rem] p-6 w-full shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-black text-base-content flex items-center gap-2"><FaPhone className="text-success" /> رقم الهاتف</h3>
+                  {!editingPhone && <button onClick={() => setEditingPhone(true)} className="text-primary text-sm font-bold flex items-center gap-1 hover:text-primary/80"><FaEdit /> تعديل</button>}
                 </div>
-                {currentChildren.length > 0 || editingChildren ? (
-                  <div className="space-y-3">
-                    {currentChildren.map((child, index) => (
-                      <div key={index} className={`p-4 rounded-xl ${editingChildren ? 'bg-base-200' : 'bg-base-100'}`}>
-                        {editingChildren ? (
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full">الشاب {index + 1}</span>
-                              {currentChildren.length > 1 && <button onClick={() => removeChild(index)} className="btn btn-ghost btn-xs text-error"><FaTrash /></button>}
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <input type="text" value={child.name} onChange={(e) => updateChild(index, 'name', e.target.value)} className="input input-bordered input-sm w-full" placeholder="اسم الشاب" />
-                              <input type="text" inputMode="numeric" value={child.age} onChange={(e) => updateChild(index, 'age', e.target.value)} className="input input-bordered input-sm w-full" placeholder="العمر" />
-                            </div>
-                          </div>
-                        ) : (
-  <div className="flex items-center justify-between">
-    <span className="font-medium text-base-content">{child.name}</span>
-    <div className="flex items-center gap-2">
-      <span className="badge badge-primary">{child.age} سنة</span>
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          const record = childTableRecords.find(r => r.name === child.name);
-          if (record) {
-            setSelectedChildForProfile(record);
-          } else {
-            toast('جاري تحميل البيانات...', { icon: '⏳' });
-          }
-        }}
-        className="btn btn-ghost btn-xs text-secondary hover:text-primary gap-1"
-        title="بطاقة تعريف الشاب"
-      >
-        <FaChild className="text-xs" /> البطاقة
-      </button>
-    </div>
-  </div>
-)}
-                      </div>
-                    ))}
-                    {editingChildren && <button onClick={addChild} className="btn btn-outline btn-primary btn-sm w-full rounded-xl gap-2"><FaPlus /> إضافة طفل آخر</button>}
+                {editingPhone ? (
+                  <div className="relative flex items-center gap-2 w-full max-w-sm">
+                    <input type="tel" value={currentPhone} onChange={(e) => handlePhoneChange(e.target.value)} dir="ltr" className="w-full bg-white border border-base-300 text-base-content font-medium px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-success/50 transition-all min-w-0 text-left" placeholder="+963..." />
+                    <button onClick={() => setEditingPhone(false)} className="w-12 h-12 rounded-xl bg-base-200 text-base-content/60 hover:bg-base-300 flex items-center justify-center shrink-0 transition-colors"><FaTimes /></button>
                   </div>
                 ) : (
-                   <p className="text-base-content/50 text-center">لم يتم إضافة أبناء</p>
+                  <p className="text-lg font-bold text-base-content/90 break-words bg-white border border-base-300 px-4 py-3 rounded-xl shadow-sm inline-block" dir="ltr">{currentPhone || 'لم يتم إضافة رقم'}</p>
                 )}
-              </div>
-            )}
+              </motion.div>
 
-            {/* PHONE */}
-            <div className="bg-base-200/50 rounded-2xl p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-primary flex items-center gap-2"><FaPhone /> رقم الهاتف</h3>
-                {!editingPhone && <button onClick={() => setEditingPhone(true)} className="btn btn-ghost btn-sm text-primary"><FaEdit /> تعديل</button>}
-              </div>
-              {editingPhone ? (
-                <div className="relative"><input type="tel" value={currentPhone} onChange={(e) => handlePhoneChange(e.target.value)} dir="ltr" className="input input-bordered w-full text-left" placeholder="رقم الهاتف" /></div>
-              ) : (
-                <p className="text-lg text-base-content" dir="ltr">{currentPhone || 'لم يتم إضافة رقم'}</p>
-              )}
+              {/* UNSAVED CHANGES BANNER */}
+              <AnimatePresence>
+                {hasChanges && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }} 
+                    animate={{ opacity: 1, height: 'auto' }} 
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden w-full"
+                  >
+                    <div className="bg-warning/10 border border-warning/30 rounded-[1.5rem] p-5 text-center shadow-inner mb-6 flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+                      <span className="w-8 h-8 rounded-full bg-warning/20 text-warning flex items-center justify-center shrink-0"><FaInfoCircle /></span>
+                      <p className="text-base-content font-bold text-sm">لديك تغييرات غير محفوظة في ملفك الشخصي.</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ACTIONS */}
+              <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-3 w-full pt-4">
+                <button 
+                  onClick={handleSaveChanges} 
+                  disabled={!hasChanges || saving} 
+                  className={`py-4 px-6 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all duration-300 flex-1 w-full ${hasChanges ? 'bg-primary text-white shadow-[0_8px_20px_rgba(var(--color-primary),0.3)] hover:scale-[1.02] active:scale-[0.98]' : 'bg-base-200 text-base-content/40 cursor-not-allowed'}`}
+                >
+                  {saving ? <span className="loading loading-spinner"></span> : <><FaCheck /> حفظ التغييرات</>}
+                </button>
+                {hasChanges && (
+                  <button 
+                    onClick={handleDiscardChanges} 
+                    className="py-4 px-6 rounded-[1.5rem] font-bold text-base-content/60 bg-white border border-base-300 hover:bg-base-200 hover:text-base-content transition-colors w-full sm:w-auto"
+                  >
+                    إلغاء
+                  </button>
+                )}
+              </motion.div>
+
+              {/* SOCIAL */}
+              <motion.div variants={fadeInUp} className="bg-base-100 border border-base-200 rounded-[2rem] p-8 w-full mt-10 text-center">
+                <h3 className="font-black text-base-content mb-6 tracking-tight">تواصل معنا</h3>
+                <div className="flex flex-wrap gap-4 justify-center text-base-content/50">
+                  <a href="https://www.instagram.com/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-white rounded-[1rem] shadow-sm border border-base-200 flex items-center justify-center hover:text-secondary hover:scale-110 hover:border-secondary/30 transition-all"><FaInstagram className="text-xl" /></a>
+                  <a href="https://www.facebook.com/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-white rounded-[1rem] shadow-sm border border-base-200 flex items-center justify-center hover:text-primary hover:scale-110 hover:border-primary/30 transition-all"><FaFacebook className="text-xl" /></a>
+                  <a href="https://t.me/QudwaAssoc" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-white rounded-[1rem] shadow-sm border border-base-200 flex items-center justify-center hover:text-secondary hover:scale-110 hover:border-secondary/30 transition-all"><FaTelegramPlane className="text-xl" /></a>
+                  <a href="https://wa.me/963980931111" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-white rounded-[1rem] shadow-sm border border-base-200 flex items-center justify-center hover:text-success hover:scale-110 hover:border-success/30 transition-all"><FaWhatsapp className="text-xl" /></a>
+                  <a href="mailto:qudwa.ltk@gmail.com" className="w-12 h-12 bg-white rounded-[1rem] shadow-sm border border-base-200 flex items-center justify-center hover:text-base-content hover:scale-110 hover:border-base-300 transition-all"><FaEnvelope className="text-xl" /></a>
+                </div>
+              </motion.div>
+
             </div>
-
-            {/* ACTIONS */}
-            <div className="flex gap-3 mb-6">
-              <button onClick={handleSaveChanges} disabled={!hasChanges || saving} className={`btn flex-1 rounded-xl gap-2 text-white ${hasChanges ? 'btn-primary shadow-lg' : 'btn-disabled bg-base-300'}`}>
-                {saving ? <span className="loading loading-spinner"></span> : <><FaSave /> حفظ التغييرات</>}
-              </button>
-              {hasChanges && <button onClick={handleDiscardChanges} className="btn btn-ghost rounded-xl">إلغاء</button>}
-            </div>
-
-            {hasChanges && (
-              <div className="bg-warning/10 border border-warning/30 rounded-xl p-4 mb-6 text-center">
-                <p className="text-warning text-sm font-medium">لديك تغييرات غير محفوظة</p>
-              </div>
-            )}
-
-            {/* SOCIAL */}
-            <div className="bg-base-200/50 rounded-2xl p-6">
-              <h3 className="font-bold text-primary mb-4">تواصل معنا</h3>
-              <div className="flex flex-wrap gap-4 justify-center text-2xl text-secondary">
-                <a href="https://www.instagram.com/QudwaAssoc" target="_blank" rel="noopener noreferrer"><FaInstagram className="hover:text-primary transition-colors" /></a>
-                <a href="https://www.facebook.com/QudwaAssoc" target="_blank" rel="noopener noreferrer"><FaFacebook className="hover:text-primary transition-colors" /></a>
-                <a href="https://t.me/QudwaAssoc" target="_blank" rel="noopener noreferrer"><FaTelegramPlane className="hover:text-primary transition-colors" /></a>
-                <a href="https://wa.me/963980931111" target="_blank" rel="noopener noreferrer"><FaWhatsapp className="hover:text-primary transition-colors" /></a>
-                <a href="mailto:qudwa.ltk@gmail.com"><FaEnvelope className="hover:text-primary transition-colors" /></a>
-              </div>
-            </div>
-
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </section>
 
       {selectedChildForProfile && (
-  <ChildProfileModal
-    child={selectedChildForProfile}
-    parentId={user.id}
-    isAdmin={isAdmin}
-    isOwner={true}
-    onClose={() => setSelectedChildForProfile(null)}
-    onUpdate={handleChildProfileUpdate}
-  />
-)}
+        <ChildProfileModal
+          child={selectedChildForProfile}
+          parentId={user.id}
+          isAdmin={isAdmin}
+          isOwner={true}
+          onClose={() => setSelectedChildForProfile(null)}
+          onUpdate={handleChildProfileUpdate}
+        />
+      )}
 
       {showImageEditor && tempImageFile && (
         <ImageEditorModal
@@ -621,6 +802,6 @@ if (currentUserType === 'parent' && updates.children.length > 0) {
           onClose={() => setShowImageEditor(false)}
         />
       )}
-    </div>
+    </main>
   );
 }
