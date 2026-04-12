@@ -5,50 +5,54 @@ import { createClient } from '@/app/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useProfile } from '@/app/context/ProfileContext';
 import {
-  FaComments,
-  FaUser,
-  FaPaperPlane,
-  FaCheckDouble,
-  FaCheck,
-  FaSearch,
-  FaTimes
+  FaComments, FaUser, FaPaperPlane, FaCheckDouble,
+  FaCheck, FaSearch, FaTimes
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 export default function AdminMessagesPage() {
-  const [conversations, setConversations] = useState([]);
+  const [conversations,        setConversations]        = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [messages,             setMessages]             = useState([]);
+  const [newMessage,           setNewMessage]           = useState('');
+  const [sending,              setSending]              = useState(false);
+  const [loading,              setLoading]              = useState(true);
+  const [searchTerm,           setSearchTerm]           = useState('');
 
   const messagesContainerRef = useRef(null);
-  const inputRef = useRef(null);
+  const inputRef             = useRef(null);
   const [supabase] = useState(() => createClient());
   const router = useRouter();
   const { user, profile } = useProfile();
 
+  // ── Auth + role guard ──────────────────────────────────────────
+  // ✅ Handle both "not logged in" and "not admin" cases.
+  // The original only checked profile.role, so on logout (user → null,
+  // profile → null) the condition was never met and the page stayed mounted
+  // while supabase calls continued firing against a null user.
   useEffect(() => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
     if (profile && profile.role !== 'admin') {
       router.push('/dashboard');
     }
-  }, [profile, router]);
+  }, [user, profile, router]);
 
   const scrollToBottom = useCallback((smooth = true) => {
     const container = messagesContainerRef.current;
     if (!container) return;
-
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: smooth ? 'smooth' : 'auto',
-    });
+    container.scrollTo({ top: container.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
   }, []);
 
+  // ── Load conversations ─────────────────────────────────────────
   useEffect(() => {
+    // ✅ Guard: don't run if user is null (e.g. mid-logout)
     if (!user) return;
+
+    let isMounted = true;
 
     const loadConversations = async () => {
       try {
@@ -58,6 +62,7 @@ export default function AdminMessagesPage() {
           .order('last_message_at', { ascending: false });
 
         if (convError) throw convError;
+        if (!isMounted) return;
 
         if (!convos || convos.length === 0) {
           setConversations([]);
@@ -65,24 +70,20 @@ export default function AdminMessagesPage() {
           return;
         }
 
-        const userIds = [...new Set(convos.map((c) => c.user_id).filter(Boolean))];
+        const userIds = [...new Set(convos.map(c => c.user_id).filter(Boolean))];
 
         const { data: profiles, error: profileError } = await supabase
           .from('profiles')
           .select('id, parent_name, avatar_url, parent_phone')
           .in('id', userIds);
 
-        if (profileError) {
-          console.error('Error loading profiles:', profileError);
-        }
+        if (profileError) console.error('Error loading profiles:', profileError);
 
         const profileMap = {};
-        (profiles || []).forEach((p) => {
-          profileMap[p.id] = p;
-        });
+        (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
         const enhancedConvos = await Promise.all(
-          convos.map(async (conv) => {
+          convos.map(async conv => {
             const { count } = await supabase
               .from('messages')
               .select('id', { count: 'exact', head: true })
@@ -91,20 +92,19 @@ export default function AdminMessagesPage() {
               .eq('is_read', false)
               .eq('is_deleted', false);
 
-            return {
-              ...conv,
-              profiles: profileMap[conv.user_id] || null,
-              unread_count: count || 0,
-            };
+            return { ...conv, profiles: profileMap[conv.user_id] || null, unread_count: count || 0 };
           })
         );
 
+        if (!isMounted) return;
         setConversations(enhancedConvos);
         setLoading(false);
       } catch (error) {
         console.error('Error loading conversations:', error);
-        toast.error('حدث خطأ في تحميل المحادثات');
-        setLoading(false);
+        if (isMounted) {
+          toast.error('حدث خطأ في تحميل المحادثات');
+          setLoading(false);
+        }
       }
     };
 
@@ -112,32 +112,19 @@ export default function AdminMessagesPage() {
 
     const channel = supabase
       .channel('admin-conversations')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        () => loadConversations()
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-        },
-        () => loadConversations()
-      )
+      .on('postgres_changes', { event: '*',      schema: 'public', table: 'conversations' }, () => { if (isMounted) loadConversations(); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages'      }, () => { if (isMounted) loadConversations(); })
       .subscribe();
 
     return () => {
+      isMounted = false;
       channel.unsubscribe();
     };
   }, [user, supabase]);
 
+  // ── Load messages for selected conversation ────────────────────
   useEffect(() => {
+    // ✅ Guard: don't run if user is null
     if (!selectedConversation || !user) return;
 
     let isMounted = true;
@@ -157,28 +144,20 @@ export default function AdminMessagesPage() {
         setMessages(msgs || []);
         setTimeout(() => scrollToBottom(false), 30);
 
-        const unreadMessages = (msgs || []).filter(
-          (m) => m.sender_id !== user.id && !m.is_read
-        );
-
-        if (unreadMessages.length > 0) {
+        const unread = (msgs || []).filter(m => m.sender_id !== user.id && !m.is_read);
+        if (unread.length > 0) {
           await supabase
             .from('messages')
-            .update({
-              is_read: true,
-              read_at: new Date().toISOString(),
-            })
-            .in('id', unreadMessages.map((m) => m.id));
+            .update({ is_read: true, read_at: new Date().toISOString() })
+            .in('id', unread.map(m => m.id));
 
-          setConversations((prev) =>
-            prev.map((c) =>
-              c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c
-            )
+          setConversations(prev =>
+            prev.map(c => c.id === selectedConversation.id ? { ...c, unread_count: 0 } : c)
           );
         }
       } catch (error) {
         console.error('Error loading messages:', error);
-        toast.error('حدث خطأ في تحميل الرسائل');
+        if (isMounted) toast.error('حدث خطأ في تحميل الرسائل');
       }
     };
 
@@ -188,46 +167,28 @@ export default function AdminMessagesPage() {
       .channel(`admin-conversation-${selectedConversation.id}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${selectedConversation.id}`,
-        },
-        async (payload) => {
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConversation.id}` },
+        async payload => {
           if (!isMounted) return;
-
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === payload.new.id)) return prev;
+          setMessages(prev => {
+            if (prev.some(m => m.id === payload.new.id)) return prev;
             return [...prev, payload.new];
           });
-
           setTimeout(() => scrollToBottom(true), 30);
-
           if (payload.new.sender_id !== user.id) {
             await supabase
               .from('messages')
-              .update({
-                is_read: true,
-                read_at: new Date().toISOString(),
-              })
+              .update({ is_read: true, read_at: new Date().toISOString() })
               .eq('id', payload.new.id);
           }
         }
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${selectedConversation.id}`,
-        },
-        (payload) => {
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConversation.id}` },
+        payload => {
           if (!isMounted) return;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === payload.new.id ? payload.new : m))
-          );
+          setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
         }
       )
       .subscribe();
@@ -238,99 +199,83 @@ export default function AdminMessagesPage() {
     };
   }, [selectedConversation, user, supabase, scrollToBottom]);
 
- const handleSendMessage = useCallback(
-    async (e) => {
-      e.preventDefault();
+  // ── Send message ───────────────────────────────────────────────
+  const handleSendMessage = useCallback(async e => {
+    e.preventDefault();
 
-      if (!newMessage.trim() || !selectedConversation || !user || sending) return;
+    // ✅ Guard: abort if user is null (logged out mid-session)
+    if (!newMessage.trim() || !selectedConversation || !user || sending) return;
 
-      const messageText = newMessage.trim();
-      setSending(true);
+    const messageText = newMessage.trim();
+    setSending(true);
 
-      // Optimistic message — show immediately before DB confirms
-      const tempId = `temp-${Date.now()}`;
-      const optimisticMessage = {
-        id: tempId,
-        conversation_id: selectedConversation.id,
-        sender_id: user.id,
-        content: messageText,
-        message_type: 'text',
-        is_read: false,
-        is_deleted: false,
-        created_at: new Date().toISOString(),
-      };
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: tempId,
+      conversation_id: selectedConversation.id,
+      sender_id: user.id,
+      content: messageText,
+      message_type: 'text',
+      is_read: false,
+      is_deleted: false,
+      created_at: new Date().toISOString(),
+    };
 
-      setMessages((prev) => [...prev, optimisticMessage]);
-      setNewMessage('');
-      setTimeout(() => scrollToBottom(true), 30);
+    setMessages(prev => [...prev, optimisticMessage]);
+    setNewMessage('');
+    setTimeout(() => scrollToBottom(true), 30);
 
-      try {
-        // 1. Safely assign admin to conversation if needed
-        if (!selectedConversation.admin_id) {
-          const { error: updateError } = await supabase
-            .from('conversations')
-            .update({ admin_id: user.id })
-            .eq('id', selectedConversation.id);
+    try {
+      if (!selectedConversation.admin_id) {
+        const { error: updateError } = await supabase
+          .from('conversations')
+          .update({ admin_id: user.id })
+          .eq('id', selectedConversation.id);
 
-          if (updateError) {
-            console.warn('Could not assign admin_id to conversation:', updateError);
-          } else {
-            // Update local state so we don't keep firing this on every message
-            selectedConversation.admin_id = user.id;
-          }
-        }
-
-        // 2. Insert the message safely (Removed .single() to prevent fatal crashes)
-        const { data, error } = await supabase.from('messages').insert([
-          {
-            conversation_id: selectedConversation.id,
-            sender_id: user.id,
-            content: messageText,
-            message_type: 'text',
-          },
-        ]).select(); 
-
-        if (error) throw error;
-
-        // 3. Handle the UI update smoothly
-        if (data && data.length > 0) {
-          const realMessage = data[0];
-          setMessages((prev) => {
-            // If the websocket already grabbed the real message, just delete the temp one
-            if (prev.some(m => m.id === realMessage.id && m.id !== tempId)) {
-              return prev.filter(m => m.id !== tempId);
-            }
-            // Otherwise, replace temp with real
-            return prev.map((m) => (m.id === tempId ? realMessage : m));
-          });
+        if (updateError) {
+          console.warn('Could not assign admin_id:', updateError);
         } else {
-          // If RLS blocked the insert but didn't throw an error
-          throw new Error('تم حظر إرسال الرسالة بسبب صلاحيات الأمان (RLS)');
+          selectedConversation.admin_id = user.id;
         }
-
-        setTimeout(() => {
-          inputRef.current?.focus();
-        }, 50);
-
-      } catch (error) {
-        console.error('Error sending admin message:', error);
-        
-        // Remove optimistic message on failure and restore text
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        setNewMessage(messageText);
-        
-        // Show the actual error to the user so we know exactly why it failed
-        toast.error(error.message || 'حدث خطأ في إرسال الرسالة');
-      } finally {
-        // Guarantee the spinner stops no matter what happens
-        setSending(false);
       }
-    },
-    [newMessage, selectedConversation, user, sending, supabase, scrollToBottom]
-  );
 
-  const filteredConversations = conversations.filter((conv) => {
-    const name = conv.profiles?.parent_name || '';
+      const { data, error } = await supabase
+        .from('messages')
+        .insert([{
+          conversation_id: selectedConversation.id,
+          sender_id: user.id,
+          content: messageText,
+          message_type: 'text',
+        }])
+        .select();
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const realMessage = data[0];
+        setMessages(prev => {
+          if (prev.some(m => m.id === realMessage.id && m.id !== tempId)) {
+            return prev.filter(m => m.id !== tempId);
+          }
+          return prev.map(m => m.id === tempId ? realMessage : m);
+        });
+      } else {
+        throw new Error('تم حظر إرسال الرسالة بسبب صلاحيات الأمان (RLS)');
+      }
+
+      setTimeout(() => { inputRef.current?.focus(); }, 50);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setNewMessage(messageText);
+      toast.error(error.message || 'حدث خطأ في إرسال الرسالة');
+    } finally {
+      setSending(false);
+    }
+  }, [newMessage, selectedConversation, user, sending, supabase, scrollToBottom]);
+
+  const filteredConversations = conversations.filter(conv => {
+    const name  = conv.profiles?.parent_name  || '';
     const phone = conv.profiles?.parent_phone || '';
     return (
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -338,6 +283,7 @@ export default function AdminMessagesPage() {
     );
   });
 
+  // ── Loading state ──────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-32">
@@ -349,13 +295,17 @@ export default function AdminMessagesPage() {
     );
   }
 
+  // ── Render ─────────────────────────────────────────────────────
   return (
-<div className="min-h-screen pt-32 sm:pt-40 pb-20 px-4 md:px-8" dir="rtl">      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen pt-32 sm:pt-40 pb-20 px-4 md:px-8" dir="rtl">
+      <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-6 sm:mb-8 flex items-center gap-2 sm:gap-3">
           <FaComments className="text-2xl sm:text-3xl" /> الرسائل
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+
+          {/* ── Conversation list ── */}
           <div className="lg:col-span-1 bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden flex flex-col max-h-[600px]">
             <div className="p-3 sm:p-4 border-b border-base-200 shrink-0">
               <div className="relative">
@@ -365,7 +315,7 @@ export default function AdminMessagesPage() {
                   placeholder="بحث..."
                   className="input input-bordered w-full pr-10 text-sm h-10 sm:h-12"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
             </div>
@@ -380,7 +330,7 @@ export default function AdminMessagesPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-base-200">
-                  {filteredConversations.map((conv) => (
+                  {filteredConversations.map(conv => (
                     <ConversationItem
                       key={conv.id}
                       conversation={conv}
@@ -393,9 +343,12 @@ export default function AdminMessagesPage() {
             </div>
           </div>
 
+          {/* ── Message panel ── */}
           <div className="lg:col-span-2">
             {selectedConversation ? (
               <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 max-h-[600px] h-full flex flex-col overflow-hidden">
+
+                {/* Header */}
                 <div className="p-3 sm:p-4 border-b border-base-200 flex items-center justify-between shrink-0 gap-2">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <div className="avatar placeholder shrink-0">
@@ -418,7 +371,6 @@ export default function AdminMessagesPage() {
                       )}
                     </div>
                   </div>
-
                   <button
                     onClick={() => setSelectedConversation(null)}
                     className="btn btn-ghost btn-sm btn-circle lg:hidden"
@@ -427,6 +379,7 @@ export default function AdminMessagesPage() {
                   </button>
                 </div>
 
+                {/* Messages */}
                 <div
                   ref={messagesContainerRef}
                   className="flex-1 p-3 sm:p-4 overflow-y-auto bg-base-200 space-y-3 overscroll-contain min-h-[200px]"
@@ -437,16 +390,17 @@ export default function AdminMessagesPage() {
                       <p className="text-xs sm:text-sm">لا توجد رسائل بعد</p>
                     </div>
                   ) : (
-                    messages.map((msg) => (
+                    messages.map(msg => (
                       <AdminMessageBubble
                         key={msg.id}
                         message={msg}
-                        isOwn={msg.sender_id === user.id}
+                        isOwn={msg.sender_id === user?.id}
                       />
                     ))
                   )}
                 </div>
 
+                {/* Input */}
                 <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-base-200 shrink-0 bg-base-100">
                   <div className="flex gap-2">
                     <input
@@ -455,7 +409,7 @@ export default function AdminMessagesPage() {
                       placeholder="اكتب ردك..."
                       className="input input-bordered flex-1 text-sm h-10 sm:h-12"
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={e => setNewMessage(e.target.value)}
                       disabled={sending}
                     />
                     <button
@@ -467,7 +421,7 @@ export default function AdminMessagesPage() {
                         <span className="loading loading-spinner loading-sm" />
                       ) : (
                         <>
-                          <FaPaperPlane className="hidden sm:inline" /> 
+                          <FaPaperPlane className="hidden sm:inline" />
                           <span className="hidden sm:inline">إرسال</span>
                           <FaPaperPlane className="sm:hidden" />
                         </>
@@ -491,6 +445,8 @@ export default function AdminMessagesPage() {
   );
 }
 
+/* ── Sub-components ──────────────────────────────────────────────── */
+
 const ConversationItem = memo(function ConversationItem({ conversation, isSelected, onClick }) {
   return (
     <button
@@ -509,25 +465,18 @@ const ConversationItem = memo(function ConversationItem({ conversation, isSelect
             )}
           </div>
         </div>
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <p className="font-bold text-sm truncate">
               {conversation.profiles?.parent_name || 'مستخدم'}
             </p>
             {conversation.unread_count > 0 && (
-              <div className="badge badge-primary badge-sm">
-                {conversation.unread_count}
-              </div>
+              <div className="badge badge-primary badge-sm">{conversation.unread_count}</div>
             )}
           </div>
-
           <p className="text-xs text-base-content/50">
             {new Date(conversation.last_message_at).toLocaleDateString('ar', {
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
+              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
             })}
           </p>
         </div>
@@ -538,8 +487,7 @@ const ConversationItem = memo(function ConversationItem({ conversation, isSelect
 
 const AdminMessageBubble = memo(function AdminMessageBubble({ message, isOwn }) {
   const formattedTime = new Date(message.created_at).toLocaleTimeString('ar', {
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: '2-digit', minute: '2-digit',
   });
 
   return (
@@ -549,28 +497,22 @@ const AdminMessageBubble = memo(function AdminMessageBubble({ message, isOwn }) 
       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
     >
       <div className="max-w-[75%]">
-        <div
-          className={`rounded-2xl px-4 py-2 ${
-            isOwn
-              ? 'bg-primary text-white rounded-bl-sm'
-              : 'bg-base-100 text-base-content rounded-br-sm border border-base-300'
-          }`}
-        >
+        <div className={`rounded-2xl px-4 py-2 ${
+          isOwn
+            ? 'bg-primary text-white rounded-bl-sm'
+            : 'bg-base-100 text-base-content rounded-br-sm border border-base-300'
+        }`}>
           <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
         </div>
-
-        <div
-          className={`flex items-center gap-1 mt-1 text-[10px] text-base-content/40 ${
-            isOwn ? 'justify-end' : 'justify-start'
-          }`}
-        >
+        <div className={`flex items-center gap-1 mt-1 text-[10px] text-base-content/40 ${
+          isOwn ? 'justify-end' : 'justify-start'
+        }`}>
           <span>{formattedTime}</span>
-          {isOwn &&
-            (message.is_read ? (
-              <FaCheckDouble className="text-primary" />
-            ) : (
-              <FaCheck className="text-base-content/30" />
-            ))}
+          {isOwn && (
+            message.is_read
+              ? <FaCheckDouble className="text-primary" />
+              : <FaCheck className="text-base-content/30" />
+          )}
         </div>
       </div>
     </motion.div>
