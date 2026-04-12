@@ -89,21 +89,28 @@ export default function LandingPage() {
 
         <div className="relative z-10 text-center text-white max-w-3xl mx-auto pt-32 sm:pt-28 md:pt-20 pb-20 w-full">
           {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: 'easeOut', type: "spring", bounce: 0.4 }}
-          >
-            <div className="relative mx-auto mb-6 sm:mb-8 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40">
-              <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse" />
-              <motion.img
-                src="/logo.png" alt="شعار قدوة" width={160} height={160}
-                className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ willChange: 'transform' }}
-              />
-            </div>
-          </motion.div>
+<motion.div
+  className="relative mx-auto mb-6 sm:mb-8 w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40"
+  animate={{ y: [0, -6, 0] }}
+  transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }}
+>
+  {/* Glow — fades in gently */}
+  <motion.div
+    className="absolute inset-0 bg-white/25 rounded-full blur-xl"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 1.6, delay: 0.3 }}
+  />
+  {/* Logo — drifts up out of a blur, no scale */}
+  <motion.img
+    src="/logo.png" alt="شعار قدوة" width={160} height={160}
+    className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
+    initial={{ opacity: 0, y: 18, filter: 'blur(8px)' }}
+    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+    transition={{ duration: 1.0, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.1 }}
+    style={{ willChange: 'transform, opacity, filter' }}
+  />
+</motion.div>
 
           <motion.h1
             className="text-6xl md:text-8xl font-bold mb-6 md:mb-8 font-nastaliq"
