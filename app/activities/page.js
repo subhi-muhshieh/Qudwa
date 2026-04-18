@@ -1,6 +1,7 @@
 'use client'
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState, memo } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { 
   FaCalendarAlt, FaClock, FaInfoCircle, FaTimes, FaArrowLeft, 
@@ -8,9 +9,12 @@ import {
 } from 'react-icons/fa';
 import { useProfile } from '../context/ProfileContext';
 import { getLevelDef } from '../utils/constants';
-import ChildProfileModal from '../components/ChildProfileModal';
+import dynamic from 'next/dynamic';
+
+const ChildProfileModal = dynamic(() => import('../components/ChildProfileModal'), { ssr: false });
 import { motion, AnimatePresence } from 'framer-motion';
 import { updateActivityStatuses } from '../utils/activityHelpers';
+import EmptyState from '../components/EmptyState';
 
 /* ========================================== */
 /* SKELETON UI                               */
@@ -53,8 +57,7 @@ export default function ActivitiesArchive() {
 
   useEffect(() => {
     const fetchAllActivities = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      if (currentUser) {
         await updateActivityStatuses(supabase);
       }
 
@@ -68,7 +71,7 @@ export default function ActivitiesArchive() {
       setLoading(false);
     };
     fetchAllActivities();
-  }, []);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (selectedActivity) document.body.style.overflow = 'hidden';
@@ -157,15 +160,12 @@ export default function ActivitiesArchive() {
       {/* GRID LAYOUT */}
       <div className="max-w-7xl mx-auto">
         {activities.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }} 
-              animate={{ opacity: 1, scale: 1 }} 
-              className="max-w-2xl mx-auto text-center bg-white/70 backdrop-blur-xl rounded-[3rem] p-10 md:p-16 shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-white/60"
-            >
-              <FaCalendarAlt className="text-4xl text-slate-300 mx-auto mb-4" />
-              <h3 className="text-2xl font-black text-slate-800 mb-2">لا يوجد نشاطات سابقة</h3>
-              <p className="text-slate-500">سجل النشاطات فارغ حالياً. سيتم إدراج النشاطات هنا فور اكتمالها.</p>
-            </motion.div>
+            <EmptyState
+              icon={<FaCalendarAlt />}
+              title="لا يوجد نشاطات سابقة"
+              description="سجل النشاطات فارغ حالياً. سيتم إدراج النشاطات هنا فور اكتمالها."
+              className="max-w-2xl mx-auto"
+            />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {activities.map((act, index) => (
@@ -183,11 +183,12 @@ export default function ActivitiesArchive() {
                     <div className="h-56 w-full overflow-hidden relative shrink-0">
                         {act.image_url ? (
                             <>
-                              <img 
-                                src={act.image_url} 
+                              <Image
+                                src={act.image_url}
                                 alt={act.title}
-                                loading="lazy"
-                                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" 
+                                fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                                className="object-cover transform group-hover:scale-110 transition-transform duration-700"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             </>
@@ -258,11 +259,12 @@ export default function ActivitiesArchive() {
               <div className="overflow-y-auto flex-1 overscroll-contain pb-10">
                 {selectedActivity.image_url ? (
                   <div className="w-full h-[30vh] md:h-[40vh] relative">
-                    <img 
-                      src={selectedActivity.image_url} 
+                    <Image
+                      src={selectedActivity.image_url}
                       alt={selectedActivity.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover" 
+                      fill
+                      sizes="100vw"
+                      className="object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent"></div>
                   </div>

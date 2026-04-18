@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
+import Image from 'next/image';
 import { createClient } from '@/app/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useProfile } from '@/app/context/ProfileContext';
@@ -354,7 +355,7 @@ export default function AdminMessagesPage() {
                     <div className="avatar placeholder shrink-0">
                       <div className="bg-primary/10 text-primary rounded-full w-10 sm:w-12 text-sm sm:text-base">
                         {selectedConversation.profiles?.avatar_url ? (
-                          <img src={selectedConversation.profiles.avatar_url} alt="" />
+                          <Image src={selectedConversation.profiles.avatar_url} alt="" width={48} height={48} sizes="48px" />
                         ) : (
                           <FaUser />
                         )}
@@ -459,7 +460,7 @@ const ConversationItem = memo(function ConversationItem({ conversation, isSelect
         <div className="avatar placeholder">
           <div className="bg-primary/10 text-primary rounded-full w-12">
             {conversation.profiles?.avatar_url ? (
-              <img src={conversation.profiles.avatar_url} alt="" />
+              <Image src={conversation.profiles.avatar_url} alt="" width={48} height={48} sizes="48px" />
             ) : (
               <FaUser />
             )}

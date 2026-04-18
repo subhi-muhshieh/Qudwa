@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { motion } from 'framer-motion';
+import useModalA11y from '../hooks/useModalA11y';
 import { 
   FaTimes, FaSave, FaEdit, FaStar, FaCrown, FaChild,
   FaBullseye, FaHeart, FaUser, FaPalette, FaLightbulb,
@@ -176,6 +177,8 @@ export default function ChildProfileModal({ child, parentId, isAdmin, isOwner, o
   const hasFunFacts = formData.dream_profession || formData.biggest_dream || 
     formData.role_model || formData.hobby || formData.fun_fact;
 
+  const containerRef = useModalA11y({ open: true, onClose });
+
   return (
     <motion.div
       className="fixed inset-0 z-[150] flex items-center justify-center px-4"
@@ -187,6 +190,8 @@ export default function ChildProfileModal({ child, parentId, isAdmin, isOwner, o
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose}></div>
 
       <motion.div
+        ref={containerRef}
+        tabIndex={-1}
         className="bg-base-100 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative z-10 max-h-[92vh] overflow-y-auto"
         initial={{ scale: 0.95, y: 20 }}
         animate={{ scale: 1, y: 0 }}

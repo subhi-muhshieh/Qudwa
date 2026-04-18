@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../utils/supabase/client';
 import { useProfile } from '../context/ProfileContext';
@@ -13,9 +14,11 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { updateActivityStatuses } from '../utils/activityHelpers'; 
-import ActivityPhotoManager from '../components/ActivityPhotoManager';
-import AttendanceManager from '../components/AttendanceManager';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const ActivityPhotoManager = dynamic(() => import('../components/ActivityPhotoManager'), { ssr: false });
+const AttendanceManager = dynamic(() => import('../components/AttendanceManager'), { ssr: false });
 
 export default function AdminDashboard() {
   // --- ACTIVITIES STATE ---
@@ -615,7 +618,9 @@ const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
                       </div>
                       {formData.image_url && (
                         <div className="mt-2">
-                          <img src={formData.image_url} alt="معاينة الصورة" className="w-full h-32 object-cover rounded-xl" />
+                          <div className="relative w-full h-32 rounded-xl overflow-hidden">
+                            <Image src={formData.image_url} alt="معاينة الصورة" fill sizes="(max-width: 768px) 100vw, 600px" className="object-cover" />
+                          </div>
                           <button type="button" onClick={() => setFormData({...formData, image_url: ''})} className="btn btn-xs btn-error btn-outline mt-2"><FaTimes /> إزالة</button>
                         </div>
                       )}
@@ -684,7 +689,7 @@ const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
                   <tbody>
                     {activities.map((activity) => (
                       <tr key={activity.id}>
-                        <td>{activity.image_url ? <img src={activity.image_url} alt={activity.title} className="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg" /> : <div className="w-12 h-12 md:w-16 md:h-16 bg-base-200 rounded-lg flex items-center justify-center"><FaImage className="text-base-content/40" /></div>}</td>
+                        <td>{activity.image_url ? <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden"><Image src={activity.image_url} alt={activity.title} fill sizes="64px" className="object-cover" /></div> : <div className="w-12 h-12 md:w-16 md:h-16 bg-base-200 rounded-lg flex items-center justify-center"><FaImage className="text-base-content/40" /></div>}</td>
                         <td className="font-bold">{activity.title}</td>
                         <td>{activity.activity_date || 'غير محدد'}</td>
                         <td>{activity.registration_form_url ? <a href={activity.registration_form_url} target="_blank" rel="noopener noreferrer" className="btn btn-xs btn-link">رابط</a> : '-'}</td>
@@ -761,7 +766,7 @@ const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
                     <div key={user.id} className="border border-base-200 rounded-2xl overflow-hidden">
                       <div className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors" onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}>
                         <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10 shrink-0">
-                          {user.avatar_url ? <img src={user.avatar_url} alt={user.parent_name || 'صورة'} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary/50"><FaUserFriends /></div>}
+                          {user.avatar_url ? <Image src={user.avatar_url} alt={user.parent_name || 'صورة'} width={48} height={48} sizes="48px" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary/50"><FaUserFriends /></div>}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-bold text-base-content truncate">{user.parent_name || 'بدون اسم'}</div>
@@ -929,7 +934,7 @@ const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
                           <div className="flex items-center gap-4 p-4 hover:bg-base-200/50 cursor-pointer transition-colors" onClick={() => setExpandedRegistration(expandedRegistration === reg.id ? null : reg.id)}>
                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold text-sm">{index + 1}</div>
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 shrink-0">
-                              {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.parent_name || 'صورة'} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary/50"><FaUserFriends className="text-sm" /></div>}
+                              {profile.avatar_url ? <Image src={profile.avatar_url} alt={profile.parent_name || 'صورة'} width={40} height={40} sizes="40px" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary/50"><FaUserFriends className="text-sm" /></div>}
                             </div>
                             <div className="flex-1 min-w-0"><div className="font-bold truncate">{profile.parent_name || 'بدون اسم'}</div><div className="text-xs text-base-content/50" dir="ltr">{profile.parent_phone || ''}</div></div>
                             <span className={`badge badge-sm shrink-0 ${profile.user_type === 'parent' ? 'badge-primary' : profile.user_type === 'member' ? 'badge-secondary' : profile.user_type === 'follower' ? 'badge-info' : 'badge-ghost'}`}>{userTypeLabels[profile.user_type] || 'مستخدم'}</span>
@@ -1042,7 +1047,7 @@ const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
                       </div>
                       {teamFormData.photo_url && (
                         <div className="mt-2 flex items-center gap-3">
-                          <img src={teamFormData.photo_url} alt="معاينة" className="w-16 h-16 rounded-full object-cover border-2 border-primary/20" />
+                          <Image src={teamFormData.photo_url} alt="معاينة" width={64} height={64} sizes="64px" className="w-16 h-16 rounded-full object-cover border-2 border-primary/20" />
                           <button type="button" onClick={() => setTeamFormData({...teamFormData, photo_url: ''})} className="btn btn-xs btn-error btn-outline"><FaTimes /> إزالة</button>
                         </div>
                       )}
@@ -1053,7 +1058,7 @@ const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
                         <input type="checkbox" checked={teamFormData.is_management} onChange={(e) => setTeamFormData({...teamFormData, is_management: e.target.checked})} className="checkbox checkbox-warning" />
                         <div>
                           <span className="label-text font-bold flex items-center gap-2"><FaCrown className="text-warning" /> عضو إدارة</span>
-                          <p className="text-xs text-base-content/40 mt-1">يظهر في القسم البارز بصفحة "عن الجمعية"</p>
+                          <p className="text-xs text-base-content/40 mt-1">يظهر في القسم البارز بصفحة &quot;عن الجمعية&quot;</p>
                         </div>
                       </label>
                     </div>
@@ -1114,7 +1119,7 @@ const [activityDropdownOpen, setActivityDropdownOpen] = useState(false);
                         {/* Photo */}
                         <div className="w-20 h-20 rounded-full overflow-hidden bg-primary/10 mb-3 border-2 border-primary/20">
                           {member.photo_url ? (
-                            <img src={member.photo_url} alt={member.name} className="w-full h-full object-cover" />
+                            <Image src={member.photo_url} alt={member.name} width={80} height={80} sizes="80px" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center"><FaUser className="text-2xl text-primary/40" /></div>
                           )}

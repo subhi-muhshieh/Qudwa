@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '../utils/supabase/client';
 import { officeLabels } from '../utils/constants';
 import { 
@@ -151,8 +152,6 @@ export default function AboutPage() {
         {/* Abstract Glowing Orbs */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-neutral/30 rounded-full blur-[100px] -ml-32 -mb-32 pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
-        
         <div className="max-w-4xl mx-auto text-center relative z-10 w-full">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -160,9 +159,12 @@ export default function AboutPage() {
             transition={{ type: "spring", duration: 0.8, bounce: 0.4 }}
           >
             <div className="w-24 h-24 md:w-32 md:h-32 bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 flex items-center justify-center mx-auto mb-8 shadow-2xl">
-              <img 
-                src="/logo.png" 
-                alt="شعار قدوة" 
+              <Image
+                src="/logo.png"
+                alt="شعار قدوة"
+                width={80}
+                height={80}
+                sizes="80px"
                 className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-lg"
               />
             </div>
@@ -461,11 +463,12 @@ export default function AboutPage() {
                         <div className="relative mx-auto mb-6 shrink-0">
                           <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-[2rem] overflow-hidden mx-auto border-4 border-white shadow-[0_10px_30px_rgba(0,0,0,0.08)] group-hover:shadow-[0_15px_40px_rgba(0,0,0,0.12)] transition-all duration-500 group-hover:-translate-y-2 group-hover:scale-105">
                             {member.photo_url ? (
-                              <img 
-                                src={member.photo_url} 
+                              <Image
+                                src={member.photo_url}
                                 alt={member.name}
-                                loading="lazy"
-                                className="w-full h-full object-cover" 
+                                fill
+                                sizes="(max-width: 768px) 112px, 144px"
+                                className="object-cover"
                               />
                             ) : (
                               <div className="w-full h-full bg-base-200 flex items-center justify-center">
@@ -519,11 +522,12 @@ export default function AboutPage() {
                       >
                         <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-[1.5rem] overflow-hidden mx-auto mb-4 border-2 border-white shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1 group-hover:scale-105 shrink-0">
                           {member.photo_url ? (
-                            <img 
-                              src={member.photo_url} 
+                            <Image
+                              src={member.photo_url}
                               alt={member.name}
-                              loading="lazy"
-                              className="w-full h-full object-cover" 
+                              fill
+                              sizes="(max-width: 768px) 80px, 96px"
+                              className="object-cover"
                             />
                           ) : (
                             <div className="w-full h-full bg-base-200 flex items-center justify-center">

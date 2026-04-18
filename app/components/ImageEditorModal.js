@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import { motion, AnimatePresence } from 'framer-motion';
+import useModalA11y from '../hooks/useModalA11y';
 import { 
   FaTimes, 
   FaCheck, 
@@ -118,6 +119,8 @@ export default function ImageEditorModal({
     }
   };
 
+  const containerRef = useModalA11y({ open: !!imageFile, onClose });
+
   if (!imageFile) return null;
 
   return (
@@ -127,6 +130,9 @@ export default function ImageEditorModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="محرر الصورة"
       >
         <motion.div 
           className="absolute inset-0 bg-black/90" 
@@ -134,6 +140,7 @@ export default function ImageEditorModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         />
+        <div ref={containerRef} tabIndex={-1} className="contents">
 
         <motion.div
           className="relative w-full h-full sm:h-auto sm:max-h-[95vh] sm:max-w-lg sm:mx-4 bg-gradient-to-b from-gray-900 to-black sm:rounded-3xl overflow-hidden shadow-2xl z-10 flex flex-col"
@@ -205,6 +212,7 @@ export default function ImageEditorModal({
               <div className="relative">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-primary/50 bg-gray-800 shadow-lg shadow-primary/20">
                   {previewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img 
                       src={previewUrl} 
                       alt="Preview" 
@@ -369,6 +377,7 @@ export default function ImageEditorModal({
           </div>
 
         </motion.div>
+        </div>
       </motion.div>
     </AnimatePresence>
   );

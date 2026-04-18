@@ -1,5 +1,35 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '../../utils/supabase/server';
 export const runtime = 'edge';
+
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+
+function getRateLimitStore() {
+  if (!globalThis.__telegramRateLimitStore) {
+    globalThis.__telegramRateLimitStore = new Map();
+  }
+  return globalThis.__telegramRateLimitStore;
+}
+
+function isRateLimited(identifier) {
+  const now = Date.now();
+  const store = getRateLimitStore();
+  const existing = store.get(identifier);
+
+  if (!existing || now - existing.windowStart > RATE_LIMIT_WINDOW_MS) {
+    store.set(identifier, { count: 1, windowStart: now });
+    return false;
+  }
+
+  if (existing.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return true;
+  }
+
+  existing.count += 1;
+  store.set(identifier, existing);
+  return false;
+}
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -20,6 +50,24 @@ const userTypeLabels = {
 
 export async function POST(request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const clientIp = forwardedFor?.split(',')[0]?.trim() || 'unknown';
+    const rateLimitKey = `${user.id}:${clientIp}`;
+
+    if (isRateLimited(rateLimitKey)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again shortly.' },
+        { status: 429 }
+      );
+    }
+
     const { message, userEmail, userName, userPhone, userType, children,
             // Backward compatibility with old field names
             parentName, parentPhone } = await request.json();
@@ -49,7 +97,11 @@ export async function POST(request) {
       return NextResponse.json({ error: 'الرسالة طويلة جداً (الحد الأقصى 5000 حرف)' }, { status: 400 });
     }
 
-    if (!userEmail || typeof userEmail !== 'string') {
+    const finalEmail = typeof userEmail === 'string' && userEmail.trim()
+      ? userEmail.trim()
+      : (user.email || 'غير متوفر');
+
+    if (!finalEmail || typeof finalEmail !== 'string') {
       return NextResponse.json({ error: 'البريد الإلكتروني مطلوب' }, { status: 400 });
     }
 
@@ -80,7 +132,7 @@ export async function POST(request) {
 
 👤 <b>الاسم:</b> ${escapeHtml(finalName)}
 🏷 <b>نوع الحساب:</b> ${escapeHtml(typeLabel)}
-📧 <b>البريد:</b> ${escapeHtml(userEmail)}
+📧 <b>البريد:</b> ${escapeHtml(finalEmail)}
 📱 <b>رقم الهاتف:</b> ${escapeHtml(finalPhone)}
 ${childrenSection}
 💬 <b>الرسالة:</b>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   FaUser, 
   FaPhone, 
@@ -156,9 +157,12 @@ const [showDeletePassword, setShowDeletePassword] = useState(false);
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-primary/10">
                 {profile?.avatar_url ? (
-                  <img 
-                    src={profile.avatar_url} 
-                    alt="Profile" 
+                  <Image
+                    src={profile.avatar_url}
+                    alt="Profile"
+                    width={64}
+                    height={64}
+                    sizes="64px"
                     className="w-full h-full object-cover"
                   />
                 ) : (

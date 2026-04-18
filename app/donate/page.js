@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { 
   FaHeart, FaHandHoldingHeart, FaChild, FaGraduationCap, 
@@ -56,8 +57,6 @@ export default function DonatePage() {
         {/* Abstract Glowing Orbs - Scaled for mobile */}
         <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-white/10 rounded-full blur-[80px] md:blur-[120px] -mr-16 -mt-16 md:-mr-32 md:-mt-32 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[250px] h-[250px] md:w-[500px] md:h-[500px] bg-neutral/30 rounded-full blur-[60px] md:blur-[100px] -ml-16 -mb-16 md:-ml-32 md:-mb-32 pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
-
         <div className="max-w-4xl mx-auto text-center relative z-10 w-full">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -224,9 +223,12 @@ export default function DonatePage() {
 
                 {/* QR Image */}
                 <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 inline-block mx-auto shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-base-200 mb-6 md:mb-8 aspect-square w-48 sm:w-56 md:w-64 transition-transform hover:scale-105 duration-500">
-                  <img 
-                    src="/shamcash-qr.png" 
+                  <Image
+                    src="/shamcash-qr.png"
                     alt="رمز QR لحساب شام كاش - جمعية قدوة"
+                    width={256}
+                    height={256}
+                    sizes="(max-width: 768px) 192px, 256px"
                     className="w-full h-full object-contain rounded-xl md:rounded-[1.5rem]"
                   />
                 </div>
@@ -404,8 +406,6 @@ export default function DonatePage() {
           >
             {/* Cinematic Gradient Background inside CTA */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-neutral to-secondary/20 pointer-events-none" />
-            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none mix-blend-overlay" />
-            
             <div className="relative z-10">
               <motion.div
                 initial={{ scale: 0 }}

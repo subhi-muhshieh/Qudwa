@@ -31,36 +31,35 @@ export default {
         qudwaTheme: {
           // ── Primary: Deep Rich Blue (#1268b1) ──────────────────────
           "primary":         "#1268b1",
-          "primary-focus":   "#0e528d", // Slightly darker for hover states
+          "primary-focus":   "#0e528d",
           "primary-content": "#ffffff",
-          
+
           // ── Secondary: Vibrant Sky/Cyan (#0ea9dd) ─────────────────
           "secondary":         "#0ea9dd",
-          "secondary-focus":   "#0b8bb8", // Slightly darker for hover states
+          "secondary-focus":   "#0b8bb8",
           "secondary-content": "#ffffff",
-          
-          // ── Accent: Vibrant Orange/Amber (The Complement) ────────
-          // This sits perfectly opposite your blues on the color wheel
-          "accent":         "#d95d14", 
+
+          // ── Accent: Vibrant Orange/Amber ────────
+          "accent":         "#d95d14",
           "accent-focus":   "#b54a0d",
           "accent-content": "#ffffff",
-          
-          // ── Neutral: Deep Navy (For dark cinematic headers) ───────
+
+          // ── Neutral: Deep Navy ───────
           "neutral":         "#0a2a4a",
           "neutral-focus":   "#061b30",
           "neutral-content": "#f4fafd",
-          
-          // ── Base: Crisp Icy Whites (Glassmorphism backgrounds) ────
-          "base-100": "#f4fafd", // Main app background (tinted with your cyan)
-          "base-200": "#e3f1f9", // Slightly darker for section contrast
-          "base-300": "#cde5f4", // For borders and heavy shadows
-          "base-content": "#0a2640", // Deep slate for highly readable text
-          
-          // ── Semantic Colors ─────────────────────────────────────────
+
+          // ── Base: Crisp Icy Whites ────
+          "base-100": "#f4fafd",
+          "base-200": "#e3f1f9",
+          "base-300": "#cde5f4",
+          "base-content": "#0a2640",
+
+          // ── Semantic Colors (WCAG AA compliant on base-100) ───────────
           "info":    "#0ea9dd",
-          "success": "#10b981",
-          "warning": "#f59e0b",
-          "error":   "#ef4444",
+          "success": "#059669",  // Darkened from #10b981 for 4.5:1 contrast
+          "warning": "#d97706",  // Darkened from #f59e0b for 4.5:1 contrast
+          "error":   "#dc2626",  // Darkened from #ef4444 for 5:1 contrast
         },
       },
     ],

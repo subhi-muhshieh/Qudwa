@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { createClient } from '../utils/supabase/client';
 import { FaImages, FaPlus, FaTrash, FaSpinner, FaTimes, FaCompress, FaCheck } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -336,11 +337,12 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                         layout
                         className="group relative bg-base-200 rounded-2xl overflow-hidden aspect-square shadow-md hover:shadow-xl transition-shadow"
                       >
-                        <img
+                        <Image
                           src={photo.image_url}
                           alt={photo.caption || `صورة ${index + 1}`}
-                          loading="lazy"
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          className="object-cover"
                         />
                         
                         <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-lg font-bold z-10">
@@ -410,7 +412,7 @@ export default function ActivityPhotoManager({ activityId, activityTitle, onClos
                     <FaImages className="text-4xl text-base-content/30" />
                   </div>
                   <p className="text-base-content/50 text-lg font-medium">لا توجد صور لهذا النشاط</p>
-                  <p className="text-base-content/40 text-sm mt-1">اضغط على "إضافة صور جديدة" للبدء</p>
+                  <p className="text-base-content/40 text-sm mt-1">اضغط على &quot;إضافة صور جديدة&quot; للبدء</p>
                 </div>
               )}
             </>

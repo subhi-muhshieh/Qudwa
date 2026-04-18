@@ -110,13 +110,65 @@ export default function NotificationBell() {
     }
   }, [isOpen, hasViewedCurrent, unreadCount]);
 
+  // Focus trap and escape key handling
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsOpen(false);
+      }
+
+      // Focus trap
+      if (e.key === 'Tab') {
+        const focusableElements = dropdownRef.current?.querySelectorAll(
+          'a[href], button, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusableElements || focusableElements.length === 0) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        const activeElement = document.activeElement;
+
+        if (e.shiftKey) {
+          if (activeElement === firstElement) {
+            e.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (activeElement === lastElement) {
+            e.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Focus first element when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      const firstFocusable = dropdownRef.current?.querySelector(
+        'a[href], button, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+    }
+  }, [isOpen]);
+
   const markAsRead = async (notificationId) => {
     try {
-      await fetch('/api/notifications', {
+      const response = await fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notificationId })
       });
+
+      if (!response.ok) return;
+
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
@@ -128,11 +180,14 @@ export default function NotificationBell() {
 
   const markAllAsRead = async () => {
     try {
-      await fetch('/api/notifications', {
+      const response = await fetch('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ markAllAsRead: true })
       });
+
+      if (!response.ok) return;
+
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch {

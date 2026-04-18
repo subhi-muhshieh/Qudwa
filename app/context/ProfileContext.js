@@ -49,49 +49,37 @@ export function ProfileProvider({ children }) {
     }
   }, [supabase]);
 
-  useEffect(() => {
-    let isMounted = true;
+ // استبدله بهذا الكود
+useEffect(() => {
+  let isMounted = true;
 
-    const fetchUserAndProfile = async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error && error.name !== 'AuthSessionMissingError') throw error;
+  // هون بنعتمد بس على الـ Listener لأنه هو لحاله بجيب أول Session
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      if (!isMounted) return;
 
-        if (isMounted && user) {
-          setUser(user);
-          await fetchProfile(user.id);
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
+      const currentUser = session?.user ?? null;
 
-    fetchUserAndProfile();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return;
-
-        const currentUser = session?.user ?? null;
+      // منحدث الحالة بس إذا في تغيير حقيقي أو أول ما يفتح التطبيق
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
         setUser(currentUser);
-
+        
         if (currentUser) {
           await fetchProfile(currentUser.id);
         } else {
           setProfile(null);
         }
-
+        
         setLoading(false);
       }
-    );
+    }
+  );
 
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [supabase, fetchProfile]);
+  return () => {
+    isMounted = false;
+    subscription.unsubscribe();
+  };
+}, [supabase, fetchProfile]);
 
   const updateProfile = useCallback((newProfileData) => {
     setProfile(prev => {

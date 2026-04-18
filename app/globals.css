@@ -12,21 +12,49 @@ body {
 */
 body {
   background-color: #f0f9ff;
-  
-  background-image: 
+
+  background-image:
     radial-gradient(rgba(18, 129, 195, 0.1) 2px, transparent 2px),
     radial-gradient(circle at 100% 0%, rgba(186, 230, 253, 0.5) 0%, transparent 50%),
     radial-gradient(circle at 0% 100%, rgba(224, 242, 254, 0.5) 0%, transparent 50%);
-    
+
   background-size: 40px 40px, 100% 100%, 100% 100%;
   background-attachment: fixed;
 }
 
-/* 
-   Glassmorphism Utilities 
+/* Dark mode body background */
+[data-theme="qudwaThemeDark"] body {
+  background-color: #0a1628;
+
+  background-image:
+    radial-gradient(rgba(74, 158, 255, 0.08) 2px, transparent 2px),
+    radial-gradient(circle at 100% 0%, rgba(26, 58, 90, 0.5) 0%, transparent 50%),
+    radial-gradient(circle at 0% 100%, rgba(17, 31, 56, 0.5) 0%, transparent 50%);
+}
+
+/*
+   Glassmorphism Utilities
 */
 .glass-panel {
   @apply bg-white/45 backdrop-blur-xl border border-white/60;
+}
+
+.glass-card {
+  @apply bg-white/70 backdrop-blur-md border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)];
+}
+
+.glass-nav {
+  @apply bg-white/80 backdrop-blur-2xl border border-white/60 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)];
+}
+
+/* Responsive container used across pages */
+.container-app {
+  @apply max-w-7xl mx-auto px-4 md:px-8;
+}
+
+/* Safe-area aware bottom padding for floating UI */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
 /* Fix for long text overflow in modals */
@@ -49,14 +77,47 @@ body {
 }
 
 /* Focus styles for better accessibility */
-.focus-visible:focus {
+:focus-visible {
   outline: 2px solid #1281c3;
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Skip link: hidden until focused */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  right: 1rem;
+  z-index: 100;
+  background: #1281c3;
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 1rem;
+  outline: 2px solid #fff;
   outline-offset: 2px;
 }
 
-/* Smooth scrolling */
-html {
+/* Smooth scrolling (uses data attribute to silence Next.js warning) */
+html[data-scroll-behavior='smooth'] {
   scroll-behavior: smooth;
+}
+
+/* Respect user's reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Loading skeleton animation */

@@ -1,13 +1,51 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { createClient } from '../utils/supabase/client';
 import { useProfile } from '../context/ProfileContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FaBell, FaCheckDouble, FaArrowRight, FaTrash } from 'react-icons/fa';
+import { FaBell, FaCheckDouble, FaArrowRight } from 'react-icons/fa';
+import EmptyState from '../components/EmptyState';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { motion } from 'framer-motion';
+
+/* ========================================== */
+/* SKELETON UI                               */
+/* ========================================== */
+const NotificationsSkeleton = memo(function NotificationsSkeleton() {
+  return (
+    <div className="min-h-screen bg-base-200 pt-32 pb-20 px-4">
+      <div className="max-w-2xl mx-auto animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 bg-base-300 rounded-full" />
+            <div className="h-8 w-32 bg-base-300 rounded-xl" />
+            <div className="h-6 w-16 bg-base-300 rounded-full" />
+          </div>
+          <div className="h-8 w-28 bg-base-300 rounded-xl" />
+        </div>
+
+        {/* Notification items skeleton */}
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-base-100 rounded-2xl p-5 border border-base-200">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-base-300 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-3/4 bg-base-300 rounded" />
+                  <div className="h-3 w-full bg-base-300 rounded" />
+                  <div className="h-3 w-2/3 bg-base-300 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+});
 
 export default function NotificationsPage() {
   const { user } = useProfile();
@@ -35,22 +73,25 @@ export default function NotificationsPage() {
   }, [user]);
 
   const markAllAsRead = async () => {
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markAllAsRead: true })
-    });
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllAsRead: true })
+      });
+
+      if (!response.ok) return;
+
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch {
+      // Silent fail to preserve current UX
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-      </div>
-    );
+    return <NotificationsSkeleton />;
   }
 
   return (
@@ -76,10 +117,11 @@ export default function NotificationsPage() {
         </div>
 
         {notifications.length === 0 ? (
-          <div className="text-center py-20 text-base-content/50">
-            <FaBell className="text-5xl mx-auto mb-4 text-base-content/20" />
-            <p className="text-lg font-medium">لا توجد إشعارات</p>
-          </div>
+          <EmptyState
+            icon={<FaBell />}
+            title="لا توجد إشعارات"
+            description="سنخبرك هنا عندما يكون هناك جديد."
+          />
         ) : (
           <div className="space-y-3">
             {notifications.map((n, i) => (

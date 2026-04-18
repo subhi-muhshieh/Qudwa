@@ -13,8 +13,10 @@ import {
 import toast from 'react-hot-toast';
 import { useProfile } from '../context/ProfileContext';
 import { userTypeLabels, rankLabels, officeLabels } from '../utils/constants';
-import ImageEditorModal from '../components/ImageEditorModal';
-import ChildProfileModal from '../components/ChildProfileModal';
+import dynamic from 'next/dynamic';
+
+const ImageEditorModal = dynamic(() => import('../components/ImageEditorModal'), { ssr: false });
+const ChildProfileModal = dynamic(() => import('../components/ChildProfileModal'), { ssr: false });
 
 /* ========================================== */
 /* CUSTOM PREMIUM DROPDOWN COMPONENT         */
@@ -441,8 +443,6 @@ export default function ProfilePage() {
         {/* Updated blobs to match landing page gradient integration */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/10 rounded-full blur-[120px] -mr-32 -mt-32 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-neutral/30 rounded-full blur-[100px] -ml-32 -mb-32 pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
-        
         <div className="max-w-3xl mx-auto text-center relative z-10 w-full flex flex-col items-center">
           <Link 
             href="/dashboard" 
@@ -499,6 +499,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full border-4 border-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] overflow-hidden bg-base-100">
                   {displayAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={displayAvatarUrl} alt="صورة الملف الشخصي" className="w-full h-full object-cover"/>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/5">

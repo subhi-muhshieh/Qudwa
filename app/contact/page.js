@@ -166,8 +166,6 @@ export default function ContactPage() {
       <section className="relative bg-gradient-to-br from-neutral via-primary to-secondary pt-28 pb-36 md:pt-32 md:pb-48 px-4 overflow-hidden rounded-b-[3rem] md:rounded-b-[4rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] w-full">
         <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-white/10 rounded-full blur-[80px] md:blur-[120px] -mr-16 -mt-16 md:-mr-32 md:-mt-32 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[250px] h-[250px] md:w-[500px] md:h-[500px] bg-neutral/30 rounded-full blur-[60px] md:blur-[100px] -ml-16 -mb-16 md:-ml-32 md:-mb-32 pointer-events-none" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
-        
         <div className="max-w-4xl mx-auto text-center relative z-10 w-full flex flex-col items-center">
           
           <motion.div

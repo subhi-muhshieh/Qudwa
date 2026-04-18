@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { FaWhatsapp, FaTelegram, FaFacebookMessenger, FaInstagram, FaHeart, FaMapMarkerAlt, FaEnvelope, FaPhone } from 'react-icons/fa';
 
@@ -34,7 +35,14 @@ function Footer() {
         <div className="md:col-span-5 space-y-5 text-center md:text-right">
           <div className="flex items-center justify-center md:justify-start gap-3">
             {/* Fixed Logo: Solid white circular background */}
-            <img src="/logo.png" alt="Logo" className="w-14 h-14 object-contain bg-white rounded-full p-1.5 shadow-lg" />
+            <Image
+              src="/logo.png"
+              alt="شعار جمعية قدوة"
+              width={56}
+              height={56}
+              sizes="56px"
+              className="w-14 h-14 object-contain bg-white rounded-full p-1.5 shadow-lg"
+            />
             
             <div className="flex items-center h-full pt-1">
               <h2 className="text-4xl font-nastaliq text-white drop-shadow-sm -mt-3">قُدوَة</h2>

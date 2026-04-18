@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaChevronLeft, FaChevronRight, FaExpand, FaDownload } from 'react-icons/fa';
+import useModalA11y from '../hooks/useModalA11y';
+import { X, ChevronLeft, ChevronRight, Expand, Download } from 'lucide-react';
 
 export default function PhotoLightbox({ 
   photos, 
@@ -12,6 +13,11 @@ export default function PhotoLightbox({
 }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartRef = useRef({ x: 0, y: 0, distance: 0 });
+  const imageRef = useRef(null);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -67,6 +73,79 @@ export default function PhotoLightbox({
     }
   };
 
+  // Touch gesture handling for pinch-zoom
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchStartRef.current = { ...touchStartRef.current, distance };
+    } else if (e.touches.length === 1 && scale > 1) {
+      touchStartRef.current = {
+        ...touchStartRef.current,
+        x: e.touches[0].clientX - position.x,
+        y: e.touches[0].clientY - position.y,
+      };
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const distance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = distance - touchStartRef.current.distance;
+      const newScale = Math.min(Math.max(1, scale + delta * 0.01), 4);
+      setScale(newScale);
+      touchStartRef.current.distance = distance;
+    } else if (e.touches.length === 1 && scale > 1 && isDragging) {
+      e.preventDefault();
+      setPosition({
+        x: e.touches[0].clientX - touchStartRef.current.x,
+        y: e.touches[0].clientY - touchStartRef.current.y,
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (scale < 1.2) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const handleWheel = (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY * -0.01;
+      const newScale = Math.min(Math.max(1, scale + delta), 4);
+      setScale(newScale);
+      if (newScale === 1) setPosition({ x: 0, y: 0 });
+    }
+  };
+
+  const resetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+    setIsZoomed(false);
+  };
+
+  const toggleZoom = () => {
+    if (scale > 1) {
+      resetZoom();
+    } else {
+      setScale(2);
+      setIsZoomed(true);
+    }
+  };
+
+  const containerRef = useModalA11y({ open: isOpen, onClose });
+
   if (!isOpen || !photos || photos.length === 0) return null;
 
   const currentPhoto = photos[currentIndex];
@@ -74,6 +153,11 @@ export default function PhotoLightbox({
   return (
     <AnimatePresence>
       <motion.div
+        ref={containerRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={activityTitle || 'معرض الصور'}
         className="fixed inset-0 z-[300] flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -103,48 +187,56 @@ export default function PhotoLightbox({
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
                 title="تحميل الصورة"
               >
-                <FaDownload />
+                <Download className="w-5 h-5" />
               </button>
               <button
-                onClick={() => setIsZoomed(!isZoomed)}
+                onClick={toggleZoom}
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-white transition-all ${
-                  isZoomed ? 'bg-primary' : 'bg-white/10 hover:bg-white/20'
+                  scale > 1 ? 'bg-primary' : 'bg-white/10 hover:bg-white/20'
                 }`}
                 title="تكبير"
               >
-                <FaExpand />
+                <Expand className="w-5 h-5" />
               </button>
               <button
                 onClick={onClose}
                 className="w-10 h-10 rounded-full bg-white/10 hover:bg-red-500 flex items-center justify-center text-white transition-all"
                 title="إغلاق"
               >
-                <FaTimes />
+                <X className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
 
         {/* Main Image */}
-        <motion.div 
-          className={`relative z-10 w-full h-full flex items-center justify-center p-4 pt-20 pb-24 ${
-            isZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
+        <motion.div
+          ref={imageRef}
+          className={`relative z-10 w-full h-full flex items-center justify-center p-4 pt-20 pb-24 overflow-hidden ${
+            scale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'
           }`}
-          onClick={() => setIsZoomed(!isZoomed)}
+          onClick={toggleZoom}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onWheel={handleWheel}
         >
           <motion.img
             key={currentIndex}
             src={currentPhoto.image_url}
             alt={currentPhoto.caption || `صورة ${currentIndex + 1}`}
-            className={`max-h-full rounded-lg shadow-2xl transition-transform duration-300 ${
-              isZoomed ? 'max-w-none scale-150' : 'max-w-full object-contain'
-            }`}
+            className="max-h-full rounded-lg shadow-2xl"
+            style={{
+              transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+              transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+              maxWidth: scale > 1 ? 'none' : '100%',
+            }}
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
             onClick={(e) => {
               e.stopPropagation();
-              setIsZoomed(!isZoomed);
+              toggleZoom();
             }}
           />
         </motion.div>
@@ -165,21 +257,21 @@ export default function PhotoLightbox({
               onClick={(e) => {
                 e.stopPropagation();
                 setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
-                setIsZoomed(false);
+                resetZoom();
               }}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all group"
             >
-              <FaChevronRight className="text-xl group-hover:scale-110 transition-transform" />
+              <ChevronRight className="w-6 h-6 group-hover:scale-110 transition-transform" />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setCurrentIndex((prev) => (prev + 1) % photos.length);
-                setIsZoomed(false);
+                resetZoom();
               }}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all group"
             >
-              <FaChevronLeft className="text-xl group-hover:scale-110 transition-transform" />
+              <ChevronLeft className="w-6 h-6 group-hover:scale-110 transition-transform" />
             </button>
           </>
         )}
@@ -202,9 +294,12 @@ export default function PhotoLightbox({
                       : 'border-transparent opacity-50 hover:opacity-100'
                   }`}
                 >
-                  <img
+                  <Image
                     src={photo.image_url}
                     alt={`صورة ${index + 1}`}
+                    width={64}
+                    height={64}
+                    sizes="64px"
                     className="w-full h-full object-cover"
                   />
                 </button>

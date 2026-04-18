@@ -2,6 +2,7 @@
 
 import { createClient } from '../utils/supabase/client';
 import { useEffect, useState, useCallback, useMemo, memo } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,7 +15,9 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence, useDragControls, useMotionValue, useTransform } from 'framer-motion';
 import { updateActivityStatuses } from '../utils/activityHelpers';
 import { useProfile } from '../context/ProfileContext';
-import ChildProfileModal from '../components/ChildProfileModal';
+import dynamic from 'next/dynamic';
+
+const ChildProfileModal = dynamic(() => import('../components/ChildProfileModal'), { ssr: false });
 
 /* ========================================== */
 /* HELPERS                                    */
@@ -188,8 +191,9 @@ const SmallActivityCard = memo(function SmallActivityCard({ activity, onClick, i
         <div className="w-28 sm:w-36 md:w-40 shrink-0 rounded-[1.5rem] overflow-hidden relative">
           {activity.image_url ? (
             <>
-              <img src={activity.image_url} alt={activity.title}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+              <Image src={activity.image_url} alt={activity.title}
+                fill sizes="(max-width: 768px) 160px, 160px"
+                className="object-cover transition-transform duration-700 group-hover:scale-110" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </>
           ) : (
@@ -513,8 +517,9 @@ export default function Dashboard() {
               onClick={() => setSelectedActivity(heroUpcoming)}
             >
               {heroUpcoming.image_url
-                ? <img src={heroUpcoming.image_url} alt={heroUpcoming.title}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+                ? <Image src={heroUpcoming.image_url} alt={heroUpcoming.title}
+                    fill priority sizes="(max-width: 1024px) 100vw, 1024px"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105" />
                 : <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary" />
               }
               <div className="absolute inset-0 bg-gradient-to-t from-neutral via-neutral/40 to-transparent opacity-90" />
@@ -593,8 +598,9 @@ export default function Dashboard() {
                 {heroRecent.image_url && (
                   <div className="w-full lg:w-1/2 h-[280px] lg:h-auto relative overflow-hidden order-1 lg:order-2 cursor-pointer p-4 lg:p-6 lg:pl-0">
                     <div className="w-full h-full rounded-[2rem] overflow-hidden relative bg-base-300">
-                      <img src={heroRecent.image_url} alt={heroRecent.title}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                      <Image src={heroRecent.image_url} alt={heroRecent.title}
+                        fill sizes="(max-width: 1024px) 100vw, 50vw"
+                        className="object-cover transition-transform duration-700 group-hover:scale-105" />
                       <div
                         className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center"
                         onClick={(e) => { e.stopPropagation(); setExpandedImage(heroRecent.image_url); }}
@@ -694,7 +700,7 @@ export default function Dashboard() {
                   className="w-full h-[35vh] sm:h-[45vh] relative cursor-pointer group"
                   onClick={() => setExpandedImage(selectedActivity.image_url)}
                 >
-                  <img src={selectedActivity.image_url} alt={selectedActivity.title} className="w-full h-full object-cover" />
+                  <Image src={selectedActivity.image_url} alt={selectedActivity.title} fill sizes="100vw" className="object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-neutral/30 backdrop-blur-sm flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
                     <FaExpand className="text-2xl" />

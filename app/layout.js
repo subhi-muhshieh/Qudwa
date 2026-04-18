@@ -2,10 +2,55 @@ import { Tajawal, Noto_Nastaliq_Urdu } from "next/font/google";
 import localFont from 'next/font/local';
 import "./globals.css";
 import Navbar from "./components/Navbar";
-import { Toaster } from "react-hot-toast";
 import Footer from "./components/Footer";
+import { Toaster } from "react-hot-toast";
 import { ProfileProvider } from "./context/ProfileContext";
-import ChatIcon from "./components/ChatIcon";
+import JsonLd from "./components/JsonLd";
+import dynamic from "next/dynamic";
+
+const ChatIcon = dynamic(() => import("./components/ChatIcon"));
+
+const SITE_URL = "https://qudwa.pages.dev";
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "NGO",
+  name: "جمعية قدوة",
+  alternateName: "Qudwa Association",
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo.png`,
+  slogan: "جيلٌ يبني... أثرٌ يبقى",
+  description:
+    "جمعية قدوة - جمعية تربوية غير ربحية تقدم برامج تعليمية وأنشطة مجتمعية للأطفال والشباب.",
+  areaServed: "SY",
+  sameAs: [
+    "https://www.instagram.com/QudwaAssoc",
+    "https://www.facebook.com/QudwaAssoc",
+    "https://t.me/QudwaAssoc",
+    "https://wa.me/963980931111",
+  ],
+  contactPoint: [
+    {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      telephone: "+963-98-093-1111",
+      availableLanguage: ["ar", "en"],
+    },
+  ],
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  url: SITE_URL,
+  name: "جمعية قدوة",
+  inLanguage: "ar",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: `${SITE_URL}/activities?q={search_term_string}`,
+    "query-input": "required name=search_term_string",
+  },
+};
 
 const tajawal = Tajawal({ 
   subsets: ["arabic"], 
@@ -102,33 +147,38 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ar" dir="rtl" data-theme="qudwaTheme" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" data-theme="qudwaTheme" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <link rel="preload" href="/logo.png" as="image" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+        <JsonLd data={organizationSchema} id="ld-organization" />
+        <JsonLd data={websiteSchema} id="ld-website" />
       </head>
-      <body 
+      <body
         className={`${tajawal.variable} ${nastaliq.variable} ${sloganFont.variable} font-sans`}
         suppressHydrationWarning
       >
         <ProfileProvider>
+          <a href="#main-content" className="skip-link">
+            تخطَّ إلى المحتوى الرئيسي
+          </a>
           <Navbar />
-          {children}
+          <div id="main-content">{children}</div>
           <Footer />
           <ChatIcon />
 
-          <Toaster 
-            position="bottom-center" 
-            toastOptions={{ 
+          <Toaster
+            position="bottom-center"
+            toastOptions={{
               style: {
                 background: '#0c4a6e',
                 color: '#fff',
                 borderRadius: '1rem',
                 fontFamily: 'var(--font-tajawal)'
-              } 
-            }} 
+              }
+            }}
           />
         </ProfileProvider>
       </body>

@@ -1,10 +1,14 @@
 'use client'
 import { useState, useEffect, memo } from 'react';
+import Image from 'next/image';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FaImages, FaCalendarAlt, FaExpand, FaArrowLeft } from 'react-icons/fa';
-import PhotoLightbox from '../components/PhotoLightbox';
+import { Images, Calendar, Expand, ArrowLeft } from 'lucide-react';
+import Masonry from 'react-masonry-css';
+import dynamic from 'next/dynamic';
+
+const PhotoLightbox = dynamic(() => import('../components/PhotoLightbox'), { ssr: false });
 
 /* ========================================== */
 /* SKELETON UI                               */
@@ -116,6 +120,15 @@ export default function GalleryPage() {
     return activity?.title || '';
   };
 
+  // Masonry layout breakpoints
+  const masonryBreakpoints = {
+    default: 4,
+    1280: 4,
+    1024: 3,
+    768: 2,
+    640: 2,
+  };
+
   if (loading) return <GallerySkeleton />;
 
   return (
@@ -134,7 +147,7 @@ export default function GalleryPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <div className="w-20 h-20 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm border border-primary/10">
-            <FaImages className="text-4xl text-primary" />
+            <Images className="text-4xl text-primary" />
           </div>
           <h1 className="text-4xl md:text-5xl font-black text-slate-800 mb-4 tracking-tight drop-shadow-sm">
             معرض الصور
@@ -161,7 +174,7 @@ export default function GalleryPage() {
               }`}
             >
               <span className="flex items-center gap-2 text-sm md:text-base">
-                <FaImages />
+                <Images className="w-4 h-4" />
                 جميع الصور
                 <span className={`px-2 py-0.5 rounded-lg text-xs ${selectedActivity === null ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
                   {allPhotos.length}
@@ -197,52 +210,60 @@ export default function GalleryPage() {
           <span className="text-slate-400 font-bold">({getPhotosToDisplay().length} صورة)</span>
         </div>
 
-        {/* Photo Grid */}
+        {/* Photo Masonry Grid */}
         {getPhotosToDisplay().length > 0 ? (
-          <motion.div 
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4"
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            {getPhotosToDisplay().map((photo, index) => (
-              <motion.div
-                key={photo.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.03 }}
-                className="group relative aspect-square rounded-[1.5rem] overflow-hidden bg-slate-100 cursor-pointer shadow-[0_4px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_15px_35px_rgb(0,0,0,0.08)] transition-all duration-500"
-                onClick={() => openLightbox(getPhotosToDisplay(), index, getActivityTitle())}
-              >
-                <img
-                  src={photo.image_url}
-                  alt={photo.caption || `صورة ${index + 1}`}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    {photo.caption && (
-                      <p className="text-white text-sm font-bold truncate mb-1 drop-shadow-md">
-                        {photo.caption}
-                      </p>
-                    )}
-                    {selectedActivity === null && photo.activityTitle && (
-                      <p className="text-white/80 text-xs font-medium truncate drop-shadow-sm">
-                        {photo.activityTitle}
-                      </p>
-                    )}
+            <Masonry
+              breakpointCols={masonryBreakpoints}
+              className="flex w-auto -ml-4"
+              columnClassName="pl-4 bg-clip-padding"
+            >
+              {getPhotosToDisplay().map((photo, index) => (
+                <motion.div
+                  key={photo.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  className="group relative mb-4 rounded-[1.5rem] overflow-hidden bg-slate-100 cursor-pointer shadow-[0_4px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_15px_35px_rgb(0,0,0,0.08)] transition-all duration-500"
+                  onClick={() => openLightbox(getPhotosToDisplay(), index, getActivityTitle())}
+                >
+                  <div className="relative aspect-[4/3]">
+                    <Image
+                      src={photo.image_url}
+                      alt={photo.caption || `صورة ${index + 1}`}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
                   </div>
-                  
-                  <div className="absolute top-3 left-3">
-                    <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300">
-                      <FaExpand className="text-white text-xs" />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      {photo.caption && (
+                        <p className="text-white text-sm font-bold truncate mb-1 drop-shadow-md">
+                          {photo.caption}
+                        </p>
+                      )}
+                      {selectedActivity === null && photo.activityTitle && (
+                        <p className="text-white/80 text-xs font-medium truncate drop-shadow-sm">
+                          {photo.activityTitle}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="absolute top-3 left-3">
+                      <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300">
+                        <Expand className="w-3 h-3 text-white" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </Masonry>
           </motion.div>
         ) : (
           <motion.div 
@@ -251,7 +272,7 @@ export default function GalleryPage() {
             animate={{ opacity: 1, scale: 1 }}
           >
             <div className="w-24 h-24 bg-slate-100 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-              <FaImages className="text-4xl text-slate-300" />
+              <Images className="w-10 h-10 text-slate-300" />
             </div>
             <h3 className="text-2xl font-black text-slate-800 mb-2">لا توجد صور بعد</h3>
             <p className="text-slate-500 font-medium">سيتم إضافة الصور وتوثيق الأنشطة قريباً.</p>
@@ -282,16 +303,17 @@ export default function GalleryPage() {
                   onClick={() => setSelectedActivity(activity.id)}
                 >
                   <div className="relative h-56 overflow-hidden shrink-0">
-                    <img
+                    <Image
                       src={activity.activity_photos[0]?.image_url || activity.image_url || '/placeholder.jpg'}
                       alt={activity.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
                     
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-2">
-                      <FaImages className="text-primary/70" />
+                      <Images className="w-4 h-4 text-primary/70" />
                       {activity.activity_photos.length} صور
                     </div>
 
@@ -302,10 +324,12 @@ export default function GalleryPage() {
                           className="w-10 h-10 rounded-[0.8rem] overflow-hidden border-2 border-white shadow-md"
                           style={{ zIndex: 4 - i }}
                         >
-                          <img 
-                            src={photo.image_url} 
-                            alt="" 
-                            loading="lazy"
+                          <Image
+                            src={photo.image_url}
+                            alt=""
+                            width={40}
+                            height={40}
+                            sizes="40px"
                             className="w-full h-full object-cover" 
                           />
                         </div>
@@ -326,7 +350,7 @@ export default function GalleryPage() {
                     </h3>
                     {activity.activity_date && (
                       <p className="text-slate-500 text-sm font-medium flex items-center gap-2 mb-4">
-                        <FaCalendarAlt className="text-primary/60" />
+                        <Calendar className="w-4 h-4 text-primary/60" />
                         {activity.activity_date}
                       </p>
                     )}
@@ -334,7 +358,7 @@ export default function GalleryPage() {
                     <div className="mt-auto border-t border-slate-100 pt-5">
                       <span className="text-slate-400 group-hover:text-primary text-sm font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
                         عرض ألبوم الصور
-                        <FaArrowLeft className="text-xs" />
+                        <ArrowLeft className="w-3 h-3" />
                       </span>
                     </div>
                   </div>
