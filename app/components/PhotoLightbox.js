@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useModalA11y from '../hooks/useModalA11y';
 import { X, ChevronLeft, ChevronRight, Expand, Download } from 'lucide-react';
+import Image from 'next/image';
 
 export default function PhotoLightbox({ 
   photos, 
@@ -11,6 +12,7 @@ export default function PhotoLightbox({
   onClose,
   activityTitle 
 }) {
+  const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
   const [scale, setScale] = useState(1);
@@ -18,6 +20,10 @@ export default function PhotoLightbox({
   const [isDragging, setIsDragging] = useState(false);
   const touchStartRef = useRef({ x: 0, y: 0, distance: 0 });
   const imageRef = useRef(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+  }, [currentIndex]);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -57,6 +63,26 @@ export default function PhotoLightbox({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
+  // Preload next and previous images for instant swiping
+  useEffect(() => {
+    if (!isOpen || !photos || photos.length === 0) return;
+
+    const preloadImage = (index) => {
+      if (photos[index]?.image_url) {
+        const img = new window.Image();
+        img.src = photos[index].image_url;
+      }
+    };
+
+    // Preload next image
+    const nextIndex = (currentIndex + 1) % photos.length;
+    preloadImage(nextIndex);
+
+    // Preload previous image
+    const prevIndex = (currentIndex - 1 + photos.length) % photos.length;
+    preloadImage(prevIndex);
+
+  }, [currentIndex, isOpen, photos]);
   const handleDownload = async () => {
     const photo = photos[currentIndex];
     try {
@@ -81,11 +107,13 @@ export default function PhotoLightbox({
         e.touches[0].clientY - e.touches[1].clientY
       );
       touchStartRef.current = { ...touchStartRef.current, distance };
-    } else if (e.touches.length === 1 && scale > 1) {
+    } else if (e.touches.length === 1) {
+      // Record starting X for swipe detection, or pan if zoomed
       touchStartRef.current = {
         ...touchStartRef.current,
         x: e.touches[0].clientX - position.x,
         y: e.touches[0].clientY - position.y,
+        startX: e.touches[0].clientX, // NEW: Track initial touch point
       };
       setIsDragging(true);
     }
@@ -111,12 +139,31 @@ export default function PhotoLightbox({
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
     setIsDragging(false);
+    
+    // NEW: Handle swipe to navigate if not zoomed
+    if (scale === 1 && touchStartRef.current.startX) {
+      const endX = e.changedTouches[0].clientX;
+      const deltaX = endX - touchStartRef.current.startX;
+      
+      // If swiped left/right by more than 50px
+      if (Math.abs(deltaX) > 50) {
+        if (deltaX > 0) {
+           // Swiped Right -> Previous Photo (assuming RTL layout)
+           setCurrentIndex((prev) => (prev + 1) % photos.length);
+        } else {
+           // Swiped Left -> Next Photo
+           setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+        }
+      }
+    }
+
     if (scale < 1.2) {
       setScale(1);
       setPosition({ x: 0, y: 0 });
     }
+    touchStartRef.current.startX = null; // Reset
   };
 
   const handleWheel = (e) => {
@@ -172,7 +219,7 @@ export default function PhotoLightbox({
         />
 
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/80 to-transparent">
+<div className="absolute top-0 left-0 right-0 z-50 p-4 pt-[max(1rem,env(safe-area-inset-top))] bg-gradient-to-b from-black/80 to-transparent">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="text-white">
               <h3 className="font-bold text-lg">{activityTitle}</h3>
@@ -199,47 +246,57 @@ export default function PhotoLightbox({
                 <Expand className="w-5 h-5" />
               </button>
               <button
-                onClick={onClose}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-red-500 flex items-center justify-center text-white transition-all"
-                title="إغلاق"
-              >
-                <X className="w-5 h-5" />
-              </button>
+  onClick={(e) => {
+    e.stopPropagation();
+    onClose();
+  }}
+  className="w-10 h-10 rounded-full bg-white/10 hover:bg-red-500 flex items-center justify-center text-white transition-all"
+  title="إغلاق"
+>
+  <X className="w-5 h-5" />
+</button>
             </div>
           </div>
         </div>
 
-        {/* Main Image */}
-        <motion.div
-          ref={imageRef}
-          className={`relative z-10 w-full h-full flex items-center justify-center p-4 pt-20 pb-24 overflow-hidden ${
-            scale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'
-          }`}
-          onClick={toggleZoom}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onWheel={handleWheel}
-        >
-          <motion.img
-            key={currentIndex}
-            src={currentPhoto.image_url}
-            alt={currentPhoto.caption || `صورة ${currentIndex + 1}`}
-            className="max-h-full rounded-lg shadow-2xl"
-            style={{
-              transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
-              transition: isDragging ? 'none' : 'transform 0.3s ease-out',
-              maxWidth: scale > 1 ? 'none' : '100%',
-            }}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleZoom();
-            }}
-          />
-        </motion.div>
+        {/* Main Image Container */}
+<motion.div
+  ref={imageRef}
+  className={`relative z-10 w-full h-full flex items-center justify-center p-4 pt-[max(5rem,env(safe-area-inset-top))] pb-[max(6rem,env(safe-area-inset-bottom))] overflow-hidden ${
+    scale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'
+  }`}
+  onClick={toggleZoom}
+  onTouchStart={handleTouchStart}
+  onTouchMove={handleTouchMove}
+  onTouchEnd={handleTouchEnd}
+  onWheel={handleWheel}
+>
+  {/* The Loading Spinner */}
+  {isLoading && (
+    <div className="absolute inset-0 flex items-center justify-center z-0">
+      <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+    </div>
+  )}
+
+  <motion.img
+    key={currentIndex}
+    src={currentPhoto.image_url}
+    alt={currentPhoto.caption || `صورة ${currentIndex + 1}`}
+    className={`max-h-full rounded-lg shadow-2xl transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+    style={{
+      transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+      transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+      maxWidth: scale > 1 ? 'none' : '100%',
+    }}
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    onLoad={() => setIsLoading(false)} // Hides the spinner when ready
+    onClick={(e) => {
+      e.stopPropagation();
+      toggleZoom();
+    }}
+  />
+</motion.div>
 
         {/* Caption */}
         {currentPhoto.caption && (
@@ -278,7 +335,7 @@ export default function PhotoLightbox({
 
         {/* Thumbnail Strip */}
         {photos.length > 1 && (
-          <div className="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/80 to-transparent">
+         <div className="absolute bottom-0 left-0 right-0 z-50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 to-transparent">
             <div className="flex gap-2 justify-center overflow-x-auto pb-2 scrollbar-hide">
               {photos.map((photo, index) => (
                 <button
