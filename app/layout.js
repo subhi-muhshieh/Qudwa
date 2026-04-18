@@ -76,6 +76,7 @@ const sloganFont = localFont({
 });
 
 export const metadata = {
+ openGraph: { images: ['/my-static-og.png'], },
   title: "جمعية قدوة | Qudwa Association",
   description: "جمعية قدوة - جيلٌ يبني... أثرٌ يبقى. جمعية تربوية غير ربحية تهدف لبناء جيل واعٍ من خلال البرامج التعليمية والأنشطة المجتمعية للأطفال والشباب",
   keywords: [

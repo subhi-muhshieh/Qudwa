@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { redirect } from 'next/navigation';
 import { createClient } from './utils/supabase/server';
 import LandingContent from './components/LandingContent';
