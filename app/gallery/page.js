@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import { createClient } from '../utils/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -106,19 +106,28 @@ export default function GalleryPage() {
     setLightboxOpen(true);
   };
 
-  const getPhotosToDisplay = () => {
+  // Memoize expensive computations
+  const photosToDisplay = useMemo(() => {
     if (selectedActivity === null) {
       return allPhotos;
     }
     const activity = activities.find(a => a.id === selectedActivity);
     return activity?.activity_photos || [];
-  };
+  }, [selectedActivity, allPhotos, activities]);
 
-  const getActivityTitle = () => {
+  const activityTitle = useMemo(() => {
     if (selectedActivity === null) return 'جميع الصور';
     const activity = activities.find(a => a.id === selectedActivity);
     return activity?.title || '';
-  };
+  }, [selectedActivity, activities]);
+
+  // Stable callback for opening lightbox
+  const handlePhotoClick = useCallback((photo, index) => {
+    setLightboxPhotos(photosToDisplay);
+    setLightboxIndex(index);
+    setLightboxTitle(activityTitle);
+    setLightboxOpen(true);
+  }, [photosToDisplay, activityTitle]);
 
   // Masonry layout breakpoints
   const masonryBreakpoints = {
@@ -170,7 +179,7 @@ export default function GalleryPage() {
               className={`px-6 py-3 rounded-2xl font-bold transition-all duration-300 border ${
                 selectedActivity === null
                   ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105 border-transparent'
-                  : 'bg-white/60 backdrop-blur-md border-white/60 text-slate-500 hover:text-primary hover:bg-white shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-500 hover:text-primary hover:bg-slate-50 shadow-sm'
               }`}
             >
               <span className="flex items-center gap-2 text-sm md:text-base">
@@ -189,7 +198,7 @@ export default function GalleryPage() {
                 className={`px-6 py-3 rounded-2xl font-bold transition-all duration-300 border ${
                   selectedActivity === activity.id
                     ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105 border-transparent'
-                    : 'bg-white/60 backdrop-blur-md border-white/60 text-slate-500 hover:text-primary hover:bg-white shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-500 hover:text-primary hover:bg-slate-50 shadow-sm'
                 }`}
               >
                 <span className="flex items-center gap-2 text-sm md:text-base">
@@ -206,30 +215,23 @@ export default function GalleryPage() {
         {/* Current Section Title */}
         <div className="flex items-center gap-3 mb-8 px-2">
           <div className="w-2 h-8 bg-gradient-to-b from-primary to-secondary rounded-full"></div>
-          <h2 className="text-2xl font-black text-slate-800">{getActivityTitle()}</h2>
-          <span className="text-slate-400 font-bold">({getPhotosToDisplay().length} صورة)</span>
+          <h2 className="text-2xl font-black text-slate-800">{activityTitle}</h2>
+          <span className="text-slate-400 font-bold">({photosToDisplay.length} صورة)</span>
         </div>
 
         {/* Photo Masonry Grid */}
-        {getPhotosToDisplay().length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
+        {photosToDisplay.length > 0 ? (
+          <div className="opacity-0 animate-fadeIn">
             <Masonry
               breakpointCols={masonryBreakpoints}
               className="flex w-auto -ml-4"
               columnClassName="pl-4 bg-clip-padding"
             >
-              {getPhotosToDisplay().map((photo, index) => (
-                <motion.div
+              {photosToDisplay.map((photo, index) => (
+                <div
                   key={photo.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className="group relative mb-4 rounded-[1.5rem] overflow-hidden bg-slate-100 cursor-pointer shadow-[0_4px_15px_rgb(0,0,0,0.03)] hover:shadow-[0_15px_35px_rgb(0,0,0,0.08)] transition-all duration-500"
-                  onClick={() => openLightbox(getPhotosToDisplay(), index, getActivityTitle())}
+                  className="group relative mb-4 rounded-[1.5rem] overflow-hidden bg-slate-100 cursor-pointer shadow-sm hover:shadow-lg transition-shadow duration-300"
+                  onClick={() => handlePhotoClick(photo, index)}
                 >
                   <div className="relative aspect-[4/3]">
                     <Image
@@ -237,7 +239,8 @@ export default function GalleryPage() {
                       alt={photo.caption || `صورة ${index + 1}`}
                       fill
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading={index < 8 ? "eager" : "lazy"}
                     />
                   </div>
 
@@ -256,18 +259,18 @@ export default function GalleryPage() {
                     </div>
 
                     <div className="absolute top-3 left-3">
-                      <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300">
+                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center border border-white/20 shadow-lg scale-75 group-hover:scale-100 transition-transform duration-300">
                         <Expand className="w-3 h-3 text-white" />
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))}
             </Masonry>
-          </motion.div>
+          </div>
         ) : (
           <motion.div 
-            className="max-w-2xl mx-auto text-center bg-white/70 backdrop-blur-xl rounded-[3rem] p-10 md:p-16 shadow-[0_10px_40px_rgb(0,0,0,0.03)] border border-white/60"
+            className="max-w-2xl mx-auto text-center bg-white rounded-[3rem] p-10 md:p-16 shadow-lg border border-slate-100"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
           >
@@ -299,7 +302,7 @@ export default function GalleryPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 * index }}
-                  className="group flex flex-col bg-white/70 backdrop-blur-md border border-white/60 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(0,0,0,0.08)] transition-all duration-500 overflow-hidden cursor-pointer"
+                  className="group flex flex-col bg-white border border-slate-100 rounded-[2.5rem] shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden cursor-pointer"
                   onClick={() => setSelectedActivity(activity.id)}
                 >
                   <div className="relative h-56 overflow-hidden shrink-0">
@@ -312,7 +315,7 @@ export default function GalleryPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
                     
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-2">
+                    <div className="absolute top-4 right-4 bg-white text-slate-800 text-xs font-black px-3 py-1.5 rounded-xl shadow-sm flex items-center gap-2">
                       <Images className="w-4 h-4 text-primary/70" />
                       {activity.activity_photos.length} صور
                     </div>
@@ -335,7 +338,7 @@ export default function GalleryPage() {
                         </div>
                       ))}
                       {activity.activity_photos.length > 4 && (
-                        <div className="w-10 h-10 rounded-[0.8rem] bg-slate-900/80 backdrop-blur-sm border-2 border-white flex items-center justify-center shadow-md">
+                        <div className="w-10 h-10 rounded-[0.8rem] bg-slate-900 border-2 border-white flex items-center justify-center shadow-md">
                           <span className="text-white text-xs font-bold">
                             +{activity.activity_photos.length - 4}
                           </span>

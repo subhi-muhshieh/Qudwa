@@ -63,25 +63,26 @@ export default function PhotoLightbox({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Preload next and previous images for instant swiping
+  // Preload next and previous images - debounced for performance
   useEffect(() => {
     if (!isOpen || !photos || photos.length === 0) return;
 
-    const preloadImage = (index) => {
-      if (photos[index]?.image_url) {
-        const img = new window.Image();
-        img.src = photos[index].image_url;
-      }
-    };
+    // Only preload after user stops swiping for 300ms
+    const timer = setTimeout(() => {
+      const preloadImage = (index) => {
+        if (photos[index]?.image_url) {
+          const img = new window.Image();
+          img.src = photos[index].image_url;
+        }
+      };
 
-    // Preload next image
-    const nextIndex = (currentIndex + 1) % photos.length;
-    preloadImage(nextIndex);
+      const nextIndex = (currentIndex + 1) % photos.length;
+      const prevIndex = (currentIndex - 1 + photos.length) % photos.length;
+      preloadImage(nextIndex);
+      preloadImage(prevIndex);
+    }, 300);
 
-    // Preload previous image
-    const prevIndex = (currentIndex - 1 + photos.length) % photos.length;
-    preloadImage(prevIndex);
-
+    return () => clearTimeout(timer);
   }, [currentIndex, isOpen, photos]);
   const handleDownload = async () => {
     const photo = photos[currentIndex];
@@ -212,7 +213,7 @@ export default function PhotoLightbox({
       >
         {/* Backdrop */}
         <motion.div 
-          className="absolute inset-0 bg-black/95 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/95"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
